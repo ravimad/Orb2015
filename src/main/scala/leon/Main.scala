@@ -26,7 +26,8 @@ object Main {
       solvers.isabelle.AdaptationPhase,
       solvers.isabelle.IsabellePhase,
       transformations.InstrumentationPhase,
-      invariant.engine.InferInvariantsPhase)
+      invariant.engine.InferInvariantsPhase,
+      estimations.StackTestGenPhase)
   }
 
   // Add whatever you need here.
@@ -52,9 +53,10 @@ object Main {
     val optHelp        = LeonFlagOptionDef("help",        "Show help message",                                     false)
     val optInstrument = LeonFlagOptionDef("instrument", "Instrument the code for inferring time/depth/stack bounds", false)
     val optInferInv = LeonFlagOptionDef("inferInv", "Infer invariants from (instrumented) the code", false)
+    val optGenStackTest = LeonFlagOptionDef("genStackTest",  "Gen. a program to estimate actual stack usage",               false)
 
     override val definedOptions: Set[LeonOptionDef[Any]] =
-      Set(optTermination, optRepair, optSynthesis, optIsabelle, optNoop, optHelp, optEval, optVerify, optInstrument, optInferInv)
+      Set(optTermination, optRepair, optSynthesis, optIsabelle, optNoop, optHelp, optEval, optVerify, optInstrument, optInferInv, optGenStackTest)
   }
 
   lazy val allOptions: Set[LeonOptionDef[Any]] = allComponents.flatMap(_.definedOptions)
@@ -153,6 +155,7 @@ object Main {
     import MainComponent._
     import invariant.engine.InferInvariantsPhase
     import transformations.InstrumentationPhase
+    import estimations.StackTestGenPhase
 
     val helpF        = ctx.findOptionOrDefault(optHelp)
     val noopF        = ctx.findOptionOrDefault(optNoop)
@@ -165,6 +168,7 @@ object Main {
     val evalF        = ctx.findOption(optEval).isDefined
     val inferInvF = ctx.findOptionOrDefault(optInferInv)
     val instrumentF = ctx.findOptionOrDefault(optInstrument)
+    val genStackTestF  = ctx.findOptionOrDefault(optGenStackTest)
     val analysisF    = verifyF && terminationF
 
     if (helpF) {
@@ -187,6 +191,7 @@ object Main {
         else if (evalF) EvaluationPhase
         else if (inferInvF) InstrumentationPhase andThen InferInvariantsPhase
         else if (instrumentF) InstrumentationPhase andThen FileOutputPhase
+        else if (genStackTestF) StackTestGenPhase
         else analysis
 
       }
