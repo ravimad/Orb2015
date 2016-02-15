@@ -236,13 +236,23 @@ object ProgramUtil {
   }
 
   def translateExprToProgram(ine: Expr, currProg: Program, newProg: Program): Expr = {
+    var funCache = Map[String, Option[FunDef]]()
+    def funInNewprog(fn: String) =
+      funCache.get(fn) match {
+        case None =>
+          val fd = functionByName(fn, newProg)
+          funCache += (fn -> fd)
+          fd
+        case Some(fd) => fd
+      }
     simplePostTransform {
       case FunctionInvocation(TypedFunDef(fd, tps), args) =>
-        functionByName(fullName(fd)(currProg), newProg) match {
+        val fname = fullName(fd)(currProg)
+        funInNewprog(fname) match {
           case Some(nfd) =>
             FunctionInvocation(TypedFunDef(nfd, tps), args)
           case _ =>
-            throw new IllegalStateException(s"Cannot find translation for ${fd.id.name}")
+            throw new IllegalStateException(s"Cannot find translation for ${fname}")
         }
       case e => e
     }(ine)
