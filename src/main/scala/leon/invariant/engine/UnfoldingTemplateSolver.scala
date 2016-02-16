@@ -8,6 +8,7 @@ import purescala.ExprOps._
 import purescala.Types._
 import purescala.DefOps._
 import purescala.ScalaPrinter
+import purescala.Constructors._
 
 import solvers._
 import verification._
@@ -112,7 +113,7 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
               case (Some(model), callsInPath) =>
                 toRefineCalls = callsInPath
                 //Validate the model here
-                instantiateAndValidateModel(model, constTracker.getFuncs, vcExpr)
+                instantiateAndValidateModel(model, constTracker.getFuncs)
                 Some(InferResult(true, Some(model), constTracker.getFuncs.toList))
               case (None, callsInPath) =>
                 toRefineCalls = callsInPath
@@ -145,11 +146,10 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
     }.toMap
   }
 
-  def instantiateAndValidateModel(model: Model, funcs: Seq[FunDef], initVC: Expr) = {
+  def instantiateAndValidateModel(model: Model, funcs: Seq[FunDef]) = {
     val templates = instantiateModel(model, funcs)
-    val sols = TemplateInstantiator.getAllInvariants(model, templates)
-    val instVC = TemplateInstantiator.instantiate(initVC, model.map(el => (el._1.toVariable, el._2)).toMap)
-
+    val sols = TemplateInstantiator.getAllInvariants(model, templates)    
+    
     var output = "Invariants for Function: " + rootFd.id + "\n"
     sols foreach {
       case (fd, inv) =>
@@ -160,7 +160,7 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
     SpecificStats.addOutput(output)
 
     reporter.info("- Verifying Invariants... ")
-    val verifierRes = verifyInvariant(sols, instVC)
+    val verifierRes = verifyInvariant(sols)
     val finalRes = verifierRes._1 match {
       case Some(false) =>
         reporter.info("- Invariant verified")
@@ -180,77 +180,25 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
    * This function creates a new program with each function postcondition strengthened by
    * the inferred postcondition
    */
-  def verifyInvariant(newposts: Map[FunDef, Expr], initVC: Expr): (Option[Boolean], Model) = {
-//    //create a fundef for each function in the program
-//    //note: mult functions are also copied
-//    val newFundefs = program.definedFunctions.collect {
-//      case fd @ _ => { //if !isMultFunctions(fd)
-//        val newfd = new FunDef(FreshIdentifier(fd.id.name, Untyped, false), fd.tparams, fd.params, fd.returnType)
-//        (fd, newfd)
-//      }
-//    }.toMap
-//    //note:  we are not replacing "mult" function by "Times"
-//    val replaceFun = (e: Expr) => e match {
-//      case fi @ FunctionInvocation(tfd1, args) if newFundefs.contains(tfd1.fd) =>
-//        FunctionInvocation(TypedFunDef(newFundefs(tfd1.fd), tfd1.tps), args)
-//      case _ => e
-//    }
-//    //create a body, pre, post for each newfundef
-//    newFundefs.foreach((entry) => {
-//      val (fd, newfd) = entry
-//      //add a new precondition
-//      newfd.precondition =
-//        if (fd.precondition.isDefined)
-//          Some(simplePostTransform(replaceFun)(fd.precondition.get))
-//        else None
-//
-//      //add a new body
-//      newfd.body = if (fd.hasBody)
-//        Some(simplePostTransform(replaceFun)(fd.body.get))
-//      else None
-//
-//      //add a new postcondition
-//      val newpost = if (newposts.contains(fd)) {
-//        val inv = newposts(fd)
-//        if (fd.postcondition.isDefined) {
-//          val Lambda(resultBinder, _) = fd.postcondition.get
-//          Some(Lambda(resultBinder, And(fd.getPostWoTemplate, inv)))
-//        } else {
-//          //replace #res in the invariant by a new result variable
-//          val resvar = FreshIdentifier("res", fd.returnType, true)
-//          // FIXME: Is this correct (ResultVariable(fd.returnType) -> resvar.toVariable))
-//          val ninv = replace(Map(ResultVariable(fd.returnType) -> resvar.toVariable), inv)
-//          Some(Lambda(Seq(ValDef(resvar)), ninv))
-//        }
-//      } else if (fd.postcondition.isDefined) {
-//        val Lambda(resultBinder, _) = fd.postcondition.get
-//        Some(Lambda(resultBinder, fd.getPostWoTemplate))
-//      } else None
-//
-//      newfd.postcondition = if (newpost.isDefined) {
-//        val Lambda(resultBinder, pexpr) = newpost.get
-//        // Some((resvar, simplePostTransform(replaceFun)(pexpr)))
-//        Some(Lambda(resultBinder, simplePostTransform(replaceFun)(pexpr)))
-//      } else None
-//      newfd.addFlags(fd.flags)
-//    })
-//
-//    val augmentedProg = copyProgram(program, (defs: Seq[Definition]) => defs.collect {
-//      case fd: FunDef if (newFundefs.contains(fd)) => newFundefs(fd)
-//      case d if (!d.isInstanceOf[FunDef]) => d
-//    })
-    val augProg = ProgramUtil.assignTemplateAndCojoinPost(Map(), program, newposts, uniqueIdDisplay = false)
+  def verifyInvariant(newposts: Map[FunDef, Expr]): (Option[Boolean], Model) = {
+    val augProg = assignTemplateAndCojoinPost(Map(), program, newposts, uniqueIdDisplay = false)
     //convert the program back to an integer program if necessary
     val newprog =
       if (ctx.usereals) new RealToIntProgram()(augProg)
-      else augProg
-    val vc = ProgramUtil.translateExprToProgram(initVC, program, newprog)
-    // TODO: note here we must reuse the created vc, instead of creating default VC
-//    val solFactory = SolverFactory.uninterpreted(ctx.leonContext, newprog)
-//    val vericontext = VerificationContext(ctx.leonContext, newprog, solFactory, reporter)
-//    val defaultTactic = new DefaultTactic(vericontext)
-//    val vc = defaultTactic.generatePostconditions(newroot).head
-    solveUsingLeon(ctx.leonContext, newprog, VC(vc, rootFd, VCKinds.Postcondition))
+      else augProg   
+    val newroot = functionByFullName(fullName(rootFd)(program), newprog).get
+    verifyVC(newprog, newroot)
+  }
+  
+  /**
+   * Uses default postcondition VC, but can be overriden in the case of non-standard VCs
+   */
+  def verifyVC(newprog: Program, newroot: FunDef) = {
+    (newroot.postcondition, newroot.body) match {
+      case (Some(post), Some(body)) =>
+        val vc = implies(newroot.precOrTrue, application(post, Seq(body)))        
+        solveUsingLeon(ctx.leonContext, newprog, VC(vc, newroot, VCKinds.Postcondition))
+    }    
   }
 
   import leon.solvers._

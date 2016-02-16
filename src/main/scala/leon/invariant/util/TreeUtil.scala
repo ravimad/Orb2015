@@ -121,7 +121,7 @@ object ProgramUtil {
    * will be removed
    */
   def assignTemplateAndCojoinPost(funToTmpl: Map[FunDef, Expr], prog: Program,
-                                  funToPost: Map[FunDef, Expr] = Map(), uniqueIdDisplay: Boolean = true): Program = {
+                                  funToPost: Map[FunDef, Expr] = Map(), uniqueIdDisplay: Boolean = false): Program = {
 
     val funMap = functionsWOFields(prog.definedFunctions).foldLeft(Map[FunDef, FunDef]()) {
       case (accMap, fd) if fd.isTheoryOperation =>
@@ -240,7 +240,7 @@ object ProgramUtil {
     def funInNewprog(fn: String) =
       funCache.get(fn) match {
         case None =>
-          val fd = functionByName(fn, newProg)
+          val fd = functionByFullName(fn, newProg)
           funCache += (fn -> fd)
           fd
         case Some(fd) => fd
