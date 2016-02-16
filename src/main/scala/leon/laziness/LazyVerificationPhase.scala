@@ -141,17 +141,8 @@ object LazyVerificationPhase {
       val vcSolver = (funDef: FunDef, prog: Program) => new VCSolver(inferctx, prog, funDef)
       prettyPrintProgramToFile(inferctx.inferProgram, checkCtx, "-inferProg", true)
       (new InferenceEngine(inferctx)).analyseProgram(inferctx.inferProgram, funsToCheck, vcSolver, None)
-    } else {
-      val vcs = funsToCheck.map { fd =>
-        val (ants, post, tmpl) = createVC(fd)
-        if (tmpl.isDefined)
-          throw new IllegalStateException("Postcondition has holes! Run with --useOrb option")
-        val vc = implies(ants, post)
-        if (debugInstVCs)
-          println(s"VC for function ${fd.id} : " + vc)
-        VC(vc, fd, VCKinds.Postcondition)
-      }
-      val rep = checkVCs(vcs, checkCtx, p)
+    } else {      
+      val rep = checkVCs(funsToCheck.map(vcForFun), checkCtx, p)
       // record some stats
       collectCumulativeStats(rep)
       println("Resource Verification Results: \n" + rep.summaryString)
@@ -178,7 +169,17 @@ object LazyVerificationPhase {
    *  Moreover, we can add other specs as assumptions since (A => B) ^ ((A ^ B) => C) => A => B ^ C
    *  checks if the expression uses res._2 which corresponds to instvars after instrumentation
    */
-  def createVC(fd: FunDef) = {
+  def vcForFun(fd: FunDef) = {
+    val (ants, post, tmpl) = collectAntsPostTmpl(fd)
+    if (tmpl.isDefined)
+      throw new IllegalStateException("Postcondition has holes! Run with --useOrb option")
+    val vc = implies(ants, post)
+    if (debugInstVCs)
+      println(s"VC for function ${fd.id} : " + vc)
+    VC(vc, fd, VCKinds.Postcondition)
+  }
+    
+  def collectAntsPostTmpl(fd: FunDef) = {
     val Lambda(Seq(resdef), _) = fd.postcondition.get
     val (pbody, tmpl) = (fd.getPostWoTemplate, fd.template)
     val (instPost, assumptions) = pbody match {
@@ -224,13 +225,13 @@ object LazyVerificationPhase {
   	UnfoldingTemplateSolver(ctx, p, rootFd) {
 
     override def constructVC(fd: FunDef): (Expr, Expr) = {
-      val (ants, post, tmpl) = createVC(rootFd)
+      val (ants, post, tmpl) = collectAntsPostTmpl(rootFd)
       val conseq = matchToIfThenElse(createAnd(Seq(post, tmpl.getOrElse(Util.tru))))
       (matchToIfThenElse(ants), conseq)
     }
 
-//    override def verifyVC(newprog: Program, newroot: FunDef) = {
-//      checkInstrumentationSpecs(newprog, contextForChecks(ctx.leonContext), useOrb=false)    
-//    }
+    override def verifyVC(newprog: Program, newroot: FunDef) = {      
+      solveUsingLeon(contextForChecks(ctx.leonContext), newprog, vcForFun(newroot))    
+    }
   }
 }
