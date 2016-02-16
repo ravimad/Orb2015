@@ -124,9 +124,9 @@ object LazyVerificationPhase {
       }*/
   }
 
-  def checkInstrumentationSpecs(p: Program, checkCtx: LeonContext) = {
+  def checkInstrumentationSpecs(p: Program, checkCtx: LeonContext, useOrb: Boolean) = {
 
-    val useOrb = checkCtx.findOption(LazinessEliminationPhase.optUseOrb).getOrElse(false)
+    //val useOrb = checkCtx.findOption(LazinessEliminationPhase.optUseOrb).getOrElse(false)
     p.definedFunctions.foreach { fd =>
       if (fd.annotations.contains("axiom"))
         fd.addFlag(Annotation("library", Seq()))
@@ -228,5 +228,9 @@ object LazyVerificationPhase {
       val conseq = matchToIfThenElse(createAnd(Seq(post, tmpl.getOrElse(Util.tru))))
       (matchToIfThenElse(ants), conseq)
     }
+
+//    override def verifyVC(newprog: Program, newroot: FunDef) = {
+//      checkInstrumentationSpecs(newprog, contextForChecks(ctx.leonContext), useOrb=false)    
+//    }
   }
 }

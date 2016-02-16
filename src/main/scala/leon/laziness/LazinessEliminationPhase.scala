@@ -119,7 +119,8 @@ object LazinessEliminationPhase extends TransformationPhase {
     }
     // check specifications (to be moved to a different phase)
     if (!skipResourceVerification)
-      checkInstrumentationSpecs(instProg, checkCtx)
+      checkInstrumentationSpecs(instProg, checkCtx, 
+          checkCtx.findOption(LazinessEliminationPhase.optUseOrb).getOrElse(false))
     // dump stats
     dumpStats()
     instProg
