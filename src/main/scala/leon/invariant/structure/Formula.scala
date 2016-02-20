@@ -30,6 +30,7 @@ class CallData(val guard : Variable, val parents: List[FunDef])
 
 object Formula {
   val debugUnflatten = false
+  val dumpUnflatFormula = false
   // a context for creating blockers
   val blockContext = newContext
 }
@@ -270,11 +271,20 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
         sharedVars ++= newShared
         uniqueVars = (uniqueVars ++ candUniques) -- newShared
     }
+    // simplify blockers if we can
+    val blockMap = disjuncts.collect {
+      case (g, Seq(ctr)) if !paramBlockers(g) => (g.id -> ctr.toExpr) // && !ctr.isInstanceOf[LinearTemplate]
+      case (g, Seq()) => (g.id -> tru)
+    }.toMap
+    val conjs = conjuncts.map {
+      case (g, rhs) => combiningOp(g, replaceFromIDs(blockMap, rhs))
+    }.toSeq ++ roots.map(replaceFromIDs(blockMap, _))
+
     // unflatten rest
-    var flatIdMap = Map[Identifier, Expr]()
+    var flatIdMap = blockMap
     val unflatRest = (disjuncts collect {
-      case (g, ctrs) if !paramBlockers(g) =>
-        val rhs = createAnd(ctrs.map(_.toExpr))
+      case (g, ctrs) if !paramBlockers(g) && !blockMap.contains(g.id) =>
+        val rhs = replaceFromIDs(blockMap, createAnd(ctrs.map(_.toExpr)))
         val (unflatRhs, idmap) = simpleUnflattenWithMap(rhs, sharedVars, includeFuns = false)
         // sanity checks
         if (debugUnflatten) {
@@ -288,8 +298,17 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
         flatIdMap ++= idmap
         combiningOp(g, unflatRhs)
     }).toSeq
+
     val modelCons = (m: Model, eval: DefaultEvaluator) => new FlatModel(freevars, flatIdMap, m, eval)
-    val conjs = conjuncts.map{ case(g,rhs) => combiningOp(g, rhs) }.toSeq ++ roots
+
+    if (dumpUnflatFormula) {
+      val unf = ((paramPart ++ unflatRest.map(_.toString) ++ conjs.map(_.toString)).mkString("\n"))
+      val filename = "unflatVC-" + FileCountGUID.getID
+      val wr = new PrintWriter(new File(filename + ".txt"))
+      println("Printed VC of " + fd.id + " to file: " + filename)
+      wr.println(unf)
+      wr.close()
+    }
     (createAnd(paramPart), createAnd(unflatRest ++ conjs), modelCons)
   }
 
