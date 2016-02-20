@@ -419,7 +419,7 @@ object ExpressionTransformer {
   def normalizeExpr(expr: Expr, multOp: (Expr, Expr) => Expr): Expr = {
     //reduce the language before applying flatten function
     //println("Normalizing " + ScalaPrinter(expr) + "\n")
-    val redex = reduceLangBlocks(expr, multOp)
+    val redex = reduceLangBlocks(matchToIfThenElse(expr), multOp)
     //println("Redex: " + ScalaPrinter(redex) + "\n")
     val nnfExpr = TransformNot(redex)
     //println("NNFexpr: " + ScalaPrinter(nnfExpr) + "\n")
