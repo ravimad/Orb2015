@@ -296,6 +296,11 @@ object PredicateUtil {
       (e => e, base)
   }
 
+  def letStarUnapplyWithSimplify(e: Expr): (Expr => Expr, Expr) = {
+    val (letCons, letBody) = letStarUnapply(e)
+    (letCons andThen simplifyLets, letBody)
+  }
+
   /**
    * Checks if the input expression has only template variables as free variables
    */
@@ -315,6 +320,16 @@ object PredicateUtil {
     }(expr)
 
     !foundVar
+  }
+
+  def isArithmeticRelation(e: Expr) = {
+    e match {
+      case Equals(l, r) =>
+        if (l.getType == Untyped) None
+        else Some(TypeUtil.isNumericType(l.getType))
+      case _: LessThan | _: LessEquals | _: GreaterThan | _: GreaterEquals => Some(true)
+      case _ => Some(false)
+    }
   }
 
   def getTemplateIds(expr: Expr) = {

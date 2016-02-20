@@ -64,11 +64,8 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
   private val useIncrementalSolvingForVCs = true
   private val usePortfolio = false // portfolio has a bug in incremental solving
 
-  // an evaluator for extracting models
-  val defaultEval = new DefaultEvaluator(leonctx, program)
-  // an evaluator for quicky checking the result of linear predicates
-  val linearEval = new LinearRelationEvaluator(ctx)
-  // solver factory
+  val defaultEval = new DefaultEvaluator(leonctx, program)   // an evaluator for extracting models
+  val linearEval = new LinearRelationEvaluator(ctx)         // an evaluator for quickly checking the result of linear predicates
   val solverFactory =
     if (usePortfolio) {
       if (useIncrementalSolvingForVCs)
@@ -104,11 +101,10 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
 
   /**
    * This solver does not use any theories other than UF/ADT. It assumes that other theories are axiomatized in the VC.
-   * This method can overloaded by the subclasses.
+   * This method can be overloaded by the subclasses.
    */
   protected def axiomsForTheory(formula: Formula, calls: Set[Call], model: LazyModel): Seq[Constraint] = Seq()
 
-  //a helper method
   //TODO: this should also handle reals
   protected def doesSatisfyExpr(expr: Expr, model: LazyModel): Boolean = {
     val compModel = variablesOf(expr).map { k => k -> model(k) }.toMap
@@ -165,21 +161,25 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
 
     //state for minimization
     var minStarted = false
-    var minStartTime: Long = 0
     var minimized = false
-
-    def minimizationInProgress {
+    var lastMinModel: Option[Model] = None
+    var minStartTime: Long = 0 // for stats
+    def reset() = {
+      minStarted = false
+      lastMinModel = None
+    }
+    def minimizationInProgress(model: Model) {
+      lastMinModel = Some(model)
       if (!minStarted) {
         minStarted = true
         minStartTime = System.currentTimeMillis()
       }
     }
-
     def minimizationCompleted {
-      minStarted = false
-      val mintime = (System.currentTimeMillis() - minStartTime)
-      /*Stats.updateCounterTime(mintime, "minimization-time", "procs")
-    		Stats.updateCumTime(mintime, "Total-Min-Time")*/
+      reset()
+      /*val mintime = (System.currentTimeMillis() - minStartTime)
+      Stats.updateCounterTime(mintime, "minimization-time", "procs")
+    	Stats.updateCumTime(mintime, "Total-Min-Time")*/
     }
 
     def solveUNSAT(initModel: Model): (Option[Model], Option[Set[Call]], Model) = solveUNSAT(initModel, tru, Seq(), Set())
@@ -194,6 +194,8 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
       res match {
         case _ if ctx.abort =>
           (None, None, model)
+        case None if minStarted =>
+          (Some(lastMinModel.get), None, model)
         case None =>
           //here, we cannot proceed and have to return unknown
           //However, we can return the calls that need to be unrolled
@@ -201,8 +203,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
         case Some(false) =>
           //here, the vcs are unsatisfiable when instantiated with the invariant
           if (minimizer.isDefined) {
-            //for stats
-            minimizationInProgress
+            minimizationInProgress(model)
             if (minimized) {
               minimizationCompleted
               (Some(model), None, model)

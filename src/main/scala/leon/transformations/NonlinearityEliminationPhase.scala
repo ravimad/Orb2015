@@ -179,9 +179,9 @@ class NonlinearityEliminator(skipAxioms: Boolean, domain: TypeTree) {
       defs.map {
         case fd: FunDef => newFundefs(fd)
         case d => d
-      } ++ (if (addMult) Seq(multFun, pivMultFun) else Seq())
+      }
     })
-
+    //++ (if (addMult) Seq(multFun, pivMultFun) else Seq())
     if (debugNLElim)
       println("After Nonlinearity Elimination: \n" + ScalaPrinter.apply(newprog))
 

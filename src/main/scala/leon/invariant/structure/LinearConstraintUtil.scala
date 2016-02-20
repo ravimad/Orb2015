@@ -481,18 +481,16 @@ object LinearConstraintUtil {
     } else false
   }
 
-  //remove transitive axioms
-
   /**
    * Checks if the expression is linear i.e,
    * is only conjuntion and disjunction of linear atomic predicates
    */
-  def isLinear(e: Expr) : Boolean = {
+  def isLinearFormula(e: Expr) : Boolean = {
      e match {
-       case And(args) => args forall isLinear
-       case Or(args) => args forall isLinear
-       case Not(arg) => isLinear(arg)
-       case Implies(e1, e2) => isLinear(e1) && isLinear(e2)
+       case And(args) => args forall isLinearFormula
+       case Or(args) => args forall isLinearFormula
+       case Not(arg) => isLinearFormula(arg)
+       case Implies(e1, e2) => isLinearFormula(e1) && isLinearFormula(e2)
        case t : Terminal => true
        case atom =>
          exprToTemplate(atom).isInstanceOf[LinearConstraint]
