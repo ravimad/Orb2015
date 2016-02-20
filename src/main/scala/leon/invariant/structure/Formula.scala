@@ -24,13 +24,14 @@ import evaluators._
 import invariant.factories._
 
 /**
- * Data associated with a call
+ * Data associated with a call.
+ * @param inSpec true if the call (transitively) made within specifications
  */
-class CallData(val guard : Variable, val parents: List[FunDef])
+class CallData(val guard : Variable, val parents: List[FunDef], val inSpec: Boolean)
 
 object Formula {
   val debugUnflatten = false
-  val dumpUnflatFormula = false
+  val dumpUnflatFormula = true
   // a context for creating blockers
   val blockContext = newContext
 }
@@ -39,8 +40,9 @@ object Formula {
  * Representation of an expression as a set of implications.
  * 'initexpr' is required to be in negation normal form and And/Ors have been pulled up
  * TODO: optimize the representation so that we use fewer guards.
+ * @param initSpecCalls when specified it optimizes the handling of calls made in the specification.
  */
-class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
+class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCalls: Set[Expr] = Set()) {
 
   import Formula._
 
@@ -54,7 +56,7 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
   private var callDataMap = Map[Call, CallData]() //a mapping from a 'call' to the 'guard' guarding the call plus the list of transitive callers of 'call'
   private var paramBlockers = Set[Variable]()
 
-  val firstRoot : Variable = addConstraints(initexpr, List(fd))._1
+  val firstRoot: Variable = addConstraints(initexpr, List(fd), c => initSpecCalls(c.toExpr))._1
   protected var roots : Seq[Variable] = Seq(firstRoot) //a list of roots, the formula is a conjunction of formula of each root
 
   def disjunctsInFormula = disjuncts
@@ -63,7 +65,7 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
 
   //return the root variable and the sequence of disjunct guards added
   //(which includes the root variable incase it respresents a disjunct)
-  def addConstraints(ine: Expr, callParents : List[FunDef]) : (Variable, Seq[Variable]) = {
+  def addConstraints(ine: Expr, callParents : List[FunDef], inSpec: Call => Boolean) : (Variable, Seq[Variable]) = {
 
     var newDisjGuards = Seq[Variable]()
 
@@ -80,11 +82,10 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
               Seq(ctr)
             }
             case call@Call(_,_) => {
-
               if(callParents.isEmpty)
                 throw new IllegalArgumentException("Parent not specified for call: "+ctr)
               else {
-                callDataMap += (call -> new CallData(guard, callParents))
+                callDataMap += (call -> new CallData(guard, callParents, inSpec(call)))
               }
               acc :+ call
             }
@@ -125,6 +126,7 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
         //create a temporary for Or
         val gor = createTemp("b", BooleanType, blockContext).toVariable
         val newor = createOr(newargs)
+        //println("Creating or const: "+(gor -> newor))
         conjuncts += (gor -> newor)
         gor
       }
@@ -206,8 +208,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
   /**
    * 'neweexpr' is required to be in negation normal form and And/Ors have been pulled up
    */
-  def conjoinWithDisjunct(guard: Variable, newexpr: Expr, callParents: List[FunDef]) : (Variable, Seq[Variable]) = {
-     val (exprRoot, newGaurds) = addConstraints(newexpr, callParents)
+  def conjoinWithDisjunct(guard: Variable, newexpr: Expr, callParents: List[FunDef], inSpec:Boolean) : (Variable, Seq[Variable]) = {
+     val (exprRoot, newGaurds) = addConstraints(newexpr, callParents, _ => inSpec)
      //add 'newguard' in conjunction with 'disjuncts(guard)'
      val ctrs = disjuncts(guard)
      disjuncts -= guard
@@ -215,8 +217,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext) {
      (exprRoot, newGaurds)
   }
 
-  def conjoinWithRoot(newexpr: Expr, callParents: List[FunDef]): (Variable, Seq[Variable]) = {
-    val (exprRoot, newGaurds) = addConstraints(newexpr, callParents)
+  def conjoinWithRoot(newexpr: Expr, callParents: List[FunDef], inSpec: Boolean): (Variable, Seq[Variable]) = {
+    val (exprRoot, newGaurds) = addConstraints(newexpr, callParents, _ => inSpec)
     roots :+= exprRoot
     (exprRoot, newGaurds)
   }

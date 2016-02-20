@@ -41,19 +41,13 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
   lazy val constTracker = new ConstraintTracker(ctx, program, rootFd)
   lazy val templateSolver = TemplateSolverFactory.createTemplateSolver(ctx, program, constTracker, rootFd)
 
-  def constructVC(funDef: FunDef): (Expr, Expr) = {
-    val body = funDef.body.get
-    val Lambda(Seq(ValDef(resid)), _) = funDef.postcondition.get
-    val resvar = resid.toVariable
-
-    val simpBody = matchToIfThenElse(body)
-    val plainBody = Equals(resvar, simpBody)
-    val bodyExpr = if (funDef.hasPrecondition) {
-      And(matchToIfThenElse(funDef.precondition.get), plainBody)
-    } else plainBody
-
+  def constructVC(funDef: FunDef): (Expr, Expr, Expr) = {    
+    val Lambda(Seq(ValDef(resid)), _) = funDef.postcondition.get    
+    val body = Equals(resid.toVariable, funDef.body.get)
+    val pre = funDef.precondition.getOrElse(tru)
+    
     val funName = fullName(funDef, useUniqueIds = false)(program)
-    val fullPost = matchToIfThenElse(
+    val fullPost =
       if (funDef.hasTemplate) {
         // if the postcondition is verified do not include it in the sequent
         if (ctx.isFunctionPostVerified(funName))
@@ -62,19 +56,13 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
           And(funDef.getPostWoTemplate, funDef.getTemplate)
       } else if (!ctx.isFunctionPostVerified(funName))
         funDef.getPostWoTemplate
-      else
-        BooleanLiteral(true))
-
-    (bodyExpr, fullPost)
+      else tru
+    (body, pre, fullPost)
   }
 
-  def solveParametricVC(vc: Expr) = {
-    val vcExpr = ExpressionTransformer.normalizeExpr(vc, ctx.multOp)
-    //for debugging
-    if (debugVCs) reporter.info("flattened VC: " + ScalaPrinter(vcExpr))
-
+  def solveParametricVC(body: Expr, specNeg: Expr) = {
     // initialize the constraint tracker
-    constTracker.addVC(rootFd, vcExpr)
+    constTracker.addVC(rootFd, body, specNeg)
 
     var refinementStep: Int = 0
     var toRefineCalls: Option[Set[Call]] = None
@@ -130,12 +118,11 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
     if(ctx.abort) {
       Some(InferResult(false, None, List()))
     } else {
-      //create a body and post of the function
-      val (bodyExpr, fullPost) = constructVC(rootFd)
-      if (fullPost == tru)
+      val (body, pre, post) = constructVC(rootFd)
+      if (post == tru)
         Some(InferResult(true, Some(Model.empty), List()))
       else
-        solveParametricVC(And(bodyExpr, Not(fullPost)))
+        solveParametricVC(body, And(pre,Not(post)))
     }
   }
 
@@ -148,8 +135,8 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
 
   def instantiateAndValidateModel(model: Model, funcs: Seq[FunDef]) = {
     val templates = instantiateModel(model, funcs)
-    val sols = TemplateInstantiator.getAllInvariants(model, templates)    
-    
+    val sols = TemplateInstantiator.getAllInvariants(model, templates)
+
     var output = "Invariants for Function: " + rootFd.id + "\n"
     sols foreach {
       case (fd, inv) =>
@@ -185,29 +172,28 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
     //convert the program back to an integer program if necessary
     val newprog =
       if (ctx.usereals) new RealToIntProgram()(augProg)
-      else augProg   
+      else augProg
     val newroot = functionByFullName(fullName(rootFd)(program), newprog).get
     verifyVC(newprog, newroot)
   }
-  
+
   /**
    * Uses default postcondition VC, but can be overriden in the case of non-standard VCs
    */
   def verifyVC(newprog: Program, newroot: FunDef) = {
     (newroot.postcondition, newroot.body) match {
       case (Some(post), Some(body)) =>
-        val vc = implies(newroot.precOrTrue, application(post, Seq(body)))        
+        val vc = implies(newroot.precOrTrue, application(post, Seq(body)))
         solveUsingLeon(ctx.leonContext, newprog, VC(vc, newroot, VCKinds.Postcondition))
-    }    
+    }
   }
 
   import leon.solvers._
   import leon.solvers.combinators.UnrollingSolver
   def solveUsingLeon(leonctx: LeonContext, p: Program, vc: VC) = {
     val solFactory = SolverFactory.uninterpreted(leonctx, program)
-    val verifyTimeout = 5
     val smtUnrollZ3 = new UnrollingSolver(ctx.leonContext, program, solFactory.getNewSolver()) with TimeoutSolver
-    smtUnrollZ3.setTimeout(verifyTimeout * 1000)
+    smtUnrollZ3.setTimeout(ctx.vcTimeout * 1000)
     smtUnrollZ3.assertVC(vc)
     smtUnrollZ3.check match {
       case Some(true) =>

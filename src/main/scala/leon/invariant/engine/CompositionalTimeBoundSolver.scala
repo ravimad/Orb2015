@@ -95,25 +95,20 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
         val timeUpperBound = ExpressionTransformer.normalizeMultiplication(
           Plus(FunctionInvocation(TypedFunDef(multFun, Seq()),
             Seq(recFunInst, tprFunInst)), tprFunInst), ctx.multOp)
-        // res = body
-        val plainBody = Equals(getResId(rootFd).get.toVariable, matchToIfThenElse(rootFd.body.get))
-        val bodyExpr = if (rootFd.hasPrecondition) {
-          And(matchToIfThenElse(rootFd.precondition.get), plainBody)
-        } else plainBody
-
-        val Operator(Seq(timeInstExpr, _), _) = timeTmpl
-        val compositionAnt = And(Seq(LessEquals(timeInstExpr, timeUpperBound), bodyExpr))
-        val prototypeVC = And(compositionAnt, Not(timeTmpl))
 
         // map the old functions in the vc using the new functions
         val substMap = origProg.definedFunctions.collect {
-          case fd =>
-            (fd -> functionByName(fd.id.name, compProg).get)
+          case fd => (fd -> functionByName(fd.id.name, compProg).get)
         }.toMap
-        val vcExpr = mapFunctionsInExpr(substMap)(prototypeVC)
+        // res = body
+        val body = mapFunctionsInExpr(substMap)(Equals(getResId(rootFd).get.toVariable, rootFd.body.get))
+        val pre = rootFd.precondition.getOrElse(tru)
+        val Operator(Seq(timeInstExpr, _), _) = timeTmpl
+        val specNeg = mapFunctionsInExpr(substMap)(
+            And(createAnd(Seq(LessEquals(timeInstExpr, timeUpperBound), pre)), Not(timeTmpl)))
 
         if (printIntermediatePrograms) reporter.info("Comp prog: " + compProg)
-        if (debugComposition) reporter.info("Compositional VC: " + vcExpr)
+        if (debugComposition) reporter.info("Compositional VC: " + And(body, specNeg))
 
         val recTempSolver = new UnfoldingTemplateSolver(ctx, compProg, compFunDef) {
           val minFunc = {
@@ -131,7 +126,7 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
             }.toMap
           }
         }
-        recTempSolver.solveParametricVC(vcExpr) match {
+        recTempSolver.solveParametricVC(body, specNeg) match {
           case Some(InferResult(true, Some(timeModel),timeInferredFuncs)) =>
             val inferredFuns = (recInfRes.get.inferredFuncs ++ tprInfRes.get.inferredFuncs ++ timeInferredFuncs).distinct
             Some(InferResult(true, Some(recModel ++ tprModel.toMap ++ timeModel.toMap),
@@ -200,14 +195,11 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
 
   def inferTPRTemplate(tprProg: Program) = {
     val tempSolver = new UnfoldingTemplateSolver(ctx, tprProg, findRoot(tprProg)) {
-      override def constructVC(rootFd: FunDef): (Expr, Expr) = {
-        val body = Equals(getResId(rootFd).get.toVariable, matchToIfThenElse(rootFd.body.get))
-        val preExpr =
-          if (rootFd.hasPrecondition)
-            matchToIfThenElse(rootFd.precondition.get)
-          else tru
+      override def constructVC(rootFd: FunDef): (Expr, Expr, Expr) = {
+        val body = Equals(getResId(rootFd).get.toVariable, rootFd.body.get)
+        val preExpr = rootFd.precondition.getOrElse(tru)
         val tprTmpl = rootFd.getTemplate
-        val postWithTemplate = matchToIfThenElse(And(rootFd.getPostWoTemplate, tprTmpl))
+        val postWithTemplate = And(rootFd.getPostWoTemplate, tprTmpl)
         // generate constraints characterizing decrease of the tpr function with recursive calls
         val Operator(Seq(_, tprFun), op) = tprTmpl
         val bodyFormula = new Formula(rootFd, ExpressionTransformer.normalizeExpr(body, ctx.multOp), ctx)
@@ -222,7 +214,7 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
           reporter.info("Decrease constraints: " + createAnd(constraints.toSeq))
 
         val fullPost = createAnd(postWithTemplate +: constraints.toSeq)
-        (And(preExpr, bodyFormula.toExpr), fullPost)
+        (bodyFormula.toExpr, preExpr, fullPost)
       }
     }
     tempSolver()

@@ -85,26 +85,25 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
       val spec = specForCall(call)
       if (spec.isDefined && spec.get != tru) {
         val cdata = formula.callData(call)
-        formula.conjoinWithDisjunct(cdata.guard, spec.get, cdata.parents)
+        formula.conjoinWithDisjunct(cdata.guard, spec.get, cdata.parents, inSpec = true)
       }
     })
 
     //try to assume templates for all the current un-templated calls
     var newUntemplatedCalls = Set[Call]()
-    getUntempCalls(formula.fd).foreach((call) => {
-      //first get the template for the call if one needs to be added
-      if (funcsWithVC.contains(call.fi.tfd.fd)) {
+    getUntempCalls(formula.fd).foreach { call =>
+      if (funcsWithVC.contains(call.fi.tfd.fd)) { // add templates of only functions for which there exists a VC
         templateForCall(call) match {
           case Some(temp) =>
             val cdata = formula.callData(call)
-            formula.conjoinWithDisjunct(cdata.guard, temp, cdata.parents)
+            formula.conjoinWithDisjunct(cdata.guard, temp, cdata.parents, inSpec = true)
           case _ =>
             ; // here there is no template for the call
         }
       } else {
         newUntemplatedCalls += call
       }
-    })
+    }
     resetUntempCalls(formula.fd, newUntemplatedCalls ++ calls)
   }
 
@@ -116,7 +115,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
     if (callee.hasPostcondition) {
       // instantiate the post
       val tparamMap = (callee.tparams zip tfd.tps).toMap
-      val trans = freshenLocals _ andThen (e => instantiateType(e, tparamMap, Map())) andThen matchToIfThenElse _
+      val trans = freshenLocals _ andThen (e => instantiateType(e, tparamMap, Map()))
       //get the postcondition without templates
       val rawpost = trans(callee.getPostWoTemplate)
       val rawspec = if (callee.hasPrecondition) {
@@ -145,7 +144,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
       val tempExpr = replace(argmap, instantiateType(callee.getTemplate, tparamMap, Map()))
       val template = if (callee.hasPrecondition) {
         val pre = replace(argmap, instantiateType(callee.precondition.get, tparamMap, Map()))
-        val freshPre =  freshenLocals(matchToIfThenElse(pre))
+        val freshPre =  freshenLocals(pre)
         if (ctx.assumepre)
           And(freshPre, tempExpr)
         else
@@ -153,9 +152,8 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
       } else {
         tempExpr
       }
-      //flatten functions
-      //TODO: should we freshen locals here ??
-      Some(ExpressionTransformer.normalizeExpr(matchToIfThenElse(template), ctx.multOp))
+      //TODO: should we freshen locals of template here ??
+      Some(ExpressionTransformer.normalizeExpr(template, ctx.multOp))
     } else None
   }
 
@@ -201,7 +199,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
         val axiomInst = Implies(ant, conseq)
         val nnfAxiom = ExpressionTransformer.normalizeExpr(axiomInst, ctx.multOp)
         val cdata = formula.callData(call)
-        formula.conjoinWithDisjunct(cdata.guard, nnfAxiom, cdata.parents)
+        formula.conjoinWithDisjunct(cdata.guard, nnfAxiom, cdata.parents, inSpec = true)
         axiomInst
       }
     }
@@ -255,7 +253,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
         val (ant, conseq) = inst
         val axiom = Implies(ant, conseq)
         val nnfAxiom = ExpressionTransformer.normalizeExpr(axiom, ctx.multOp)
-        val (axroot, _) = formula.conjoinWithRoot(nnfAxiom, parents)
+        val (axroot, _) = formula.conjoinWithRoot(nnfAxiom, parents, true)
         //important: here we need to update the axiom roots
         axiomRoots += (Seq(pair._1, pair._2) -> axroot)
         acc :+ axiom

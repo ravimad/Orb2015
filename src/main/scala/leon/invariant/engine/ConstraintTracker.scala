@@ -4,6 +4,8 @@ package invariant.engine
 import purescala.Definitions._
 import purescala.Expressions._
 import invariant.structure._
+import invariant.util.ExpressionTransformer._
+import purescala.ExprOps._
 
 class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunDef/*, temFactory: TemplateFactory*/) {
 
@@ -17,8 +19,22 @@ class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunD
   def hasVC(fdef: FunDef) = funcVCs.contains(fdef)
   def getVC(fd: FunDef) : Formula = funcVCs(fd)
 
-  def addVC(fd: FunDef, vc: Expr) = {
-    funcVCs += (fd -> new Formula(fd, vc, ctx))
+  /**
+   * @param body the body part of the VC that may possibly have instrumentation
+   * @param specNeg Negation of the spec part e.g. pre ^ ~post that does not have instrumentation
+   * The VC constructed is body ^ specNeg
+   */
+  def addVC(fd: FunDef, body: Expr, specNeg: Expr) = {
+    val flatBody = normalizeExpr(body, ctx.multOp)
+    val flatSpecNeg = normalizeExpr(specNeg, ctx.multOp)
+    //println("flatBody: "+flatBody)
+    //println("flatSpecNeg: "+flatSpecNeg)
+    val specCalls = collect {
+      case c @ Equals(_, _: FunctionInvocation) => Set[Expr](c)
+      case _ => Set[Expr]()
+    }(flatSpecNeg)
+    val vc = And(flatBody, flatSpecNeg)
+    funcVCs += (fd -> new Formula(fd, vc, ctx, specCalls))
   }
 
   def initialize = {
