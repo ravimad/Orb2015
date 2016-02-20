@@ -92,15 +92,12 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
       reporter.info("- Dumping statistics")
       dumpStats(ctx.statsSuffix)
     }
-    new InferenceReport(results.map(pair => {
-      val (fd, ic) = pair
-      (fd -> List[VC](ic))
-    }), program)(ctx)
+    new InferenceReport(results.map{case (fd, ic) => (fd -> List[VC](ic))}, program)(ctx)
   }
 
   def dumpStats(statsSuffix: String) = {
     //pick the module id.
-    val modid = ctx.inferProgram.modules.find(_.definedFunctions.exists(!_.isLibrary)).get.id
+    val modid = ctx.inferProgram.units.find(_.isMainUnit).get.id
     val filename = modid + statsSuffix + ".txt"
     val pw = new PrintWriter(filename)
     Stats.dumpStats(pw)
@@ -108,6 +105,7 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
     if (ctx.tightBounds) {
       SpecificStats.dumpMinimizationStats(pw)
     }
+    pw.close()
     ctx.reporter.info("Stats dumped to file: "+filename)
   }
 
