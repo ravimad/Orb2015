@@ -315,6 +315,14 @@ object ExpressionTransformer {
     }
   }
 
+    /**
+   * note: we consider even type parameters as ADT type
+   */
+  def adtType(e: Expr) = {
+    val tpe = e.getType
+    tpe.isInstanceOf[ClassType] || tpe.isInstanceOf[TupleType] || tpe.isInstanceOf[TypeParameter]
+  }
+
   /**
    * The following procedure converts the formula into negated normal form by pushing all not's inside.
    * It also handles disequality constraints.
@@ -324,68 +332,46 @@ object ExpressionTransformer {
    * (a) For a strict inequality with real variables/constants, the following produces a strict inequality
    * (b) Strict inequalities with only integer variables/constants are reduced to non-strict inequalities
    */
-  def TransformNot(expr: Expr, retainNEQ: Boolean = false): Expr = { // retainIff : Boolean = false
-    def nnf(inExpr: Expr): Expr = {
-      if (inExpr.getType != BooleanType) inExpr
-      else {
-        inExpr match {
-          case Not(Not(e1)) => nnf(e1)
-          case e @ Not(t: Terminal) => e
-          case e @ Not(FunctionInvocation(_, _)) => e
-          case Not(And(args)) => createOr(args.map(arg => nnf(Not(arg))))
-          case Not(Or(args)) => createAnd(args.map(arg => nnf(Not(arg))))
-          case Not(e @ Operator(Seq(e1, e2), op)) => {
-            //matches integer binary relation or a boolean equality
-            if (e1.getType == BooleanType || e1.getType == Int32Type || e1.getType == RealType || e1.getType == IntegerType) {
-              e match {
-                case e: Equals => {
-                  if (e1.getType == BooleanType && e2.getType == BooleanType) {
-                    Or(And(nnf(e1), nnf(Not(e2))), And(nnf(e2), nnf(Not(e1))))
-                  } else {
-                    if (retainNEQ) Not(Equals(e1, e2))
-                    else Or(nnf(LessThan(e1, e2)), nnf(GreaterThan(e1, e2)))
-                  }
-                }
-                case e: LessThan => GreaterEquals(nnf(e1), nnf(e2))
-                case e: LessEquals => GreaterThan(nnf(e1), nnf(e2))
-                case e: GreaterThan => LessEquals(nnf(e1), nnf(e2))
-                case e: GreaterEquals => LessThan(nnf(e1), nnf(e2))
-                case e: Implies => And(nnf(e1), nnf(Not(e2)))
-                case _ => throw new IllegalStateException("Unknown binary operation: " + e)
-              }
-            } else {
-              //in this case e is a binary operation over ADTs
-              e match {
-                // TODO: is this a bug ?
-                case ninst @ Not(IsInstanceOf(e1, cd)) => Not(IsInstanceOf(nnf(e1), cd))
-                case SubsetOf(_, _) | ElementOfSet(_, _) | SetUnion(_, _) | FiniteSet(_, _) =>
-                  Not(e)
-                case e: Equals => Not(Equals(nnf(e1), nnf(e2)))
-                case _ => throw new IllegalStateException("Unknown operation on algebraic data types: " + e)
-              }
-            }
-          }
-          case e @ Equals(lhs, SubsetOf(_, _) | ElementOfSet(_, _) | SetUnion(_, _) | FiniteSet(_, _)) =>
-            // all are set operations
-            e
-          case e @ Equals(lhs, IsInstanceOf(_, _) | CaseClassSelector(_, _, _) | TupleSelect(_, _) | FunctionInvocation(_, _)) =>
-            //all case where rhs could use an ADT tree e.g. instanceOF, tupleSelect, fieldSelect, function invocation
-            e
-          case Implies(lhs, rhs) => nnf(Or(Not(lhs), rhs))
-          case Equals(lhs, rhs) if (lhs.getType == BooleanType && rhs.getType == BooleanType) => {
-            nnf(And(Implies(lhs, rhs), Implies(rhs, lhs)))
-          }
-          case Not(IfExpr(cond, thn, elze)) => IfExpr(nnf(cond), nnf(Not(thn)), nnf(Not(elze)))
-          case Not(Let(i, v, e)) => Let(i, nnf(v), nnf(Not(e)))
-          case t: Terminal => t
-          case n @ Operator(args, op) => op(args.map(nnf(_)))
-
-          case _ => throw new IllegalStateException("Impossible event: expr did not match any case: " + inExpr)
+  def toNNF(inExpr: Expr, retainNEQ: Boolean = false): Expr = {
+    def nnf(expr: Expr): Expr = expr match {
+      case e if e.getType != BooleanType     => e
+      case Not(Not(e1))                      => nnf(e1)
+      case e @ Not(t: Terminal)              => e
+      case Not(FunctionInvocation(tfd, args)) => Not(FunctionInvocation(tfd, args map nnf)) 
+      case Not(And(args))                    => createOr(args.map(arg => nnf(Not(arg))))
+      case Not(Or(args))                     => createAnd(args.map(arg => nnf(Not(arg))))
+      case Not(Let(i, v, e))                 => Let(i, nnf(v), nnf(Not(e)))
+      case Not(IfExpr(cond, thn, elze))      => IfExpr(nnf(cond), nnf(Not(thn)), nnf(Not(elze)))
+      case Not(e @ Operator(Seq(e1, e2), op)) => // Not of binary operator ?
+        e match {
+          case _: LessThan => GreaterEquals(e1, e2)
+          case _: LessEquals => GreaterThan(e1, e2)
+          case _: GreaterThan => LessEquals(e1, e2)
+          case _: GreaterEquals => LessThan(e1, e2)
+          case _: Implies => And(nnf(e1), nnf(Not(e2)))
+          case _: SubsetOf | _: ElementOfSet | _: SetUnion | _: FiniteSet => Not(e) // set ops
+          // handle equalities (which is shared by theories)
+          case _: Equals if e1.getType == BooleanType =>
+            Or(And(nnf(e1), nnf(Not(e2))), And(nnf(e2), nnf(Not(e1)))) // boolean equality
+          case _: Equals if adtType(e1) || e1.getType.isInstanceOf[SetType] => Not(e) // adt or set equality
+          case _: Equals if TypeUtil.isNumericType(e1.getType) =>
+            if (retainNEQ) Not(Equals(e1, e2))
+            else Or(nnf(LessThan(e1, e2)), nnf(GreaterThan(e1, e2)))
+          case _ => throw new IllegalStateException(s"Unknown binary operation: $e arg types: ${e1.getType},${e2.getType}")
         }
-      }
-    }
-    val nnfvc = nnf(expr)
-    nnfvc
+      case Implies(lhs, rhs) => nnf(Or(Not(lhs), rhs))
+      // we need to treat boolean equalities of theory operations as a special case so that we preserve flattening
+      case Equals(lhs, rhs @ (_: SubsetOf | _: ElementOfSet | _: IsInstanceOf | _: TupleSelect | _: CaseClassSelector)) =>
+        Equals(nnf(lhs), rhs)
+      case Equals(lhs, FunctionInvocation(tfd, args)) =>
+        Equals(nnf(lhs), FunctionInvocation(tfd, args map nnf))
+      case Equals(lhs, rhs) if lhs.getType == BooleanType =>
+        nnf(And(Implies(lhs, rhs), Implies(rhs, lhs)))
+      case t: Terminal            => t
+      case n @ Operator(args, op) => op(args map nnf)
+      case _                      => throw new IllegalStateException("Impossible event: expr did not match any case: " + inExpr)
+    }      
+    nnf(inExpr)    
   }
 
   /**
@@ -421,13 +407,13 @@ object ExpressionTransformer {
     //println("Normalizing " + ScalaPrinter(expr) + "\n")
     val redex = reduceLangBlocks(matchToIfThenElse(expr), multOp)
     //println("Redex: " + ScalaPrinter(redex) + "\n")
-    val nnfExpr = TransformNot(redex)
+    val nnfExpr = toNNF(redex)
     //println("NNFexpr: " + ScalaPrinter(nnfExpr) + "\n")
     //flatten all function calls
     val flatExpr = FlattenFunction(nnfExpr)
     //println("Flatexpr: " + ScalaPrinter(flatExpr) + "\n")
     //perform additional simplification
-    val simpExpr = pullAndOrs(TransformNot(flatExpr))
+    val simpExpr = pullAndOrs(toNNF(flatExpr))
     simpExpr
   }
 
