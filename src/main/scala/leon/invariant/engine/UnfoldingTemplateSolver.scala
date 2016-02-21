@@ -60,9 +60,9 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
     (body, pre, fullPost)
   }
 
-  def solveParametricVC(body: Expr, specNeg: Expr) = {
+  def solveParametricVC(assump: Expr, body: Expr, conseq: Expr) = {
     // initialize the constraint tracker
-    constTracker.addVC(rootFd, body, specNeg)
+    constTracker.addVC(rootFd, assump, body, conseq)
 
     var refinementStep: Int = 0
     var toRefineCalls: Option[Set[Call]] = None
@@ -122,7 +122,7 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
       if (post == tru)
         Some(InferResult(true, Some(Model.empty), List()))
       else
-        solveParametricVC(body, And(pre,Not(post)))
+        solveParametricVC(pre, body, post)
     }
   }
 

@@ -31,7 +31,7 @@ class CallData(val guard : Variable, val parents: List[FunDef], val inSpec: Bool
 
 object Formula {
   val debugUnflatten = false
-  val dumpUnflatFormula = true
+  val dumpUnflatFormula = false
   // a context for creating blockers
   val blockContext = newContext
 }

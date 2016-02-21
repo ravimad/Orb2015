@@ -164,7 +164,7 @@ class RefinementEngine(ctx: InferenceContext, prog: Program, ctrTracker: Constra
           val idmap = formalToActual(Call(resvar, FunctionInvocation(recFunTyped, paramMap.values.toSeq.map(_.toVariable))))
           val postTemp = replace(idmap, recFun.getTemplate)
           //val vcExpr = ExpressionTransformer.normalizeExpr(And(bodyExpr, Not(postTemp)), ctx.multOp)
-          ctrTracker.addVC(recFun, bodyExpr, And(pre, Not(postTemp)))
+          ctrTracker.addVC(recFun, pre, bodyExpr, postTemp)
         }
         //Here, unroll the call into the caller tree
         if (verbose) reporter.info("Unrolling " + Equals(call.retexpr, call.fi))

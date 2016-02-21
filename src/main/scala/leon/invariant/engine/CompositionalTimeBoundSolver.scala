@@ -104,11 +104,12 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
         val body = mapFunctionsInExpr(substMap)(Equals(getResId(rootFd).get.toVariable, rootFd.body.get))
         val pre = rootFd.precondition.getOrElse(tru)
         val Operator(Seq(timeInstExpr, _), _) = timeTmpl
-        val specNeg = mapFunctionsInExpr(substMap)(
-            And(createAnd(Seq(LessEquals(timeInstExpr, timeUpperBound), pre)), Not(timeTmpl)))
+        val trans = mapFunctionsInExpr(substMap) _
+        val assump = trans(createAnd(Seq(LessEquals(timeInstExpr, timeUpperBound), pre)))
+        val conseq = trans(timeTmpl)
 
         if (printIntermediatePrograms) reporter.info("Comp prog: " + compProg)
-        if (debugComposition) reporter.info("Compositional VC: " + And(body, specNeg))
+        if (debugComposition) reporter.info("Compositional VC: " + createAnd(Seq(assump, body, Not(conseq))))
 
         val recTempSolver = new UnfoldingTemplateSolver(ctx, compProg, compFunDef) {
           val minFunc = {
@@ -126,7 +127,7 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
             }.toMap
           }
         }
-        recTempSolver.solveParametricVC(body, specNeg) match {
+        recTempSolver.solveParametricVC(assump, body, conseq) match {
           case Some(InferResult(true, Some(timeModel),timeInferredFuncs)) =>
             val inferredFuns = (recInfRes.get.inferredFuncs ++ tprInfRes.get.inferredFuncs ++ timeInferredFuncs).distinct
             Some(InferResult(true, Some(recModel ++ tprModel.toMap ++ timeModel.toMap),

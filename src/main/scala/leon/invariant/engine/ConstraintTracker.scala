@@ -6,6 +6,7 @@ import purescala.Expressions._
 import invariant.structure._
 import invariant.util.ExpressionTransformer._
 import purescala.ExprOps._
+import invariant.util.PredicateUtil._
 
 class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunDef/*, temFactory: TemplateFactory*/) {
 
@@ -21,19 +22,22 @@ class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunD
 
   /**
    * @param body the body part of the VC that may possibly have instrumentation
-   * @param specNeg Negation of the spec part e.g. pre ^ ~post that does not have instrumentation
-   * The VC constructed is body ^ specNeg
+   * @param assump is the additional assumptions e.g. pre and conseq 
+   * is the goal e.g. post 
+   * The VC constructed is assump ^ body ^ Not(conseq)
    */
-  def addVC(fd: FunDef, body: Expr, specNeg: Expr) = {
+  def addVC(fd: FunDef, assump: Expr, body: Expr, conseq: Expr) = {
     val flatBody = normalizeExpr(body, ctx.multOp)
-    val flatSpecNeg = normalizeExpr(specNeg, ctx.multOp)
+    val flatAssump = normalizeExpr(assump, ctx.multOp)
+    val conseqNeg = normalizeExpr(Not(conseq), ctx.multOp)
     //println("flatBody: "+flatBody)
     //println("flatSpecNeg: "+flatSpecNeg)
-    val specCalls = collect {
+    val callCollect = collect {
       case c @ Equals(_, _: FunctionInvocation) => Set[Expr](c)
       case _ => Set[Expr]()
-    }(flatSpecNeg)
-    val vc = And(flatBody, flatSpecNeg)
+    } _
+    val specCalls = callCollect(flatAssump) ++ callCollect(conseqNeg)
+    val vc = createAnd(Seq(flatAssump, flatBody, conseqNeg))
     funcVCs += (fd -> new Formula(fd, vc, ctx, specCalls))
   }
 
