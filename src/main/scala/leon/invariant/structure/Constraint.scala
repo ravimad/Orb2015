@@ -228,7 +228,14 @@ class ADTConstraint(val expr: Expr,
 
 case class Call(retexpr: Expr, fi: FunctionInvocation) extends Constraint {
   val expr = Equals(retexpr, fi)
+  override def toExpr = expr
+}
 
+/**
+ * If-then-else constraint
+ */
+case class ITE(cond: BoolConstraint, ths: Seq[Constraint], elzs: Seq[Constraint]) extends Constraint {
+  val expr = IfExpr(cond.toExpr, createAnd(ths.map(_.toExpr)), createAnd(elzs.map(_.toExpr)))  
   override def toExpr = expr
 }
 
@@ -275,8 +282,8 @@ case class SetConstraint(expr: Expr) extends Constraint {
 
 object ConstraintUtil {
   def createConstriant(ie: Expr): Constraint = {
-    ie match {
-      case _ if BoolConstraint.isBoolConstraint(ie)               => BoolConstraint(ie)
+    ie match {      
+      case _ if BoolConstraint.isBoolConstraint(ie)               => BoolConstraint(ie)      
       case Equals(v @ Variable(_), fi @ FunctionInvocation(_, _)) => Call(v, fi)
       case Equals(_: Variable, _: CaseClassSelector | _: CaseClass | _: TupleSelect | _: Tuple | _: IsInstanceOf) =>
         ADTConstraint(ie)

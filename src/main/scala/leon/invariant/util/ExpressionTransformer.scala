@@ -46,33 +46,27 @@ object ExpressionTransformer {
   def conjoinWithinClause(e: Expr, transformer: (Expr, Boolean) => (Expr, Set[Expr]),
     insideFunction: Boolean): (Expr, Set[Expr]) = {
     e match {
-      case And(args) if !insideFunction => {
+      case And(args) if !insideFunction => 
         val newargs = args.map((arg) => {
           val (nexp, ncjs) = transformer(arg, false)
           createAnd(nexp +: ncjs.toSeq)
         })
-        (createAnd(newargs), Set())
-      }
-
-      case Or(args) if !insideFunction => {
+        (createAnd(newargs), Set())      
+      case Or(args) if !insideFunction => 
         val newargs = args.map((arg) => {
           val (nexp, ncjs) = transformer(arg, false)
           createAnd(nexp +: ncjs.toSeq)
         })
-        (createOr(newargs), Set())
-      }
-
+        (createOr(newargs), Set())      
       case t: Terminal => (t, Set())
-
-      case n @ Operator(args, op) => {
+      case n @ Operator(args, op) => 
         var ncjs = Set[Expr]()
         val newargs = args.map((arg) => {
           val (nexp, js) = transformer(arg, true)
           ncjs ++= js
           nexp
         })
-        (op(newargs), ncjs)
-      }
+        (op(newargs), ncjs)      
       case _ => throw new IllegalStateException("Impossible event: expr did not match any case: " + e)
     }
   }
@@ -86,14 +80,14 @@ object ExpressionTransformer {
     def transform(e: Expr, insideFunction: Boolean): (Expr, Set[Expr]) = {
       e match {
         // Handle asserts here. Return flattened body as the result
-        case as @ Assert(pred, _, body) => {
+        case as @ Assert(pred, _, body) => 
           val freshvar = createFlatTemp("asrtres", e.getType).toVariable
           val newexpr = Equals(freshvar, body)
           val resset = transform(newexpr, insideFunction)
           (freshvar, resset._2 + resset._1)
-        }
+        
         //handles division by constant
-        case Division(lhs, rhs @ InfiniteIntegerLiteral(v)) => {
+        case Division(lhs, rhs @ InfiniteIntegerLiteral(v)) => 
           //this models floor and not integer division
           val quo = createTemp("q", IntegerType, langContext).toVariable
           var possibs = Seq[Expr]()
@@ -106,9 +100,9 @@ object ExpressionTransformer {
           //println("newexpr: "+newexpr)
           val resset = transform(newexpr, true)
           (quo, resset._2 + resset._1)
-        }
+        
         //handles division by variables
-        case Division(lhs, rhs) => {
+        case Division(lhs, rhs) => 
           //this models floor and not integer division
           val quo = createTemp("q", IntegerType, langContext).toVariable
           val rem = createTemp("r", IntegerType, langContext).toVariable
@@ -118,30 +112,34 @@ object ExpressionTransformer {
           val newexpr = createAnd(Seq(divsem, LessEquals(zero, rem), LessEquals(rem, Minus(rhs, one))))
           val resset = transform(newexpr, true)
           (quo, resset._2 + resset._1)
-        }
-        case err @ Error(_, msg) => {
+        
+        case err @ Error(_, msg) => 
           //replace this by a fresh variable of the error type
           (createTemp("err", err.getType, langContext).toVariable, Set[Expr]())
-        }
-        case Equals(lhs, rhs) => {
+        
+        case Equals(lhs, rhs) => 
           val (nexp1, ncjs1) = transform(lhs, true)
           val (nexp2, ncjs2) = transform(rhs, true)
           (Equals(nexp1, nexp2), ncjs1 ++ ncjs2)
-        }
-        case IfExpr(cond, thn, elze) => {
+        
+        case IfExpr(cond, thn, elze) => 
           val freshvar = createTemp("ifres", e.getType, langContext).toVariable
-          val newexpr = Or(And(cond, Equals(freshvar, thn)), And(Not(cond), Equals(freshvar, elze)))
-          val resset = transform(newexpr, insideFunction)
-          (freshvar, resset._2 + resset._1)
-        }
-        case Let(binder, value, body) => {
+          //val newexpr = Or(And(cond, Equals(freshvar, thn)), And(Not(cond), Equals(freshvar, elze)))
+          val (ncond, condConjs) = transform(cond, true) 
+          val (nthen, thenConjs) = transform(Equals(freshvar, thn), false)
+          val (nelze, elzeConjs) = transform(Equals(freshvar, elze), false)
+          val conjs = condConjs + IfExpr(cond, 
+              createAnd(nthen +: thenConjs.toSeq), createAnd(nelze +: elzeConjs.toSeq))   
+          (freshvar, conjs)        
+          
+        case Let(binder, value, body) => 
           //TODO: do we have to consider reuse of let variables ?
           val (resbody, bodycjs) = transform(body, true)
           val (resvalue, valuecjs) = transform(value, true)
           (resbody, (valuecjs + Equals(binder.toVariable, resvalue)) ++ bodycjs)
-        }
+        
         //the value is a tuple in the following case
-        case LetTuple(binders, value, body) => {
+        case LetTuple(binders, value, body) => 
           //TODO: do we have to consider reuse of let variables ?
           val (resbody, bodycjs) = transform(body, true)
           val (resvalue, valuecjs) = transform(value, true)
@@ -171,10 +169,8 @@ object ExpressionTransformer {
             }
           }
           (resbody, (valuecjs ++ newConjuncts) ++ bodycjs)
-        }
-        case _ => {
-          conjoinWithinClause(e, transform, false)
-        }
+        
+        case _ => conjoinWithinClause(e, transform, false)        
       }
     }
     val (nexp, ncjs) = transform(inexpr, false)

@@ -65,7 +65,7 @@ class RefinementEngine(ctx: InferenceContext, prog: Program, ctrTracker: Constra
       val newguards = formula.disjunctsInFormula.keySet.diff(exploredGuards)
       exploredGuards ++= newguards
 
-      val newheads = newguards.flatMap(g => disjuncts(g).collect { case c: Call => c })
+      val newheads = formula.getCallsOfGuards(newguards.toSeq) //.flatMap(g => disjuncts(g).collect { case c: Call => c })
       val allheads = getHeads(fd) ++ newheads
 
       //unroll each call in the head pointers and in toRefineCalls
@@ -135,7 +135,7 @@ class RefinementEngine(ctx: InferenceContext, prog: Program, ctrTracker: Constra
    * here we unroll the methods in the current abstraction by one step.
    * This procedure has side-effects on 'headCalls' and 'callDataMap'
    */
-  def unrollCall(call: Call, formula: Formula) = {
+  def unrollCall(call: Call, formula: Formula) {
     val fi = call.fi
     val calldata = formula.callData(call)
     val callee = fi.tfd.fd
@@ -177,7 +177,7 @@ class RefinementEngine(ctx: InferenceContext, prog: Program, ctrTracker: Constra
     } else Set()
   }
 
-  def inilineCall(call: Call, calldata: CallData, formula: Formula) = {
+  def inilineCall(call: Call, calldata: CallData, formula: Formula) {
     val tfd = call.fi.tfd
     val callee = tfd.fd
     if (callee.isBodyVisible) {

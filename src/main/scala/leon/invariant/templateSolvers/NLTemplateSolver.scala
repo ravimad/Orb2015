@@ -115,7 +115,10 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
   }
 
   def splitVC(fd: FunDef) = {
-    val (paramPart, rest, modCons) = ctrTracker.getVC(fd).toUnflatExpr
+    val (paramPart, rest, modCons) = 
+      time { ctrTracker.getVC(fd).toUnflatExpr }{
+        t => Stats.updateCounterTime(t, "UnflatTime", "VC-refinement")
+      }
     if (ctx.usereals) {
       (IntLiteralToReal(paramPart), IntLiteralToReal(rest), modCons)
     } else (paramPart, rest, modCons)

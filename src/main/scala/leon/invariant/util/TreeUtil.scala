@@ -377,20 +377,14 @@ object PredicateUtil {
     hasInts(expr) && hasReals(expr)
   }
 
-  def atomNum(e: Expr): Int = {
-    var count: Int = 0
-    simplePostTransform {
-      case e @ And(args) => {
-        count += args.size
-        e
-      }
-      case e @ Or(args) => {
-        count += args.size
-        e
-      }
-      case e => e
-    }(e)
-    count
+  /**
+   * Assuming a flattenned formula
+   */
+  def atomNum(e: Expr): Int = e match {
+    case And(args)         => (args map atomNum).sum
+    case Or(args)          => (args map atomNum).sum
+    case IfExpr(c, th, el) => atomNum(c) + atomNum(th) + atomNum(el)
+    case e                 => 1
   }
 
   def numUIFADT(e: Expr): Int = {
@@ -473,8 +467,9 @@ object PredicateUtil {
    * Computes the set of variables that are shared across disjunctions.
    * This may return bound variables as well
    */
-  def sharedIds(e: Expr): Set[Identifier] = e match {
-    case Or(args) =>
+  def sharedIds(ine: Expr): Set[Identifier] = {
+
+    def sharedOfDisjointExprs(args: Seq[Expr]) = {
       var uniqueVars = Set[Identifier]()
       var sharedVars = Set[Identifier]()
       args.foreach { arg =>
@@ -483,9 +478,17 @@ object PredicateUtil {
         sharedVars ++= newShared
         uniqueVars = (uniqueVars ++ candUniques) -- newShared
       }
-      sharedVars ++ (args flatMap sharedIds)
-    case Variable(_) => Set()
-    case Operator(args, op) =>
-      (args flatMap sharedIds).toSet
+      sharedVars ++ (args flatMap rec)
+    }
+    def rec(e: Expr): Set[Identifier] =
+      e match {
+        case Or(args) => sharedOfDisjointExprs(args)
+        case IfExpr(c, th, el) =>
+          rec(c) ++ sharedOfDisjointExprs(Seq(th, el))
+        case Variable(_) => Set()
+        case Operator(args, op) =>
+          (args flatMap rec).toSet
+      }
+    rec(ine)
   }
 }

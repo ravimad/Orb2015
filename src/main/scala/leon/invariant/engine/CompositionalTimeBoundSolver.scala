@@ -204,12 +204,10 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
         // generate constraints characterizing decrease of the tpr function with recursive calls
         val Operator(Seq(_, tprFun), op) = tprTmpl
         val bodyFormula = new Formula(rootFd, ExpressionTransformer.normalizeExpr(body, ctx.multOp), ctx)
-        val constraints = bodyFormula.disjunctsInFormula.flatMap {
-          case (guard, ctrs) =>
-            ctrs.collect {
-              case call @ Call(_, FunctionInvocation(TypedFunDef(`rootFd`, _), _)) => //direct recursive call ?
-                Implies(guard, LessEquals(replace(formalToActual(call), tprFun), tprFun))
-            }
+        val constraints = bodyFormula.callsInFormula.collect {
+          case call @ Call(_, FunctionInvocation(TypedFunDef(`rootFd`, _), _)) => //direct recursive call ?
+            val cdata = bodyFormula.callData(call)
+            Implies(cdata.guard, LessEquals(replace(formalToActual(call), tprFun), tprFun))
         }
         if (debugDecreaseConstraints)
           reporter.info("Decrease constraints: " + createAnd(constraints.toSeq))

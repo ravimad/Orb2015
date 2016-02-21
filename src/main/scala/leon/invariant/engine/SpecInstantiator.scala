@@ -47,7 +47,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
       val newguards = disjuncts.keySet.diff(exploredGuards)
       exploredGuards ++= newguards
 
-      val newcalls = newguards.flatMap(g => disjuncts(g).collect { case c: Call => c })
+      val newcalls = formula.getCallsOfGuards(newguards.toSeq).toSet //flatMap(g => disjuncts(g).collect { case c: Call => c })
       instantiateSpecs(formula, newcalls, funcs.toSet)
 
       if (!disableAxioms) {
@@ -253,7 +253,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
         val (ant, conseq) = inst
         val axiom = Implies(ant, conseq)
         val nnfAxiom = ExpressionTransformer.normalizeExpr(axiom, ctx.multOp)
-        val (axroot, _) = formula.conjoinWithRoot(nnfAxiom, parents, true)
+        val axroot = formula.conjoinWithRoot(nnfAxiom, parents, true)
         //important: here we need to update the axiom roots
         axiomRoots += (Seq(pair._1, pair._2) -> axroot)
         acc :+ axiom
