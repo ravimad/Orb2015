@@ -375,22 +375,19 @@ object ExpressionTransformer {
    * This is supposed to be a semantic preserving transformation
    */
   def pullAndOrs(expr: Expr): Expr = {
-
     simplePostTransform {
-      case Or(args) => {
+      case Or(args) => 
         val newArgs = args.foldLeft(Seq[Expr]())((acc, arg) => arg match {
           case Or(inArgs) => acc ++ inArgs
           case _ => acc :+ arg
         })
-        createOr(newArgs)
-      }
-      case And(args) => {
+        createOr(newArgs)      
+      case And(args) => 
         val newArgs = args.foldLeft(Seq[Expr]())((acc, arg) => arg match {
           case And(inArgs) => acc ++ inArgs
           case _ => acc :+ arg
         })
-        createAnd(newArgs)
-      }
+        createAnd(newArgs)      
       case e => e
     }(expr)
   }
@@ -406,10 +403,10 @@ object ExpressionTransformer {
     val nnfExpr = toNNF(redex)
     //println("NNFexpr: " + ScalaPrinter(nnfExpr) + "\n")
     //flatten all function calls
-    val flatExpr = FlattenFunction(nnfExpr)
-    //println("Flatexpr: " + ScalaPrinter(flatExpr) + "\n")
+    val flatExpr = FlattenFunction(nnfExpr)   
     //perform additional simplification
     val simpExpr = pullAndOrs(toNNF(flatExpr))
+//    println("After Normalizing: " + ScalaPrinter(flatExpr) + "\n")
     simpExpr
   }
 

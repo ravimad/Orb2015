@@ -78,8 +78,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
       exprs.foldLeft(Seq[Constraint]()) {
         case (acc, _) if break => acc
         case (acc, IfExpr(cb: Variable, th, elze)) =>
-          Seq(ITE(BoolConstraint(cb), getCtrsFromExprs(cb, atoms(th)),
-            getCtrsFromExprs(condBlockers(cb), atoms(elze))))
+          acc :+ ITE(BoolConstraint(cb), getCtrsFromExprs(cb, atoms(th)),
+            getCtrsFromExprs(condBlockers(cb), atoms(elze)))
         case (acc, e) =>
           ConstraintUtil.createConstriant(e) match {
             case BoolConstraint(BooleanLiteral(true)) => acc
@@ -188,8 +188,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
     //          }
     //        })
     //      }
-    def traverseAnds(inctrs: Seq[Constraint]): Seq[Constraint] = {
-      val path = inctrs.foldLeft(Seq[Constraint]()) { 
+    def traverseAnds(inctrs: Seq[Constraint]): Seq[Constraint] =
+      inctrs.foldLeft(Seq[Constraint]()) {
         case (acc, ITE(ctr @ BoolConstraint(cb: Variable), ths, elzes)) =>
           val ifctrs =
             if (model(cb.id) == tru) traverseAnds(ths)
@@ -203,16 +203,18 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
           acc ++ (ctr +: traverseAnds(disjuncts(v)))
         case (acc, ctr) => acc :+ ctr
       }
-      path
-    }
     //if startGuard is unsat return empty
-    if (model(startGaurd.id) == fls) Seq()
-    else {
-      if (conjuncts.contains(startGaurd)) 
-        traverseOrs(conjuncts(startGaurd))
-      else 
-        BoolConstraint(startGaurd) +: traverseAnds(disjuncts(startGaurd))      
-    }
+    val path =
+      if (model(startGaurd.id) == fls) Seq()
+      else {
+        if (conjuncts.contains(startGaurd))
+          traverseOrs(conjuncts(startGaurd))
+        else
+          BoolConstraint(startGaurd) +: traverseAnds(disjuncts(startGaurd))
+      }
+    println("Path: " + createAnd(path.map(_.toExpr)))
+    scala.io.StdIn.readLine()
+    path
   }
 
   /**
