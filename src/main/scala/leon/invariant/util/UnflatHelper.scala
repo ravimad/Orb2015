@@ -33,7 +33,7 @@ class SimpleLazyModel(m: Model) extends LazyModel {
  * Expands a given model into a model with mappings for identifiers introduced during flattening.
  * Note: this class cannot be accessed in parallel.
  */
-class FlatModel(freeVars: Set[Identifier], flatIdMap: Map[Identifier, Expr], initModel: Model, eval: DefaultEvaluator) extends LazyModel {  
+class FlatModel(freeVars: Set[Identifier], flatIdMap: Map[Identifier, Expr], initModel: Model, eval: DefaultEvaluator) extends LazyModel {
   var idModel = initModel.toMap
 
   override def get(iden: Identifier) = {
@@ -72,13 +72,24 @@ class FlatModel(freeVars: Set[Identifier], flatIdMap: Map[Identifier, Expr], ini
   }
 }
 
+object UnflatHelper {
+  def evaluate(e: Expr, m: LazyModel, eval: DefaultEvaluator): Expr = {
+    val varsMap = variablesOf(e).map { v => (v -> m(v)) }.toMap
+    eval.eval(e, varsMap) match {
+      case Successful(v) => v
+      case _ =>
+        throw new IllegalStateException(s"Evaluation Falied for $e")
+    }
+  }
+}
+
 /**
  * A class that can used to compress a flattened expression
  * and also expand the compressed models to the flat forms
  */
 class UnflatHelper(ine: Expr, excludeIds: Set[Identifier], eval: DefaultEvaluator) {
 
-  val (unflate, flatIdMap) = unflattenWithMap(ine, excludeIds, includeFuns = false) 
+  val (unflate, flatIdMap) = unflattenWithMap(ine, excludeIds, includeFuns = false)
   val invars = variablesOf(ine)
 
   def getModel(m: Model) = new FlatModel(invars, flatIdMap, m,  eval)

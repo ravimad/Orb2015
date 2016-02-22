@@ -115,7 +115,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
   }
 
   def splitVC(fd: FunDef) = {
-    val (paramPart, rest, modCons) = 
+    val (paramPart, rest, modCons) =
       time { ctrTracker.getVC(fd).toUnflatExpr }{
         t => Stats.updateCounterTime(t, "UnflatTime", "VC-refinement")
       }
@@ -447,6 +447,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
           updateCounterTime(vccTime, "VC-check-time", "disjuncts")
           updateCumTime(vccTime, "TotalVCCTime")
         }
+        //println("Packed model: "+packedModel.toMap)
       //for statistics
       if (trackCompressedVCCTime) {
         val compressedVC =
@@ -486,7 +487,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
 
       val formula = ctrTracker.getVC(fd)
       //this picks the satisfiable disjunct of the VC modulo axioms
-      val satCtrs = formula.pickSatDisjunct(formula.firstRoot, initModel)
+      val satCtrs = formula.pickSatDisjunct(formula.firstRoot, initModel, defaultEval)
       //for debugging
       if (debugChooseDisjunct || printPathToConsole || dumpPathAsSMTLIB || verifyInvariant) {
         val pathctrs = satCtrs.map(_.toExpr)
@@ -532,7 +533,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
       val callExprs = calls.map(_.toExpr)
 
       val axiomCtrs = time {
-        ctrTracker.specInstantiator.axiomsForCalls(formula, calls, initModel)
+        ctrTracker.specInstantiator.axiomsForCalls(formula, calls, initModel, defaultEval)
       } { updateCumTime(_, "Total-AxiomChoose-Time") }
 
       //here, handle theory operations by reducing them to axioms.

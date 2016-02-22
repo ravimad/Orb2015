@@ -6,6 +6,9 @@ import purescala.Types._
 import purescala.PrettyPrintable
 import purescala.PrinterContext
 import purescala.PrinterHelpers._
+import purescala.Definitions._
+import purescala.Common._
+import purescala.ExprOps._
 
 object FileCountGUID {
   var fileCount = 0
@@ -61,5 +64,27 @@ object Util {
       product.filter(pair => selector.get(pair._1, pair._2))
     else
       product
+  }
+
+  /**
+   * Transitively close the substitution map from identifiers to expressions.
+   * Note: the map is reuquired to be acyclic.
+   */
+  def substClosure(initMap: Map[Identifier, Expr]): Map[Identifier, Expr] = {
+    var currMap = initMap
+    var changed = true
+    var stable = Set[Identifier]()
+    while(changed) {
+      changed = false
+      currMap = (currMap.map {
+        case (k, v) if !stable(k) && !variablesOf(v).intersect(currMap.keySet).isEmpty =>
+          changed = true
+          (k -> replaceFromIDs(currMap, v))
+        case r@(k, v)  =>
+          stable += k
+          r
+      }).toMap
+    }
+    currMap
   }
 }
