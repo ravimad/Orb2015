@@ -165,13 +165,11 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
     (rootvar, newDisjGuards)
   }
 
-  //'satGuard' is required to a guard variable
-  def pickSatDisjunct(startGaurd : Variable, model: LazyModel, eval: DefaultEvaluator): Seq[Constraint] = {
+  def pickSatDisjunct(startGaurd : Variable, model: LazyModel, tmplModel: Map[Identifier, Expr], eval: DefaultEvaluator): Seq[Constraint] = {
 
     def traverseOrs(ine: Expr): Seq[Constraint] = {
       val Or(guards) = ine
-      //pick one guard that is true
-      val guard = guards.collectFirst { case g @ Variable(id) if (model(id) == tru) => g }
+      val guard = guards.collectFirst { case g @ Variable(id) if (model(id) == tru) => g } //pick one guard that is true
       if (guard.isEmpty)
         throw new IllegalStateException("No satisfiable guard found: " + ine)
       BoolConstraint(guard.get) +: traverseAnds(disjuncts(guard.get))
@@ -185,25 +183,23 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
             if (model(c.id) == tru)
               conds ++ traverseAnds(ths)
             else {
-              val negc = toNNF(Not(conds.head.toExpr)) match {
-                case Or(args) => // this could happen in the case of linear relations
-                  args.find(a => UnflatHelper.evaluate(a, model, eval) == tru).get
-                case e => e
+              val condCtr = conds match {
+                case Seq(bc: BoolConstraint) => BoolConstraint(Not(bc.toExpr))
+                case Seq(lc: LinearTemplate) => lc.pickSatDisjunctOfNegation(model, tmplModel, eval)
               }
-              ConstraintUtil.createConstriant(negc) +: traverseAnds(elzes)
+              condCtr +: traverseAnds(elzes)
             }
           acc ++ ctrs
-        case (acc, ctr @ BoolConstraint(v: Variable)) if conjuncts.contains(v) =>
-          //assert(model(v.id) == tru)
+        case (acc, elt: ExtendedConstraint) =>
+          acc :+ elt.pickSatDisjunct(model, tmplModel, eval)
+        case (acc, ctr @ BoolConstraint(v: Variable)) if conjuncts.contains(v) => //assert(model(v.id) == tru)
           acc ++ (ctr +: traverseOrs(conjuncts(v)))
-        case (acc, ctr @ BoolConstraint(v: Variable)) if disjuncts.contains(v) =>
-          //assert(model(v.id) == tru)
+        case (acc, ctr @ BoolConstraint(v: Variable)) if disjuncts.contains(v) => //assert(model(v.id) == tru)
           acc ++ (ctr +: traverseAnds(disjuncts(v)))
         case (acc, ctr) => acc :+ ctr
       }
-    //if startGuard is unsat return empty
     val path =
-      if (model(startGaurd.id) == fls) Seq()
+      if (model(startGaurd.id) == fls) Seq() //if startGuard is unsat return empty
       else {
         if (conjuncts.contains(startGaurd))
           traverseOrs(conjuncts(startGaurd))
@@ -298,12 +294,14 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
         (g, replaceFromIDs(blockMap, createAnd(ctrs.map(_.toExpr))))
     }
     // compute variables used in more than one disjunct
-    var sharedVars = paramPart.flatMap(variablesOf).toSet
+    var sharedVars = (paramPart ++ conjs).flatMap(variablesOf).toSet
     var uniqueVars = Set[Identifier]()
     var freevars = Set[Identifier]()
     flatRest.foreach{
       case (g, rhs) =>
         val fvs = variablesOf(rhs).toSet
+        if(fvs.exists(_.uniqueName == "arg448"))
+          println(s"$g has arg448 as free var")
         val candUniques = fvs -- sharedVars
         val newShared = uniqueVars.intersect(candUniques)
         freevars ++= fvs
@@ -415,7 +413,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
     //println("packed formula: "+packedFor)
     val satdisj =
       if (unflatSat == Some(true))
-        Some(pickSatDisjunct(firstRoot, new SimpleLazyModel(unflatModel), eval))
+        Some(pickSatDisjunct(firstRoot, new SimpleLazyModel(unflatModel),
+            tempMap.map{ case (Variable(id), v) => id -> v }.toMap, eval))
       else None
     if (unflatSat != flatSat) {
       if (satdisj.isDefined) {

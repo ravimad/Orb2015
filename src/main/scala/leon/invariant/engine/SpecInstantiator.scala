@@ -268,7 +268,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
    * Note: taking a formula as input may not be necessary. We can store it as a part of the state
    * TODO: can we use transitivity here to optimize ?
    */
-  def axiomsForCalls(formula: Formula, calls: Set[Call], model: LazyModel, eval: DefaultEvaluator): Seq[Constraint] = {
+  def axiomsForCalls(formula: Formula, calls: Set[Call], model: LazyModel, tmplMap: Map[Identifier,Expr], eval: DefaultEvaluator): Seq[Constraint] = {
     //note: unary axioms need not be instantiated
     //consider only binary axioms
     (for (x <- calls; y <- calls) yield (x, y)).foldLeft(Seq[Constraint]())((acc, pair) => {
@@ -276,7 +276,7 @@ class SpecInstantiator(ctx: InferenceContext, program: Program, ctrTracker: Cons
       if (c1 != c2) {
         val axRoot = axiomRoots.get(Seq(c1, c2))
         if (axRoot.isDefined)
-          acc ++ formula.pickSatDisjunct(axRoot.get, model, eval)
+          acc ++ formula.pickSatDisjunct(axRoot.get, model, tmplMap, eval)
         else acc
       } else acc
     })

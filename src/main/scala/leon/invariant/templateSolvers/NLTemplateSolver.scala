@@ -391,8 +391,8 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
      * Constructs a quantifier-free non-linear constraint for unsatisfiability
      */
     def getUNSATConstraints(fd: FunDef, inModel: Model, disableCounterExs: Expr): Option[((Expr, Set[Call]), Expr)] = {
-
-      val tempVarMap: Map[Expr, Expr] = inModel.map((elem) => (elem._1.toVariable, elem._2)).toMap
+      val tempIdMap = inModel.toMap
+      val tempVarMap: Map[Expr, Expr] = tempIdMap.map{ case (k, v) => k.toVariable -> v}.toMap
       val (solver, instExpr, modelCons) =
         if (useIncrementalSolvingForVCs) {
           val funData = funInfos(fd)
@@ -474,7 +474,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
           //get the disjuncts that are satisfied
           val model = modelCons(packedModel, defaultEval)
           val (data, newctr) =
-            time { generateCtrsFromDisjunct(fd, model) } { chTime =>
+            time { generateCtrsFromDisjunct(fd, model, tempIdMap) } { chTime =>
               updateCounterTime(chTime, "Disj-choosing-time", "disjuncts")
               updateCumTime(chTime, "Total-Choose-Time")
             }
@@ -483,11 +483,10 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
       }
     }
 
-    protected def generateCtrsFromDisjunct(fd: FunDef, initModel: LazyModel): ((Expr, Set[Call]), Expr) = {
+    protected def generateCtrsFromDisjunct(fd: FunDef, initModel: LazyModel, tempIdMap: Map[Identifier,Expr]): ((Expr, Set[Call]), Expr) = {
 
       val formula = ctrTracker.getVC(fd)
-      //this picks the satisfiable disjunct of the VC modulo axioms
-      val satCtrs = formula.pickSatDisjunct(formula.firstRoot, initModel, defaultEval)
+      val satCtrs = formula.pickSatDisjunct(formula.firstRoot, initModel, tempIdMap, defaultEval) //this picks the satisfiable disjunct of the VC modulo axioms
       //for debugging
       if (debugChooseDisjunct || printPathToConsole || dumpPathAsSMTLIB || verifyInvariant) {
         val pathctrs = satCtrs.map(_.toExpr)
@@ -533,7 +532,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
       val callExprs = calls.map(_.toExpr)
 
       val axiomCtrs = time {
-        ctrTracker.specInstantiator.axiomsForCalls(formula, calls, initModel, defaultEval)
+        ctrTracker.specInstantiator.axiomsForCalls(formula, calls, initModel, tempIdMap, defaultEval)
       } { updateCumTime(_, "Total-AxiomChoose-Time") }
 
       //here, handle theory operations by reducing them to axioms.

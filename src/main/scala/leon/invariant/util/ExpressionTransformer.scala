@@ -42,6 +42,7 @@ object ExpressionTransformer {
    * @param insideFunction when set to true indicates that the newConjuncts (second argument)
    * should not conjoined to the And(..) / Or(..) expressions found because they
    * may be called inside a function.
+   * TODO: remove this function altogether and treat 'and' and 'or's as functions.
    */
   def conjoinWithinClause(e: Expr, transformer: (Expr, Boolean) => (Expr, Set[Expr]),
     insideFunction: Boolean): (Expr, Set[Expr]) = {
@@ -139,7 +140,7 @@ object ExpressionTransformer {
           (resbody, (valuecjs + Equals(binder.toVariable, resvalue)) ++ bodycjs)
 
         //the value is a tuple in the following case
-        case LetTuple(binders, value, body) =>
+        /*case LetTuple(binders, value, body) =>
           //TODO: do we have to consider reuse of let variables ?
           val (resbody, bodycjs) = transform(body, true)
           val (resvalue, valuecjs) = transform(value, true)
@@ -168,7 +169,7 @@ object ExpressionTransformer {
               (cjs ++ cjs2)
             }
           }
-          (resbody, (valuecjs ++ newConjuncts) ++ bodycjs)
+          (resbody, (valuecjs ++ newConjuncts) ++ bodycjs)*/
 
         case _ => conjoinWithinClause(e, transform, false)
       }
@@ -183,6 +184,16 @@ object ExpressionTransformer {
   def isAtom(e: Expr): Boolean = e match {
     case _: And | _: Or  | _: IfExpr => false
     case _ => true
+  }
+
+  def isADTTheory(e: Expr) = e match {
+    case _: CaseClassSelector | _: CaseClass | _: TupleSelect | _: Tuple | _: IsInstanceOf => true
+    case _ => false
+  }
+
+  def isSetTheory(e: Expr) = e match {
+    case _: SetUnion | _: ElementOfSet | _: SubsetOf | _: FiniteSet => true
+    case _ => false
   }
 
   /**
@@ -206,32 +217,20 @@ object ExpressionTransformer {
         case fi @ FunctionInvocation(fd, args) =>
           val (newargs, newConjuncts) = flattenArgs(args, true)
           val freshResVar = Variable(createTemp("r", fi.getType, funFlatContext))
-          (freshResVar, newConjuncts + Equals(freshResVar, FunctionInvocation(fd, newargs)))          
+          (freshResVar, newConjuncts + Equals(freshResVar, FunctionInvocation(fd, newargs)))
 
-        case inst @ IsInstanceOf(e1, cd) =>         
-          val (newargs, newcjs) = flattenArgs(Seq(e1), true)         
-          val freshResVar = Variable(createFlatTemp("ci", inst.getType))          
-          (freshResVar, newcjs + Equals(freshResVar, IsInstanceOf(newargs.head, cd)))
-
-        case cs @ CaseClassSelector(cd, e1, sel) =>
-          val (newargs, newcjs) = flattenArgs(Seq(e1), true)          
-          val freshResVar = Variable(createFlatTemp("cs", cs.getType))          
-          (freshResVar, newcjs + Equals(freshResVar, CaseClassSelector(cd, newargs.head, sel)))
-
-        case ts @ TupleSelect(e1, index) =>
-          val (newargs, newcjs) = flattenArgs(Seq(e1), true)                    
-          val freshResVar = Variable(createFlatTemp("ts", ts.getType))          
-          (freshResVar, newcjs + Equals(freshResVar, TupleSelect(newargs.head, index)))
-
-        case cc @ CaseClass(cd, args) =>
-          val (newargs, newcjs) = flattenArgs(args, true)          
-          val freshResVar = Variable(createFlatTemp("cc", cc.getType))
-          (freshResVar, newcjs + Equals(freshResVar, CaseClass(cd, newargs)))
-
-        case tp @ Tuple(args) =>
-          val (newargs, newcjs) = flattenArgs(args, true)                    
-          val freshResVar = Variable(createFlatTemp("tp", tp.getType))          
-          (freshResVar, newcjs + Equals(freshResVar, Tuple(newargs)))
+        case adte if isADTTheory(adte) =>
+          val Operator(args, op) = adte
+          val freshName = adte match {
+            case _: IsInstanceOf => "ci"
+            case _: CaseClassSelector => "cs"
+            case _: CaseClass => "cc"
+            case _: TupleSelect => "ts"
+            case _: Tuple => "tp"
+          }
+          val freshVar = Variable(createFlatTemp(freshName, adte.getType))
+          val (newargs, newcjs) = flattenArgs(args, true)
+          (freshVar, newcjs + Equals(freshVar, op(newargs)))
 
         case SetUnion(_, _) | ElementOfSet(_, _) | SubsetOf(_, _) =>
           val Operator(args, op) = e
@@ -246,6 +245,20 @@ object ExpressionTransformer {
           val newexpr = FiniteSet(nargs.toSet, typ)
           val freshResVar = Variable(createFlatTemp("fset", fs.getType))
           (freshResVar, newcjs + Equals(freshResVar, newexpr))
+
+        case be@(_: And | _: Or) if insideFunction => // handle linear constraints within and's and or's that are invoked inside functions/operations
+          val Operator(args, op) = be
+          val (flatArgs, cjs) = flattenArgs(args, true)
+          var ncjs = Set[Expr]()
+          val nargs = flatArgs.map{
+            case farg if isArithmeticRelation(farg) != Some(false) =>
+              // 'farg' is a possibly arithmetic relation.
+              val argvar = createFlatTemp("ar", farg.getType).toVariable
+              ncjs += Equals(argvar, farg)
+              argvar
+            case farg => farg
+          }
+          (op(nargs), cjs ++ ncjs)
 
         case IfExpr(cond, thn, elze) => // make condition of if-then-elze an atom
           val (nthen, thenConjs) = flattenFunc(thn, false)
@@ -288,24 +301,7 @@ object ExpressionTransformer {
     } else nexp
   }
 
-  def testHelp(e: Expr) = {
-    e match {
-      case Operator(args, op) =>
-        args.foreach { arg =>
-          if (arg.getType == Untyped) {
-            println(s"$arg is untyped! ")
-            arg match {
-              case CaseClassSelector(cct, cl, fld) =>
-                println("cl type: " + cl.getType + " cct: " + cct)
-              case _ =>
-            }
-          }
-        }
-      case _ =>
-    }
-  }
-
-    /**
+  /**
    * note: we consider even type parameters as ADT type
    */
   def adtType(e: Expr) = {
@@ -315,7 +311,7 @@ object ExpressionTransformer {
 
   /**
    * The following procedure converts the formula into negated normal form by pushing all not's inside.
-   * It also handles disequality constraints.
+   * It will not convert boolean equalities or inequalities to disjunctions for performance.
    * Assumption:
    *  (a) the formula does not have match constructs
    * Some important features.
@@ -341,8 +337,8 @@ object ExpressionTransformer {
           case _: Implies => And(nnf(e1), nnf(Not(e2)))
           case _: SubsetOf | _: ElementOfSet | _: SetUnion | _: FiniteSet => Not(e) // set ops
           // handle equalities (which is shared by theories)
-          case _: Equals if e1.getType == BooleanType =>
-            Or(And(nnf(e1), nnf(Not(e2))), And(nnf(e2), nnf(Not(e1)))) // boolean equality
+          case _: Equals if e1.getType == BooleanType => Not(e)
+            //Or(And(nnf(e1), nnf(Not(e2))), And(nnf(e2), nnf(Not(e1)))) // boolean disequality
           case _: Equals if adtType(e1) || e1.getType.isInstanceOf[SetType] => Not(e) // adt or set equality
           case _: Equals if TypeUtil.isNumericType(e1.getType) =>
             if (retainNEQ) Not(Equals(e1, e2))
@@ -355,8 +351,8 @@ object ExpressionTransformer {
         Equals(nnf(lhs), rhs)
       case Equals(lhs, FunctionInvocation(tfd, args)) =>
         Equals(nnf(lhs), FunctionInvocation(tfd, args map nnf))
-      case Equals(lhs, rhs) if lhs.getType == BooleanType =>
-        nnf(And(Implies(lhs, rhs), Implies(rhs, lhs)))
+      case e@Equals(lhs, rhs) if lhs.getType == BooleanType => e
+        //nnf(And(Implies(lhs, rhs), Implies(rhs, lhs)))
       case t: Terminal            => t
       case n @ Operator(args, op) => op(args map nnf)
       case _                      => throw new IllegalStateException("Impossible event: expr did not match any case: " + inExpr)
