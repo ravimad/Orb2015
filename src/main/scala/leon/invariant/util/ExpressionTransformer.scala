@@ -205,56 +205,33 @@ object ExpressionTransformer {
       e match {
         case fi @ FunctionInvocation(fd, args) =>
           val (newargs, newConjuncts) = flattenArgs(args, true)
-          val newfi = FunctionInvocation(fd, newargs)
           val freshResVar = Variable(createTemp("r", fi.getType, funFlatContext))
-          val res = (freshResVar, newConjuncts + Equals(freshResVar, newfi))
-          res
+          (freshResVar, newConjuncts + Equals(freshResVar, FunctionInvocation(fd, newargs)))          
 
-        case inst @ IsInstanceOf(e1, cd) =>
-          //replace e by a variable
-          val (newargs, newcjs) = flattenArgs(Seq(e1), true)
-          var newConjuncts = newcjs
-          val freshArg = newargs(0)
-          val newInst = IsInstanceOf(freshArg, cd)
-          val freshResVar = Variable(createFlatTemp("ci", inst.getType))
-          newConjuncts += Equals(freshResVar, newInst)
-          (freshResVar, newConjuncts)
+        case inst @ IsInstanceOf(e1, cd) =>         
+          val (newargs, newcjs) = flattenArgs(Seq(e1), true)         
+          val freshResVar = Variable(createFlatTemp("ci", inst.getType))          
+          (freshResVar, newcjs + Equals(freshResVar, IsInstanceOf(newargs.head, cd)))
 
         case cs @ CaseClassSelector(cd, e1, sel) =>
-          val (newargs, newcjs) = flattenArgs(Seq(e1), true)
-          var newConjuncts = newcjs
-          val freshArg = newargs(0)
-          val newCS = CaseClassSelector(cd, freshArg, sel)
-          val freshResVar = Variable(createFlatTemp("cs", cs.getType))
-          //val freshResVar = Variable(createTemp("cs", cs.getType, funFlatContext)) // we cannot flatten these as they will converted to cons
-          newConjuncts += Equals(freshResVar, newCS)
-          (freshResVar, newConjuncts)
+          val (newargs, newcjs) = flattenArgs(Seq(e1), true)          
+          val freshResVar = Variable(createFlatTemp("cs", cs.getType))          
+          (freshResVar, newcjs + Equals(freshResVar, CaseClassSelector(cd, newargs.head, sel)))
 
         case ts @ TupleSelect(e1, index) =>
-          val (newargs, newcjs) = flattenArgs(Seq(e1), true)
-          var newConjuncts = newcjs
-          val freshArg = newargs(0)
-          val newTS = TupleSelect(freshArg, index)
-          val freshResVar = Variable(createFlatTemp("ts", ts.getType))
-          //val freshResVar = Variable(createTemp("ts", ts.getType, funFlatContext))
-          newConjuncts += Equals(freshResVar, newTS)
-          (freshResVar, newConjuncts)
+          val (newargs, newcjs) = flattenArgs(Seq(e1), true)                    
+          val freshResVar = Variable(createFlatTemp("ts", ts.getType))          
+          (freshResVar, newcjs + Equals(freshResVar, TupleSelect(newargs.head, index)))
 
         case cc @ CaseClass(cd, args) =>
-          val (newargs, newcjs) = flattenArgs(args, true)
-          var newConjuncts = newcjs
-          val newCC = CaseClass(cd, newargs)
+          val (newargs, newcjs) = flattenArgs(args, true)          
           val freshResVar = Variable(createFlatTemp("cc", cc.getType))
-          newConjuncts += Equals(freshResVar, newCC)
-          (freshResVar, newConjuncts)
+          (freshResVar, newcjs + Equals(freshResVar, CaseClass(cd, newargs)))
 
         case tp @ Tuple(args) =>
-          val (newargs, newcjs) = flattenArgs(args, true)
-          var newConjuncts = newcjs
-          val newTP = Tuple(newargs)
-          val freshResVar = Variable(createFlatTemp("tp", tp.getType))
-          newConjuncts += Equals(freshResVar, newTP)
-          (freshResVar, newConjuncts)
+          val (newargs, newcjs) = flattenArgs(args, true)                    
+          val freshResVar = Variable(createFlatTemp("tp", tp.getType))          
+          (freshResVar, newcjs + Equals(freshResVar, Tuple(newargs)))
 
         case SetUnion(_, _) | ElementOfSet(_, _) | SubsetOf(_, _) =>
           val Operator(args, op) = e
