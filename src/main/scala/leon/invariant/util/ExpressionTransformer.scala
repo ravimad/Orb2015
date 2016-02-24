@@ -48,16 +48,16 @@ object ExpressionTransformer {
     insideFunction: Boolean): (Expr, Set[Expr]) = {
     e match {
       case And(args) if !insideFunction =>
-        val newargs = args.map((arg) => {
+        val newargs = args.map{arg =>
           val (nexp, ncjs) = transformer(arg, false)
           createAnd(nexp +: ncjs.toSeq)
-        })
+        }
         (createAnd(newargs), Set())
       case Or(args) if !insideFunction =>
-        val newargs = args.map((arg) => {
+        val newargs = args.map{arg =>
           val (nexp, ncjs) = transformer(arg, false)
           createAnd(nexp +: ncjs.toSeq)
-        })
+        }
         (createOr(newargs), Set())
       case t: Terminal => (t, Set())
       case n @ Operator(args, op) =>
@@ -123,15 +123,21 @@ object ExpressionTransformer {
           val (nexp2, ncjs2) = transform(rhs, true)
           (Equals(nexp1, nexp2), ncjs1 ++ ncjs2)
 
-        case IfExpr(cond, thn, elze) =>
+        case IfExpr(cond, thn, elze) if insideFunction =>
           val freshvar = createTemp("ifres", e.getType, langContext).toVariable
-          //val newexpr = Or(And(cond, Equals(freshvar, thn)), And(Not(cond), Equals(freshvar, elze)))
           val (ncond, condConjs) = transform(cond, true)
           val (nthen, thenConjs) = transform(Equals(freshvar, thn), false)
           val (nelze, elzeConjs) = transform(Equals(freshvar, elze), false)
           val conjs = condConjs + IfExpr(cond,
               createAnd(nthen +: thenConjs.toSeq), createAnd(nelze +: elzeConjs.toSeq))
           (freshvar, conjs)
+
+        case IfExpr(cond, thn, elze) => // here, we are at the top, and hence can avoid creating freshids
+          val (ncond, condConjs) = transform(cond, true)
+          val (nthen, thenConjs) = transform(thn, false)
+          val (nelze, elzeConjs) = transform(elze, false)
+          (IfExpr(cond,
+              createAnd(nthen +: thenConjs.toSeq), createAnd(nelze +: elzeConjs.toSeq)), condConjs)
 
         case Let(binder, value, body) =>
           //TODO: do we have to consider reuse of let variables ?
@@ -171,7 +177,7 @@ object ExpressionTransformer {
           }
           (resbody, (valuecjs ++ newConjuncts) ++ bodycjs)*/
 
-        case _ => conjoinWithinClause(e, transform, false)
+        case _ => conjoinWithinClause(e, transform, insideFunction)
       }
     }
     val (nexp, ncjs) = transform(inexpr, false)

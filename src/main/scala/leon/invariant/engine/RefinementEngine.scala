@@ -190,7 +190,7 @@ class RefinementEngine(ctx: InferenceContext, prog: Program, ctrTracker: Constra
       val inlinedSummary = ExpressionTransformer.normalizeExpr(replace(argmap1, calleeSummary), ctx.multOp)
 
       if (this.dumpInlinedSummary)
-        println("Inlined Summary: " + inlinedSummary)
+        println(s"Inlined Summary of ${callee.id}: " + inlinedSummary)
 
       //conjoin the summary with the disjunct corresponding to the 'guard'
       //note: the parents of the summary are the parents of the call plus the callee function

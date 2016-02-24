@@ -31,7 +31,7 @@ class CallData(val guard : Variable, val parents: List[FunDef], val inSpec: Bool
 
 object Formula {
   val debugUnflatten = false
-  val dumpUnflatFormula = false
+  val dumpUnflatFormula = true
   // a context for creating blockers
   val blockContext = newContext
 }
@@ -300,8 +300,6 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
     flatRest.foreach{
       case (g, rhs) =>
         val fvs = variablesOf(rhs).toSet
-        if(fvs.exists(_.uniqueName == "arg448"))
-          println(s"$g has arg448 as free var")
         val candUniques = fvs -- sharedVars
         val newShared = uniqueVars.intersect(candUniques)
         freevars ++= fvs
