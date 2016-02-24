@@ -55,7 +55,8 @@ class FlatModel(freeVars: Set[Identifier], flatIdMap: Map[Identifier, Expr], ini
               idModel += (id -> v)
               Some(v)
             case _ =>
-              throw new IllegalStateException(s"Evaluation Falied for $id -> $rhs")
+              None
+              //throw new IllegalStateException(s"Evaluation Falied for $id -> $rhs")
           }
         } else if (freeVars(id)) {
           // here, `id` either belongs to values of the flatIdMap, or to flate or was lost in unflattening
@@ -74,7 +75,9 @@ class FlatModel(freeVars: Set[Identifier], flatIdMap: Map[Identifier, Expr], ini
 
 object UnflatHelper {
   def evaluate(e: Expr, m: LazyModel, eval: DefaultEvaluator): Expr = {
-    val varsMap = variablesOf(e).map { v => (v -> m(v)) }.toMap
+    val varsMap = variablesOf(e).collect {
+      case v if m.isDefinedAt(v) => (v -> m(v))
+    }.toMap
     eval.eval(e, varsMap) match {
       case Successful(v) => v
       case _ =>
