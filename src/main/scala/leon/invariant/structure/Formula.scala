@@ -108,8 +108,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
       g
     }
     val f1 = simplePostTransform {
-      case e@Or(args) =>
-        /*val newargs = args.map {
+      /*case e@Or(args) =>
+        val newargs = args.map {
           //case arg@(v: Variable) if (disjuncts.contains(v)) => arg
           case v: Variable if (conjuncts.contains(v)) => throw new IllegalStateException("or gaurd inside conjunct: " + e + " or-guard: " + v)
           case arg =>
@@ -122,26 +122,19 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
         val newor = createOr(newargs)
         //println("Creating or const: "+(gor -> newor))
         conjuncts += (gor -> newor)
-        gor*/
-
-        val (nonparams, params) = args.partition(getTemplateIds(_).isEmpty)
-        val newargs =
-          if (!params.isEmpty) {
-            val g = addToDisjunct(params, true)
-            paramBlockers += g
-            g +: nonparams
-          } else nonparams
-        createOr(newargs)
+        gor
+        createOr(args.map {
+          case arg if getTemplateIds(arg).isEmpty => arg
+          case arg                                => addToDisjunct(atoms(arg), true)
+        })*/
 
       case And(args) =>
         //if the expression has template variables then we separate it using guards
         val (nonparams, params) = args.partition(getTemplateIds(_).isEmpty)
         val newargs =
-          if (!params.isEmpty) {
-            val g = addToDisjunct(params, true)
-            paramBlockers += g
-            g +: nonparams
-          } else nonparams
+          if (!params.isEmpty)
+            addToDisjunct(params, true) +: nonparams
+          else nonparams
         createAnd(newargs)
 
       case e@IfExpr(con, th, elze) =>

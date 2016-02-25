@@ -53,10 +53,9 @@ object ExpressionTransformer {
           createAnd(nexp +: ncjs.toSeq)
         }
         (createAnd(newargs), Set())
-      case Or(args) if !insideFunction => // reduce Or's to a function
-        val fvar = createFlatTemp("orv", BooleanType).toVariable
-        transformer(Equals(fvar, e), insideFunction)
-        /*val newargs = args.map{arg =>
+      /*case Or(args) if !insideFunction => // handle Or's similar to a function
+        //val fvar = createFlatTemp("orv", BooleanType).toVariable
+        val newargs = args.map{arg =>
           val (nexp, ncjs) = transformer(arg, false)
           createAnd(nexp +: ncjs.toSeq)
         }
@@ -254,19 +253,13 @@ object ExpressionTransformer {
           val freshResVar = Variable(createFlatTemp("fset", fs.getType))
           (freshResVar, newcjs + Equals(freshResVar, newexpr))
 
-        case be@(_: And | _: Or) if insideFunction => // handle linear constraints within and's and or's that are invoked inside functions/operations
-          val Operator(args, op) = be
-          val (flatArgs, cjs) = flattenArgs(args, true)
-          var ncjs = Set[Expr]()
-          val nargs = flatArgs.map{
-            case farg if isArithmeticRelation(farg) != Some(false) =>
-              // 'farg' is a possibly arithmetic relation.
-              val argvar = createFlatTemp("ar", farg.getType).toVariable
-              ncjs += Equals(argvar, farg)
-              argvar
-            case farg => farg
-          }
-          (op(nargs), cjs ++ ncjs)
+        case And(args) if insideFunction =>
+          val (nargs, cjs) = flattenArithmeticCtrs(args)
+          (And(nargs), cjs)
+
+        case Or(args) =>
+          val (nargs, cjs) = flattenArithmeticCtrs(args)
+          (Or(nargs), cjs)
 
         case IfExpr(cond, thn, elze) => // make condition of if-then-elze an atom
           val (nthen, thenConjs) = flattenFunc(thn, false)
@@ -303,6 +296,21 @@ object ExpressionTransformer {
       }
       (newargs, newConjuncts)
     }
+
+    def flattenArithmeticCtrs(args: Seq[Expr]) = {
+      val (flatArgs, cjs) = flattenArgs(args, true)
+      var ncjs = Set[Expr]()
+      val nargs = flatArgs.map {
+        case farg if isArithmeticRelation(farg) != Some(false) =>
+          // 'farg' is a possibly arithmetic relation.
+          val argvar = createFlatTemp("ar", farg.getType).toVariable
+          ncjs += Equals(argvar, farg)
+          argvar
+        case farg => farg
+      }
+      (nargs, cjs ++ ncjs)
+    }
+
     val (nexp, ncjs) = flattenFunc(inExpr, false)
     if (ncjs.nonEmpty) {
       createAnd(nexp +: ncjs.toSeq)
