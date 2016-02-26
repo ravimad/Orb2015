@@ -124,6 +124,7 @@ object BottomUpMergeSort {
    *  Takes time linear in the size of the streams (non-trivial to prove due to cascading of lazy calls)
    */
   @invisibleBody
+  @usePost
   def merge(a: $[IStream], b: $[IStream]): IStream = {
     require(((a*) != SNil() || b.isEvaluated) && // if one of the arguments is Nil then the other is evaluated
         ((b*) != SNil() || a.isEvaluated) &&
