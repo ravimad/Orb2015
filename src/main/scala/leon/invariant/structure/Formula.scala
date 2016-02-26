@@ -137,7 +137,7 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
         if(!isAtom(con) || !getTemplateIds(con).isEmpty)
           throw new IllegalStateException(s"Condition of ifexpr is not an atom: $e")
        // create condition and anti-condition blockers
-       val ncond = addToDisjunct(Seq(), false)
+       val ncond = addToDisjunct(Seq(con), false)
        val thBlock = addToDisjunct(Seq(), false)
        val elseBlock = addToDisjunct(Seq(), false)
        condBlockers += (ncond -> (thBlock, elseBlock))
@@ -147,8 +147,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
          else addToDisjunct(atoms(e), true)
        }
        IfExpr(ncond, trans(th), trans(elze))
-       
-      case Operator(args, op) => 
+
+      case Operator(args, op) =>
         op(args.map(rec(_)(true)))
     }
     val f1 = rec(ExpressionTransformer.simplify(simplifyArithmetic(
