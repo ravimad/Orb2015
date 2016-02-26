@@ -107,41 +107,37 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
           paramBlockers += g
       g
     }
-    val f1 = simplePostTransform {
-      /*case e@Or(args) =>
-        val newargs = args.map {
-          //case arg@(v: Variable) if (disjuncts.contains(v)) => arg
-          case v: Variable if (conjuncts.contains(v)) => throw new IllegalStateException("or gaurd inside conjunct: " + e + " or-guard: " + v)
+    def rec(e: Expr)(implicit insideOperation: Boolean): Expr =  e match {
+      case Or(args) if !insideOperation =>
+        val newargs = (args map rec).map {
+          case v: Variable if disjuncts.contains(v) => v
+          case v: Variable if conjuncts.contains(v) => throw new IllegalStateException("or gaurd inside conjunct: " + e + " or-guard: " + v)
           case arg =>
             val g = addToDisjunct(atoms(arg), !getTemplateIds(arg).isEmpty)
             //println(s"creating a new OR blocker $g for "+atoms)
             g
         }
-        //create a temporary for Or
         val gor = createTemp("b", BooleanType, blockContext).toVariable
         val newor = createOr(newargs)
         //println("Creating or const: "+(gor -> newor))
         conjuncts += (gor -> newor)
         gor
-        createOr(args.map {
-          case arg if getTemplateIds(arg).isEmpty => arg
-          case arg                                => addToDisjunct(atoms(arg), true)
-        })*/
 
       case And(args) =>
         //if the expression has template variables then we separate it using guards
-        val (nonparams, params) = args.partition(getTemplateIds(_).isEmpty)
+        val (nonparams, params) = (args map rec).partition(getTemplateIds(_).isEmpty)
         val newargs =
           if (!params.isEmpty)
             addToDisjunct(params, true) +: nonparams
           else nonparams
         createAnd(newargs)
 
-      case e@IfExpr(con, th, elze) =>
+      case e : IfExpr =>
+        val (con, th, elze) = (rec(e.cond)(true), rec(e.thenn)(false), rec(e.elze)(false))
         if(!isAtom(con) || !getTemplateIds(con).isEmpty)
           throw new IllegalStateException(s"Condition of ifexpr is not an atom: $e")
        // create condition and anti-condition blockers
-       val ncond = addToDisjunct(Seq(con), false)
+       val ncond = addToDisjunct(Seq(), false)
        val thBlock = addToDisjunct(Seq(), false)
        val elseBlock = addToDisjunct(Seq(), false)
        condBlockers += (ncond -> (thBlock, elseBlock))
@@ -151,13 +147,16 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
          else addToDisjunct(atoms(e), true)
        }
        IfExpr(ncond, trans(th), trans(elze))
-      case e => e
-    }(ExpressionTransformer.simplify(simplifyArithmetic(
+       
+      case Operator(args, op) => 
+        op(args.map(rec(_)(true)))
+    }
+    val f1 = rec(ExpressionTransformer.simplify(simplifyArithmetic(
         //TODO: this is a hack as of now. Fix this.
         //Note: it is necessary to convert real literals to integers since the linear constraint cannot handle real literals
         if(ctx.usereals) ExpressionTransformer.FractionalLiteralToInt(ine)
         else ine
-        )))
+        )))(false)
     val rootvar = f1 match {
       case v: Variable if(conjuncts.contains(v)) => v
       case v: Variable if(disjuncts.contains(v)) => throw new IllegalStateException("f1 is a disjunct guard: "+v)

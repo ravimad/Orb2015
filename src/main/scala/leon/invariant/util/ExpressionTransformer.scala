@@ -53,14 +53,16 @@ object ExpressionTransformer {
           createAnd(nexp +: ncjs.toSeq)
         }
         (createAnd(newargs), Set())
-      /*case Or(args) if !insideFunction => // handle Or's similar to a function
-        //val fvar = createFlatTemp("orv", BooleanType).toVariable
+        
+      case Or(args) if !insideFunction => 
         val newargs = args.map{arg =>
           val (nexp, ncjs) = transformer(arg, false)
           createAnd(nexp +: ncjs.toSeq)
         }
-        (createOr(newargs), Set())*/
+        (createOr(newargs), Set())
+        
       case t: Terminal => (t, Set())
+      
       case n @ Operator(args, op) =>
         var ncjs = Set[Expr]()
         val newargs = args.map((arg) => {
@@ -257,7 +259,7 @@ object ExpressionTransformer {
           val (nargs, cjs) = flattenArithmeticCtrs(args)
           (And(nargs), cjs)
 
-        case Or(args) =>
+        case Or(args) if insideFunction =>
           val (nargs, cjs) = flattenArithmeticCtrs(args)
           (Or(nargs), cjs)
 
