@@ -44,9 +44,11 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
   def constructVC(funDef: FunDef): (Expr, Expr, Expr) = {    
     val Lambda(Seq(ValDef(resid)), _) = funDef.postcondition.get    
     val body = Equals(resid.toVariable, funDef.body.get)
-    val pre = funDef.precondition.getOrElse(tru)
-    
     val funName = fullName(funDef, useUniqueIds = false)(program)
+    val assumptions =
+      if (funDef.usePost && ctx.isFunctionPostVerified(funName))
+        createAnd(Seq(funDef.getPostWoTemplate, funDef.precOrTrue))
+      else funDef.precOrTrue
     val fullPost =
       if (funDef.hasTemplate) {
         // if the postcondition is verified do not include it in the sequent
@@ -57,7 +59,7 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
       } else if (!ctx.isFunctionPostVerified(funName))
         funDef.getPostWoTemplate
       else tru
-    (body, pre, fullPost)
+    (body, assumptions, fullPost)
   }
 
   def solveParametricVC(assump: Expr, body: Expr, conseq: Expr) = {

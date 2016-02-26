@@ -177,7 +177,9 @@ object LazyVerificationPhase {
         }
       case e => (e, Util.tru)
     }
-    val ants = createAnd(Seq(fd.precOrTrue, assumptions))
+    val ants =
+      if (fd.usePost) createAnd(Seq(fd.precOrTrue, assumptions))
+      else fd.precOrTrue
     (Equals(resdef.id.toVariable, fd.body.get), ants, instPost, tmpl)
   }
 

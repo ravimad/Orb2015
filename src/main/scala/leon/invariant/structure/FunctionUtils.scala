@@ -31,6 +31,7 @@ object FunctionUtils {
     lazy val hasFieldFlag = fd.flags.contains(IsField(false))
     lazy val hasLazyFieldFlag = fd.flags.contains(IsField(true))
     lazy val isUserFunction = !hasFieldFlag && !hasLazyFieldFlag
+    lazy val usePost = fd.annotations.contains("usePost")
 
     //the template function
     lazy val tmplFunctionName = "tmpl"
