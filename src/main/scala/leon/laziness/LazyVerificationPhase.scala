@@ -118,7 +118,8 @@ object LazyVerificationPhase {
         if (debugInferProgram)
           prettyPrintProgramToFile(inferctx.inferProgram, checkCtx, "-inferProg", true)
 
-        val results = (new InferenceEngine(inferctx)).analyseProgram(inferctx.inferProgram, funsToCheck, vcSolver, None)
+        val results = (new InferenceEngine(inferctx)).analyseProgram(inferctx.inferProgram, 
+            funsToCheck.map(InstUtil.userFunctionName), vcSolver, None)
         new InferenceReport(results.map { case (fd, ic) => (fd -> List[VC](ic)) }, inferctx.inferProgram)(inferctx)
       } else {
         val rep = checkVCs(funsToCheck.map(vcForFun), checkCtx, p)

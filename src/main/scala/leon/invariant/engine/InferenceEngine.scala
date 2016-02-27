@@ -24,8 +24,9 @@ import Stats._
 class InferenceEngine(ctx: InferenceContext) extends Interruptible {
 
   val debugBottomupIterations = false
-
+  
   val ti = new TimeoutFor(this)
+  val reporter = ctx.reporter
 
   def interrupt() = {
     ctx.abort = true
@@ -47,40 +48,28 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
     }
   }
 
-  private def run(progressCallback: Option[InferenceCondition => Unit] = None): InferenceReport = {
-    val reporter = ctx.reporter
+  private def run(progressCallback: Option[InferenceCondition => Unit] = None): InferenceReport = {    
     val program = ctx.inferProgram
     reporter.info("Running Inference Engine...")
     if (ctx.dumpStats) { //register a shutdownhook
       sys.ShutdownHookThread({ dumpStats(ctx.statsSuffix) })
     }
+    val relfuns = ctx.functionsToInfer.getOrElse(program.definedFunctions.map(InstUtil.userFunctionName))
     var results: Map[FunDef, InferenceCondition] = null
-    time {
-      //compute functions to analyze by sorting based on topological order (this is an ascending topological order)
-      val callgraph = CallGraphUtil.constructCallGraph(program, withTemplates = true)
-      val functionsToAnalyze = ctx.functionsToInfer match {
-        case Some(rootfuns) =>
-          val rootset = rootfuns.toSet
-          val rootfds = program.definedFunctions.filter(fd => rootset(InstUtil.userFunctionName(fd)))
-          val relfuns = rootfds.flatMap(callgraph.transitiveCallees _).toSet
-          callgraph.topologicalOrder.filter { fd => relfuns(fd) }
-        case _ =>
-          callgraph.topologicalOrder
-      }
-      //reporter.info("Analysis Order: " + functionsToAnalyze.map(_.id))
-
-      if (!ctx.useCegis) {
-        results = analyseProgram(program, functionsToAnalyze, defaultVCSolver, progressCallback)
+    time {      
+      if (!ctx.useCegis) {        
+        results = analyseProgram(program, relfuns, defaultVCSolver, progressCallback)
         //println("Inferrence did not succeeded for functions: "+functionsToAnalyze.filterNot(succeededFuncs.contains _).map(_.id))
       } else {
-        var remFuncs = functionsToAnalyze
+        var remFuncs = relfuns
         var b = 200
         val maxCegisBound = 200
         breakable {
           while (b <= maxCegisBound) {
             Stats.updateCumStats(1, "CegisBoundsTried")
             val succeededFuncs = analyseProgram(program, remFuncs, defaultVCSolver, progressCallback)
-            remFuncs = remFuncs.filterNot(succeededFuncs.contains _)
+            val successes = succeededFuncs.keySet.map(InstUtil.userFunctionName)
+            remFuncs = remFuncs.filterNot(successes.contains _)
             if (remFuncs.isEmpty) break
             b += 5 //increase bounds in steps of 5
           }
@@ -116,16 +105,31 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
       else
         new UnfoldingTemplateSolver(ctx, prog, funDef)
     }
+        
+  /**
+   * sort the given functions to based on ascending topological order of the callgraph
+   */
+  def sortByTopologicalOrder(program: Program, relfuns: Seq[String]) = {
+    val callgraph = CallGraphUtil.constructCallGraph(program, onlyBody = true)
+    val relset = relfuns.toSet
+    val relfds = program.definedFunctions.filter(fd => relset(InstUtil.userFunctionName(fd)))
+    val funsToAnalyze = relfds.flatMap(callgraph.transitiveCallees _).toSet
+    val funsInOrder = callgraph.topologicalOrder.filter(funsToAnalyze)
+    reporter.info("Analysis Order: " + funsInOrder.map(_.id.uniqueName))
+    funsInOrder
+  }
 
   /**
    * Returns map from analyzed functions to their inference conditions.
+   * @param - a list of user-level function names that need to analyzed. The names should not 
+   * include the instrumentation suffixes 
    * TODO: use function names in inference conditions, so that
    * we an get rid of dependence on origFd in many places.
    */
-  def analyseProgram(startProg: Program, functionsToAnalyze: Seq[FunDef],
+  def analyseProgram(startProg: Program, relfuns: Seq[String],
                      vcSolver: (FunDef, Program) => FunctionTemplateSolver,
-                     progressCallback: Option[InferenceCondition => Unit]): Map[FunDef, InferenceCondition] = {
-    val reporter = ctx.reporter
+                     progressCallback: Option[InferenceCondition => Unit]): Map[FunDef, InferenceCondition] = {    
+    val functionsToAnalyze = sortByTopologicalOrder(startProg, relfuns)
     val funToTmpl =
       if (ctx.autoInference) {
         //A template generator that generates templates for the functions (here we are generating templates by enumeration)
