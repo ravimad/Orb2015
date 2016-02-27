@@ -305,7 +305,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
                 (None, tru, Model.empty)
               }
             } else {
-              //check that the new constraints does not have any reals
+              //check that the new constraints do not have any reals
               val newPart = createAnd(newctrs)
               val newSize = atomNum(newPart)
               Stats.updateCounterStats((newSize + inputSize), "NLsize", "disjuncts")

@@ -9,7 +9,7 @@ import purescala.ExprOps._
 import invariant.util.PredicateUtil._
 
 object ConstraintTracker {
-  val debugVC = true
+  val debugVC = false
 }
 class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunDef/*, temFactory: TemplateFactory*/) {
 

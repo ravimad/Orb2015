@@ -63,32 +63,7 @@ class CallGraph {
    * For functions within an SCC, we preserve the initial order 
    * given as input
    */
-  def reverseTopologicalOrder(initOrder: Seq[FunDef]): Seq[FunDef] = {
-//    def insert(index: Int, l: Seq[FunDef], fd: FunDef): Seq[FunDef] = {
-//      var i = 0
-//      var head = Seq[FunDef]()
-//      l.foreach { elem =>
-//        if (i == index)
-//          head :+= fd
-//        head :+= elem
-//        i += 1
-//      }
-//      head
-//    }
-//    var funcList = Seq[FunDef]()
-//    graph.getNodes.toList.foreach{f =>
-//      var inserted = false
-//      var index = 0
-//      for (i <- funcList.indices) {
-//        if (!inserted && this.transitivelyCalls(funcList(i), f)) {
-//          index = i
-//          inserted = true
-//        }
-//      }
-//      if (!inserted) funcList :+= f
-//      else funcList = insert(index, funcList, f)
-//    }
-//    funcList    
+  def reverseTopologicalOrder(initOrder: Seq[FunDef]): Seq[FunDef] = {  
     val orderMap = initOrder.zipWithIndex.toMap
     graph.sccs.flatMap{scc => scc.sortWith((f1, f2) => orderMap(f1) <= orderMap(f2)) }    
   }
