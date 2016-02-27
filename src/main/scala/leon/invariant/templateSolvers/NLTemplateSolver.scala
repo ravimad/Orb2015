@@ -625,7 +625,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
         //Also, enrich the rules for quantifier elimination: try z3 quantifier elimination on variables that have an equality.
         //TODO: Use the dependence chains in the formulas to identify what to assertionize
         // and what can never be implied by solving for the templates
-        val disjunct = createAnd((newLnctrs ++ temps).map(_.template))
+        
         
         //for debugging
         if (debugReducedFormula) {

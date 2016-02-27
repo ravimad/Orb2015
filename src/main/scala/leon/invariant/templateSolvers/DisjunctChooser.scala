@@ -70,7 +70,7 @@ class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: Const
    * @precondition the formula is satisfied by the model
    * @tempIdMap a model for the template variables
    */
-  protected def chooseNumericalDisjunct(formula: Formula, initModel: LazyModel, tempIdMap: Map[Identifier, Expr]): (Seq[LinearConstraint], Seq[LinearTemplate], Set[Call]) = {
+  def chooseNumericalDisjunct(formula: Formula, initModel: LazyModel, tempIdMap: Map[Identifier, Expr]): (Seq[LinearConstraint], Seq[LinearTemplate], Set[Call]) = {
     val satCtrs = formula.pickSatDisjunct(formula.firstRoot, initModel, tempIdMap, defaultEval) //this picks the satisfiable disjunct of the VC modulo axioms
     //for debugging
     if (debugChooseDisjunct || printPathToConsole || dumpPathAsSMTLIB || verifyInvariant) {

@@ -40,19 +40,7 @@ abstract class TemplateSolver(ctx: InferenceContext, val rootFun: FunDef,
       } else (id, model(id))
     }).toMap
     new Model(idmap)
-  }
-
-  /**
-   * Computes the invariant for all the procedures given a mapping for the
-   * template variables.
-   */
-  def getAllInvariants(model: Model): Map[FunDef, Expr] = {
-    val templates = ctrTracker.getFuncs.collect {
-      case fd if fd.hasTemplate =>
-        fd -> fd.getTemplate
-    }
-    TemplateInstantiator.getAllInvariants(model, templates.toMap)
-  }
+  }  
 
   var vcCache = Map[FunDef, Expr]()
   protected def getVCForFun(fd: FunDef): Expr = {
