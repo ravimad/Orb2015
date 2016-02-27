@@ -41,8 +41,10 @@ object Util {
 
   val zero = InfiniteIntegerLiteral(0)
   val one = InfiniteIntegerLiteral(1)
+  val mone = InfiniteIntegerLiteral(-1)
+  val bone = BigInt(1)
   val tru = BooleanLiteral(true)
-  val fls = BooleanLiteral(false)
+  val fls = BooleanLiteral(false)  
 
   def fix[A](f: (A) => A)(a: A): A = {
     val na = f(a)

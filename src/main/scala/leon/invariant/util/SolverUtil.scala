@@ -23,6 +23,15 @@ object SolverUtil {
       else And(acc, eq)
     })
   }
+  
+  def completeWithRefModel(currModel: Model, refModel: Model) = {    
+    new Model(refModel.toMap.map {
+      case (id, _) if currModel.isDefinedAt(id) =>
+        (id -> currModel(id))
+      case (id, v) =>
+        (id -> v)
+    }.toMap)
+  }
 
   def toZ3SMTLIB(expr: Expr, filename: String,
     theory: String, ctx: LeonContext, pgm: Program,
@@ -120,5 +129,5 @@ object SolverUtil {
       case _ => false
     }
   }
-
+ 
 }

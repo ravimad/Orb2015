@@ -30,26 +30,25 @@ import Util._
 import PredicateUtil._
 import SolverUtil._
 
-object NLTemplateSolver {
-  val verbose = true
-}
-
-class NLTemplateSolver(ctx: InferenceContext, program: Program,
+class NLTemplateSolverBak(ctx: InferenceContext, program: Program,
                        rootFun: FunDef, ctrTracker: ConstraintTracker,
                        minimizer: Option[(Expr, Model) => Model])
     extends TemplateSolver(ctx, rootFun, ctrTracker) {
 
   //flags controlling debugging
   val debugUnflattening = false
-  val debugIncrementalVC = false  
+  val debugIncrementalVC = false
+  val debugElimination = false
+  val debugChooseDisjunct = false
+  val debugTheoryReduction = false
+  val debugAxioms = false
+  val verifyInvariant = false
   val debugReducedFormula = false
   val trackCompressedVCCTime = false
 
   //print flags
   val verbose = true
-  val printCounterExample = false
-  val printPathToConsole = false
-  val dumpPathAsSMTLIB = false
+  val printCounterExample = false  
   val printCallConstriants = false
   val dumpInstantiatedVC = false
 
@@ -57,14 +56,13 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
   private val leonctx = ctx.leonContext
 
   //flag controlling behavior
-  
+  private val farkasSolver = new FarkasLemmaSolver(ctx, program)
   private val startFromEarlierModel = true
-  val disableCegis = true
+  private val disableCegis = true
   private val useIncrementalSolvingForVCs = true
   private val usePortfolio = false // portfolio has a bug in incremental solving
 
-  val defaultEval = new DefaultEvaluator(leonctx, program)   // an evaluator for extracting models
-  val linearEval = new LinearRelationEvaluator(ctx)         // an evaluator for quickly checking the result of linear predicates
+  val defaultEval = new DefaultEvaluator(leonctx, program)   // an evaluator for extracting models  
   val solverFactory =
     if (usePortfolio) {
       if (useIncrementalSolvingForVCs)
@@ -98,8 +96,20 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
     (resModel, seenCalls)
   }
 
+  /**
+   * This solver does not use any theories other than UF/ADT. It assumes that other theories are axiomatized in the VC.
+   * This method can be overloaded by the subclasses.
+   */
+  protected def axiomsForTheory(formula: Formula, calls: Set[Call], model: LazyModel): Seq[Constraint] = Seq()
 
-  
+  //TODO: this should also handle reals
+  protected def doesSatisfyExpr(expr: Expr, model: LazyModel): Boolean = {
+    val compModel = variablesOf(expr).map { k => k -> model(k) }.toMap
+    defaultEval.eval(expr, new Model(compModel)).result match {
+      case Some(BooleanLiteral(true)) => true
+      case _                          => false
+    }
+  }
 
   def splitVC(fd: FunDef) = {
     val (paramPart, rest, modCons) =
@@ -116,7 +126,9 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
    */
   class CGSolver(funs: Seq[FunDef]) {
 
-    
+    //for miscellaneous things
+    val trackNumericalDisjuncts = false
+    var numericalDisjuncts = List[Expr]()
 
     case class FunData(vcSolver: Solver with TimeoutSolver, modelCons: (Model, DefaultEvaluator) => FlatModel,
         paramParts: Expr, simpleParts: Expr)
@@ -626,7 +638,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
         //TODO: Use the dependence chains in the formulas to identify what to assertionize
         // and what can never be implied by solving for the templates
         val disjunct = createAnd((newLnctrs ++ temps).map(_.template))
-        
+        val implCtrs = farkasSolver.constraintsForUnsat(newLnctrs, temps)
         //for debugging
         if (debugReducedFormula) {
           println("Final Path Constraints: " + disjunct)

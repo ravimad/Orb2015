@@ -18,14 +18,7 @@ import TVarFactory._
  * A collection of transformation on expressions and some utility methods.
  * These operations are mostly semantic preserving (specific assumptions/requirements are specified on the operations)
  */
-object ExpressionTransformer {
-
-  val zero = InfiniteIntegerLiteral(0)
-  val one = InfiniteIntegerLiteral(1)
-  val mone = InfiniteIntegerLiteral(-1)
-  val tru = BooleanLiteral(true)
-  val fls = BooleanLiteral(false)
-  val bone = BigInt(1)
+object ExpressionTransformer {    
 
   // identifier for temporaries that are generated during flattening of terms other than functions
   val flatContext = newContext
