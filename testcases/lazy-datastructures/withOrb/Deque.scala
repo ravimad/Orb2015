@@ -219,12 +219,15 @@ object RealTimeDeque {
   } ensuring(res => res.valid &&
       time <= ?)
 
+  
+  @invisibleBody
+  def funeEqual[T](s1: $[Stream[T]], s2: $[Stream[T]]) = firstUneval(s1) == firstUneval(s2)
+  
   /**
    * Forces the schedules, and ensures that `firstUneval` equality is preserved
    */
   def force[T](tar: $[Stream[T]], htar: $[Stream[T]], other: $[Stream[T]], hother: $[Stream[T]]): $[Stream[T]] = {
-    require(firstUneval(tar) == firstUneval(htar) &&
-      firstUneval(other) == firstUneval(hother))
+    require(funeEqual(tar, htar) && funeEqual(other, hother))
     tar.value match {
       case SCons(_, tail) => tail
       case _              => tar
