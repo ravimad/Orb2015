@@ -8,8 +8,12 @@ import invariant.util.ExpressionTransformer._
 import purescala.ExprOps._
 import invariant.util.PredicateUtil._
 
+object ConstraintTracker {
+  val debugVC = true
+}
 class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunDef/*, temFactory: TemplateFactory*/) {
 
+  import ConstraintTracker._
   //a mapping from functions to its VCs represented as a CNF formula
   protected var funcVCs = Map[FunDef,Formula]()
 
@@ -27,11 +31,12 @@ class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunD
    * The VC constructed is assump ^ body ^ Not(conseq)
    */
   def addVC(fd: FunDef, assump: Expr, body: Expr, conseq: Expr) = {
+    if(debugVC) {
+      println(s"Init VC \n assumption: $assump \n body: $body \n conseq: $conseq") 
+    }
     val flatBody = normalizeExpr(body, ctx.multOp)
     val flatAssump = normalizeExpr(assump, ctx.multOp)
-    val conseqNeg = normalizeExpr(Not(conseq), ctx.multOp)
-    //println("flatBody: "+flatBody)
-    //println("flatSpecNeg: "+flatSpecNeg)
+    val conseqNeg = normalizeExpr(Not(conseq), ctx.multOp)    
     val callCollect = collect {
       case c @ Equals(_, _: FunctionInvocation) => Set[Expr](c)
       case _ => Set[Expr]()
