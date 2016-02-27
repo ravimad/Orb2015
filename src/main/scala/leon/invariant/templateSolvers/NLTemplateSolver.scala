@@ -252,12 +252,10 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
       }
 
       def invalidateDisjRecr(prevCtr: Expr): (Option[Boolean], Expr, Model) = {
-
         Stats.updateCounter(1, "disjuncts")
-
         var blockedCEs = false
-        var confFunctions = Set[FunDef]()
-        var confDisjuncts = Seq[Expr]()
+        var newConfFuns = Set[FunDef]()
+        var newConfDisjuncts = Seq[Expr]()
         val newctrsOpt = conflictingFuns.foldLeft(Some(Seq()): Option[Seq[Expr]]) {
           case (None, _) => None
           case (Some(acc), fd) =>
@@ -273,8 +271,8 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
                 case Some(((disjunct, callsInPath), ctrsForFun)) =>
                   if (ctrsForFun == tru) Some(acc)
                   else {
-                    confFunctions += fd
-                    confDisjuncts :+= disjunct
+                    newConfFuns += fd
+                    newConfDisjuncts :+= disjunct
                     callsInPaths ++= callsInPath
                     //instantiate the disjunct
                     val cePath = simplifyArithmetic(TemplateInstantiator.instantiate(disjunct, tempVarMap))
@@ -292,7 +290,7 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
             (None, tru, Model.empty)
           case Some(newctrs) =>
             //update conflicting functions
-            conflictingFuns = confFunctions
+            conflictingFuns = newConfFuns
             if (newctrs.isEmpty) {
               if (!blockedCEs) {
                 //yes, hurray,found an inductive invariant
@@ -307,10 +305,9 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
             } else {
               //check that the new constraints do not have any reals
               val newPart = createAnd(newctrs)
-              val newSize = atomNum(newPart)
+              val newSize = atomNum(newPart)              
               Stats.updateCounterStats((newSize + inputSize), "NLsize", "disjuncts")
-              if (verbose)
-                reporter.info("# of atomic predicates: " + newSize + " + " + inputSize)
+              if (verbose) reporter.info("# of atomic predicates: " + newSize + " + " + inputSize)
               val combCtr = And(prevCtr, newPart)
               val (res, newModel) = farkasSolver.solveFarkasConstraints(combCtr)
               res match {
@@ -320,19 +317,17 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
                 case None => {
                   //here we have timed out while solving the non-linear constraints
                   if (verbose)
-                    if (!disableCegis)
-                      reporter.info("NLsolver timed-out on the disjunct... starting cegis phase...")
-                    else
-                      reporter.info("NLsolver timed-out on the disjunct... blocking this disjunct...")
+                    if (!disableCegis) reporter.info("NLsolver timed-out on the disjunct... starting cegis phase...")
+                    else reporter.info("NLsolver timed-out on the disjunct... blocking this disjunct...")
                   if (!disableCegis) {
-                    val (cres, cctr, cmodel) = solveWithCegis(tempIds.toSet, createOr(confDisjuncts), inputCtr, Some(model))
+                    val (cres, cctr, cmodel) = solveWithCegis(tempIds.toSet, createOr(newConfDisjuncts), inputCtr, Some(model))
                     cres match {
                       case Some(true) => {
-                        disjsSolvedInIter ++= confDisjuncts
+                        disjsSolvedInIter ++= newConfDisjuncts
                         (Some(true), And(inputCtr, cctr), cmodel)
                       }
                       case Some(false) => {
-                        disjsSolvedInIter ++= confDisjuncts
+                        disjsSolvedInIter ++= newConfDisjuncts
                         //here also return the calls that needs to be unrolled
                         (None, fls, Model.empty)
                       }
@@ -351,11 +346,11 @@ class NLTemplateSolver(ctx: InferenceContext, program: Program,
                 }
                 case Some(false) => {
                   //reporter.info("- Number of explored paths (of the DAG) in this unroll step: " + exploredPaths)
-                  disjsSolvedInIter ++= confDisjuncts
+                  disjsSolvedInIter ++= newConfDisjuncts
                   (None, fls, Model.empty)
                 }
                 case Some(true) => {
-                  disjsSolvedInIter ++= confDisjuncts
+                  disjsSolvedInIter ++= newConfDisjuncts
                   //new model may not have mappings for all the template variables, hence, use the mappings from earlier models
                   val compModel = new Model(tempIds.map((id) => {
                     if (newModel.isDefinedAt(id))
