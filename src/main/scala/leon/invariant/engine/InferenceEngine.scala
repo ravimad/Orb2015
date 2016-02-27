@@ -107,14 +107,16 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
     }
         
   /**
-   * sort the given functions to based on ascending topological order of the callgraph
+   * sort the given functions based on ascending topological order of the callgraph.
+   * For SCCs, preserve the order in which the functions are called in the program 
    */
-  def sortByTopologicalOrder(program: Program, relfuns: Seq[String]) = {
+  def sortByTopologicalOrder(program: Program, relfuns: Seq[String]) = {        
     val callgraph = CallGraphUtil.constructCallGraph(program, onlyBody = true)
     val relset = relfuns.toSet
     val relfds = program.definedFunctions.filter(fd => relset(InstUtil.userFunctionName(fd)))
     val funsToAnalyze = relfds.flatMap(callgraph.transitiveCallees _).toSet
-    val funsInOrder = callgraph.topologicalOrder.filter(funsToAnalyze)
+    // note: the order preserves the order in which functions appear in the program within an SCC
+    val funsInOrder = callgraph.reverseTopologicalOrder(program.definedFunctions).filter(funsToAnalyze)
     reporter.info("Analysis Order: " + funsInOrder.map(_.id.uniqueName))
     funsInOrder
   }
