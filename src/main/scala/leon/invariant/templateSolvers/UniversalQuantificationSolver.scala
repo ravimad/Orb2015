@@ -54,7 +54,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
   private val usePortfolio = false // portfolio has a bug in incremental solving
 
   val defaultEval = new DefaultEvaluator(leonctx, program) // an evaluator for extracting models
-  val existSolver = new ExistentialQuantificationSolver(ctx, program, ctrTracker, defaultEval)  
+  val existSolver = new ExistentialQuantificationSolver(ctx, program, ctrTracker, defaultEval)
 
   val solverFactory =
     if (usePortfolio) {
@@ -75,38 +75,43 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
     } else (paramPart, rest, modCons)
   }
 
-  case class FunData(vcSolver: Solver with TimeoutSolver, modelCons: (Model, DefaultEvaluator) => FlatModel,
-                     paramParts: Expr, simpleParts: Expr)
+  case class FunData(modelCons: (Model, DefaultEvaluator) => FlatModel, paramParts: Expr, simpleParts: Expr)
   val funInfos =
     if (useIncrementalSolvingForVCs) {
-      funs.foldLeft(Map[FunDef, FunData]()) {
-        case (acc, fd) =>
-          val (paramPart, rest, modelCons) = splitVC(fd)
-          if (hasReals(rest) && hasInts(rest))
-            throw new IllegalStateException("Non-param Part has both integers and reals: " + rest)
-          if (debugIncrementalVC) {
-            assert(getTemplateVars(rest).isEmpty)
-            println("For function: " + fd.id)
-            println("Param part: " + paramPart)
-          }
-          if (!ctx.abort) { // this is required to ensure that solvers are not created after interrupts
-            val vcSolver = solverFactory.getNewSolver()
-            vcSolver.assertCnstr(rest)
-            acc + (fd -> FunData(vcSolver, modelCons, paramPart, rest))
-          } else acc
-      }
+      funs.map { fd =>
+        val (paramPart, rest, modelCons) = splitVC(fd)
+        if (hasReals(rest) && hasInts(rest))
+          throw new IllegalStateException("Non-param Part has both integers and reals: " + rest)
+        if (debugIncrementalVC) {
+          assert(getTemplateVars(rest).isEmpty)
+          println("For function: " + fd.id)
+          println("Param part: " + paramPart)
+        }
+        (fd -> FunData(modelCons, paramPart, rest))
+      }.toMap
     } else Map[FunDef, FunData]()
+
+  var funSolvers = initializeSolvers
+  def initializeSolvers =
+    if (!ctx.abort) { // this is required to ensure that solvers are not created after interrupts
+      funInfos.map {
+        case (fd, FunData(_, _, rest)) =>
+          val vcSolver = solverFactory.getNewSolver()
+          vcSolver.assertCnstr(rest)
+          (fd -> vcSolver)
+      }.toMap
+    } else Map[FunDef, Solver with TimeoutSolver]()
 
   def free = {
     if (useIncrementalSolvingForVCs)
-      funInfos.foreach(entry => entry._2.vcSolver.free)
+      funSolvers.foreach(entry => entry._2.free)
   }
 
   /**
    * State for minimization
    */
   class MinimizationInfo {
-    var minStarted = false    
+    var minStarted = false
     var lastCorrectModel: Option[Model] = None
     var minStartTime: Long = 0 // for stats
 
@@ -150,7 +155,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
     def size = paths.values.map(_.size).sum
   }
 
-  abstract class RefineRes  
+  abstract class RefineRes
   case class UnsolvableVC() extends RefineRes
   case class NoSolution() extends RefineRes
   case class CorrectSolution() extends RefineRes
@@ -174,8 +179,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
             if (seenPaths.hasPath(fd)) {
               blockedPaths = true
               seenPaths.pathsToExpr(fd)
-            }
-            else tru
+            } else tru
           checkVCSAT(fd, tempModel, disabledPaths) match {
             case (None, _)        => None // VC cannot be decided
             case (Some(false), _) => Some(acc) // VC is unsat
@@ -243,7 +247,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
       if (verbose) {
         reporter.info("Candidate invariants")
         TemplateInstantiator.getAllInvariants(tempModel, ctrTracker.getFuncs).foreach(
-            entry => reporter.info(entry._1.id + "-->" + entry._2))
+          entry => reporter.info(entry._1.id + "-->" + entry._2))
       }
       val modRefiner = new ModelRefiner(tempModel)
       sat = modRefiner.nextCandidate match {
@@ -264,7 +268,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
         case NewSolution(newModel) =>
           foundModel(newModel)
           minimized = false
-          tempModel = newModel          
+          tempModel = newModel
           Some(true)
         case NoSolution() => // here template is unsolvable or only hard paths remain 
           None
@@ -276,21 +280,22 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
             reporter.info("VC solving failed!...retrying for a bigger model...")
           }
           // Strategy: try to find a value for templates that is bigger than the current value
-          val strategy = tempModel.map{ 
+          val strategy = tempModel.map {
             case (id, v) => GreaterThan(id.toVariable, v)
           }.toSeq
           existSolver.solveConstraints(strategy, tempModel) match {
-            case (Some(true), newModel) =>
+            case (Some(true), newModel) =>              
               foundModel(newModel)
-              tempModel = newModel
+              tempModel = newModel              
+              funSolvers = initializeSolvers // reinitialize all VC solvers as they all timed out
               Some(true)
-            case _=> // give up, no other bigger invariant exist or solving timed out!
-              None            
-          }          
+            case _ => // give up, no other bigger invariant exist or existential solving timed out!
+              None
+          }
         case _ => None
       }
       callsInPaths ++= modRefiner.callsEncountered
-    }    
+    }
     sat match {
       case _ if ctx.abort => (None, None)
       case None           => (None, Some(callsInPaths)) //cannot solve template, more unrollings      
@@ -314,7 +319,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
       if (useIncrementalSolvingForVCs) {
         val funData = funInfos(fd)
         val instParamPart = instantiateTemplate(funData.paramParts, tempVarMap)
-        (funData.vcSolver, And(instParamPart, disabledPaths), funData.modelCons)
+        (funSolvers(fd), And(instParamPart, disabledPaths), funData.modelCons)
       } else {
         val (paramPart, rest, modCons) = ctrTracker.getVC(fd).toUnflatExpr
         val instPart = instantiateTemplate(paramPart, tempVarMap)
@@ -354,7 +359,8 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
               (r, solver.getModel)
             case r => (r, Model.empty)
           }
-          solver.pop()
+          if (solRes._1.isDefined) // invoking pop() otherwise will throw an exception
+            solver.pop()
           solRes
         } else
           SimpleSolverAPI(SolverFactory(() => solver)).solveSAT(instExpr)
@@ -362,15 +368,8 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
         if (verbose) reporter.info("checked VC inst... in " + vccTime / 1000.0 + "s")
         updateCounterTime(vccTime, "VC-check-time", "disjuncts")
         updateCumTime(vccTime, "TotalVCCTime")
-      }    
-//    res match {
-//      // recover from the interrupt if it was broken due to timeout
-//      case None => 
-//        solver.recoverInterrupt()
-//        solver.reset()
-//      case _ =>
-//    }
-    
+      }
+
     //println("Packed model: "+packedModel.toMap)
     //for statistics
     if (trackCompressedVCCTime) {
@@ -386,15 +385,15 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
     }
     (res, modelCons(packedModel, defaultEval))
   }
-  
+
   // cegis code, now not used
   //val (cres, cctr, cmodel) = solveWithCegis(tempIds.toSet, createOr(newConfDisjuncts), inputCtr, Some(model))
-//  def solveWithCegis(tempIds: Set[Identifier], expr: Expr, precond: Expr, initModel: Option[Model]): (Option[Boolean], Expr, Model) = {
-//      val cegisSolver = new CegisCore(ctx, program, timeout.toInt, NLTemplateSolver.this)
-//      val (res, ctr, model) = cegisSolver.solve(tempIds, expr, precond, solveAsInt = false, initModel)
-//      if (res.isEmpty)
-//        reporter.info("cegis timed-out on the disjunct...")
-//      (res, ctr, model)
-//    }
-                    
+  //  def solveWithCegis(tempIds: Set[Identifier], expr: Expr, precond: Expr, initModel: Option[Model]): (Option[Boolean], Expr, Model) = {
+  //      val cegisSolver = new CegisCore(ctx, program, timeout.toInt, NLTemplateSolver.this)
+  //      val (res, ctr, model) = cegisSolver.solve(tempIds, expr, precond, solveAsInt = false, initModel)
+  //      if (res.isEmpty)
+  //        reporter.info("cegis timed-out on the disjunct...")
+  //      (res, ctr, model)
+  //    }
+
 }
