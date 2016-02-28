@@ -48,15 +48,13 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
   val timeout = ctx.vcTimeout
   val leonctx = ctx.leonContext
 
-  //flag controlling behavior  
-  private val startFromEarlierModel = true
+  //flag controlling behavior    
   val disableCegis = true
   private val useIncrementalSolvingForVCs = true
   private val usePortfolio = false // portfolio has a bug in incremental solving
 
   val defaultEval = new DefaultEvaluator(leonctx, program) // an evaluator for extracting models
-  val existSolver = new ExistentialQuantificationSolver(ctx, program)
-  val disjunctChooser = new DisjunctChooser(ctx, program, ctrTracker, defaultEval)
+  val existSolver = new ExistentialQuantificationSolver(ctx, program, ctrTracker, defaultEval)  
 
   val solverFactory =
     if (usePortfolio) {
@@ -108,8 +106,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
    * State for minimization
    */
   class MinimizationInfo {
-    var minStarted = false
-    var minimized = false
+    var minStarted = false    
     var lastCorrectModel: Option[Model] = None
     var minStartTime: Long = 0 // for stats
 
@@ -117,7 +114,6 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
       minStarted = false
       lastCorrectModel = None
     }
-
     def updateProgress(model: Model) {
       lastCorrectModel = Some(model)
       if (!minStarted) {
@@ -125,14 +121,12 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
         minStartTime = System.currentTimeMillis()
       }
     }
-
-    def stop {
+    def complete {
       reset()
       /*val mintime = (System.currentTimeMillis() - minStartTime)
       Stats.updateCounterTime(mintime, "minimization-time", "procs")
     	Stats.updateCumTime(mintime, "Total-Min-Time")*/
     }
-
     def getLastCorrectModel = lastCorrectModel
   }
 
@@ -154,156 +148,136 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
     def pathsToExpr(fd: FunDef) = Not(createOr(paths(fd)))
     def size = paths.values.map(_.size).sum
   }
-  
-  class ModelRefiner(tempModel: Model) {    
-    val seenPaths = new DifficultPaths()
+
+  abstract class RefineRes  
+  case class UnsolvableVC() extends RefineRes
+  case class NoSolution() extends RefineRes
+  case class CorrectSolution() extends RefineRes
+  case class NewSolution(tempModel: Model) extends RefineRes
+
+  class ModelRefiner(tempModel: Model) {
     val tempVarMap: Map[Expr, Expr] = tempModel.map { case (k, v) => (k.toVariable -> v) }.toMap
-      var blockedCEs = false
-      var conflictingFuns = funs.toSet
-      var callsInPaths = Set[Call]()
-      
-    def nextCandidate() = { 
-     var newConflicts = Set[FunDef]()
-      val newctrsOpt = conflictingFuns.foldLeft(Some(Seq()): Option[Seq[Expr]]) {
-        case (None, _) => None
+    val seenPaths = new DifficultPaths()
+    private var callsInPaths = Set[Call]()
+
+    def callsEncountered = callsInPaths
+
+    def nextCandidate(conflicts: Seq[FunDef]): RefineRes = {
+      var newConflicts = Seq[FunDef]()
+      var blockedPaths = false
+      val newctrsOpt = conflicts.foldLeft(Some(Seq()): Option[Seq[Expr]]) {
+        case (None, _)        => None
+        case _ if (ctx.abort) => None
         case (Some(acc), fd) =>
           val disabledPaths =
             if (seenPaths.hasPath(fd)) {
-              blockedCEs = true
+              blockedPaths = true
               seenPaths.pathsToExpr(fd)
-            } else tru
-          if (ctx.abort) None
-          else {
-            checkVCSAT(fd, tempModel, disabledPaths) match {
-              case (None, _)        => None // VC cannot be decided
-              case (Some(false), _) => Some(acc) // VC is unsat
-              case (Some(true), univModel) => // VC is sat 
-                newConflicts += fd
-                if (verbose) reporter.info("Function: " + fd.id + "--Found candidate invariant is not a real invariant! ")
-                if (printCounterExample) {
-                  reporter.info("Model: " + univModel)
-                }
-                // chooose a sat numerical disjunct from the model
-                val (lnctrs, temps, calls) =
-                  time {
-                    disjunctChooser.chooseNumericalDisjunct(ctrTracker.getVC(fd), univModel, tempModel.toMap)
-                  } { chTime =>
-                    updateCounterTime(chTime, "Disj-choosing-time", "disjuncts")
-                    updateCumTime(chTime, "Total-Choose-Time")
-                  }
-                // generate constraints for making it unsat
-                val farkasCtr = existSolver.generateCtrsForUNSAT(lnctrs, temps)
-                if (farkasCtr == tru) throw new IllegalStateException("Cannot find a counter-example path!!")
-                val disjunct = createAnd((lnctrs ++ temps).map(_.template))
-                callsInPaths ++= calls
-                //instantiate the disjunct
-                val cePath = simplifyArithmetic(TemplateInstantiator.instantiate(disjunct, tempVarMap))
-                //some sanity checks
-                if (variablesOf(cePath).exists(TemplateIdFactory.IsTemplateIdentifier _))
-                  throw new IllegalStateException("Found template identifier in counter-example disjunct: " + cePath)
-                seenPaths.addPath(fd, cePath)
-                Some(acc :+ farkasCtr)
             }
+            else tru
+          checkVCSAT(fd, tempModel, disabledPaths) match {
+            case (None, _)        => None // VC cannot be decided
+            case (Some(false), _) => Some(acc) // VC is unsat
+            case (Some(true), univModel) => // VC is sat 
+              newConflicts :+= fd
+              if (verbose) reporter.info("Function: " + fd.id + "--Found candidate invariant is not a real invariant! ")
+              if (printCounterExample) {
+                reporter.info("Model: " + univModel)
+              }
+              // generate constraints for making preventing the model
+              val (existCtr, linearpath, calls) = existSolver.generateCtrsForUNSAT(fd, univModel, tempModel)
+              if (existCtr == tru) throw new IllegalStateException("Cannot find a counter-example path!!")
+              callsInPaths ++= calls
+              //instantiate the disjunct
+              val cePath = simplifyArithmetic(TemplateInstantiator.instantiate(
+                createAnd(linearpath.map(_.template)), tempVarMap))
+              //some sanity checks
+              if (variablesOf(cePath).exists(TemplateIdFactory.IsTemplateIdentifier _))
+                throw new IllegalStateException("Found template identifier in counter-example disjunct: " + cePath)
+              seenPaths.addPath(fd, cePath)
+              Some(acc :+ existCtr)
           }
       }
       newctrsOpt match {
-        case None => // give up, the VC cannot be decided
-          None
+        case None => // give up, the VC cannot be decided 
+          UnsolvableVC()
         case Some(newctrs) if (newctrs.isEmpty) =>
-          conflictingFuns = newConflicts
-          if (!blockedCEs) { //yes, hurray,found an inductive invariant                
-            Some(false)
+          if (!blockedPaths) { //yes, hurray,found an inductive invariant                
+            CorrectSolution()
           } else {
             //give up, only hard paths remaining
             reporter.info("- Exhausted all easy paths !!")
             reporter.info("- Number of remaining hard paths: " + seenPaths.size)
-            None //TODO: what to unroll here ?
+            NoSolution() //TODO: what to unroll here ?
           }
         case Some(newctrs) =>
-          conflictingFuns = newConflicts
           existSolver.falsifySATDisjunct(newctrs, tempModel) match {
             case (None, _) =>
               //here we have timed out while solving the non-linear constraints
               if (verbose)
                 reporter.info("NLsolver timed-out on the disjunct... blocking this disjunct...")
               Stats.updateCumStats(1, "retries")
-              Some(true)
+              nextCandidate(newConflicts)
             case (Some(false), _) => // template not solvable, need more unrollings here    
-              None
-            case (Some(true), nextModel) =>              
-              Some(true)
-
+              NoSolution()
+            case (Some(true), nextModel) =>
+              NewSolution(nextModel)
           }
       }
+    }
+    def nextCandidate: RefineRes = nextCandidate(funs)
   }
 
   /**
-   * Computes the invariant for all the procedures given a mapping for the
-   * template variables.
+   * @param foundModel a call-back that will be invoked every time a new model is found
    */
-  def getAllInvariants(model: Model): Map[FunDef, Expr] = {
-    val templates = ctrTracker.getFuncs.collect {
-      case fd if fd.hasTemplate =>
-        fd -> fd.getTemplate
-    }
-    TemplateInstantiator.getAllInvariants(model, templates.toMap)
-  }
-
-  def solveUNSAT(initModel: Model): (Option[Model], Option[Set[Call]]) = {
-    val minimizationInfo = new MinimizationInfo()    
+  def solveUNSAT(initModel: Model, foundModel: Model => Unit): (Option[Model], Option[Set[Call]]) = {
+    val minInfo = new MinimizationInfo()
     var sat: Option[Boolean] = Some(true)
-    var tempModel = initModel    
+    var tempModel = initModel
     var callsInPaths = Set[Call]()
+    var minimized = false
     while (sat == Some(true) && !ctx.abort) {
       Stats.updateCounter(1, "disjuncts")
       if (verbose) {
         reporter.info("Candidate invariants")
-        getAllInvariants(tempModel).foreach(entry => reporter.info(entry._1.id + "-->" + entry._2))
+        TemplateInstantiator.getAllInvariants(tempModel, ctrTracker.getFuncs).foreach(
+            entry => reporter.info(entry._1.id + "-->" + entry._2))
       }
-      sat = 
-    }
-    sat match {
-      case None => (None, Some(callsInPaths))
-      case _ => (Some(tempModel), None)
+      val modRefiner = new ModelRefiner(tempModel)
+      sat = modRefiner.nextCandidate match {
+        case CorrectSolution() if (minimizer.isDefined && !minimized) =>
+          minInfo.updateProgress(tempModel)
+          val minModel = minimizer.get(existSolver.getSolvedCtrs, tempModel)
+          minimized = true
+          if (minModel == tempModel) {
+            minInfo.complete
+            Some(false)
+          } else {
+            tempModel = minModel
+            Some(true)
+          }
+        case CorrectSolution() => // minimization has completed or is not applicable
+          minInfo.complete
+          Some(false)
+        case NewSolution(newModel) =>
+          foundModel(newModel)
+          minimized = false
+          tempModel = newModel          
+          Some(true)
+        case NoSolution() => // here template is unsolvable or only hard paths remain 
+          None
+        case UnsolvableVC() =>
+          None
+      }
+      callsInPaths ++= modRefiner.callsEncountered
     }    
+    sat match {
+      case _ if ctx.abort => (None, None)
+      case None           => (None, Some(callsInPaths)) //cannot solve template, more unrollings      
+      case _              => (Some(tempModel), None) // template solved
+    }
   }
- 
-
-  //      res match {
-  //        case _ if ctx.abort =>
-  //          (None, None, model)
-  //        case None if minStarted =>
-  //          (Some(lastCorrectModel.get), None, model)
-  //        case None =>
-  //          //here, we cannot proceed and have to return unknown
-  //          //However, we can return the calls that need to be unrolled
-  //          (None, Some(seenCalls ++ newcalls), model)
-  //        case Some(false) =>
-  //          //here, the vcs are unsatisfiable when instantiated with the invariant
-  //          if (minimizer.isDefined) {
-  //            minimizationInProgress(model)
-  //            if (minimized) {
-  //              minimizationCompleted
-  //              (Some(model), None, model)
-  //            } else {
-  //              val minModel = minimizer.get(inputCtr, model)
-  //              minimized = true
-  //              if (minModel == model) {
-  //                minimizationCompleted
-  //                (Some(model), None, model)
-  //              } else {
-  //                solveUNSAT(minModel, inputCtr, solvedDisjs, seenCalls)
-  //              }
-  //            }
-  //          } else {
-  //            (Some(model), None, model)
-  //          }
-  //        case Some(true) =>
-  //          //here, we have found a new candidate invariant. Hence, the above process needs to be repeated
-  //          minimized = false
-  //          solveUNSAT(newModel, newCtr, solvedDisjs ++ newdisjs, seenCalls ++ newcalls)
-  //      }
-  //    }
 
   protected def instantiateTemplate(e: Expr, tempVarMap: Map[Expr, Expr]): Expr = {
     if (ctx.usereals) replace(tempVarMap, e)
@@ -385,4 +359,15 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
     }
     (res, modelCons(packedModel, defaultEval))
   }
+  
+  // cegis code, now not used
+  //val (cres, cctr, cmodel) = solveWithCegis(tempIds.toSet, createOr(newConfDisjuncts), inputCtr, Some(model))
+//  def solveWithCegis(tempIds: Set[Identifier], expr: Expr, precond: Expr, initModel: Option[Model]): (Option[Boolean], Expr, Model) = {
+//      val cegisSolver = new CegisCore(ctx, program, timeout.toInt, NLTemplateSolver.this)
+//      val (res, ctr, model) = cegisSolver.solve(tempIds, expr, precond, solveAsInt = false, initModel)
+//      if (res.isEmpty)
+//        reporter.info("cegis timed-out on the disjunct...")
+//      (res, ctr, model)
+//    }
+                    
 }

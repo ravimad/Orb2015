@@ -10,8 +10,17 @@ import invariant.structure._
 import leon.solvers.Model
 import leon.invariant.util.RealValuedExprEvaluator
 import PredicateUtil._
+import FunctionUtils._
 
 object TemplateInstantiator {
+  
+  def getAllInvariants(model: Model, fds: Seq[FunDef]): Map[FunDef, Expr] = {
+    val templates = fds.collect {
+      case fd if fd.hasTemplate => fd -> fd.getTemplate
+    }
+    TemplateInstantiator.getAllInvariants(model, templates.toMap)
+  }
+  
   /**
    * Computes the invariant for all the procedures given a mapping for the
    * template variables.

@@ -33,18 +33,32 @@ import SolverUtil._
 /**
  * This class uses Farkas' lemma to try and falsify numerical disjuncts with templates provided one by one
  */
-class ExistentialQuantificationSolver(ctx: InferenceContext, program: Program) {
+class ExistentialQuantificationSolver(ctx: InferenceContext, program: Program, 
+    ctrTracker: ConstraintTracker, defaultEval: DefaultEvaluator) {
   import NLTemplateSolver._
   val reporter = ctx.reporter
 
   var currentCtr: Expr = tru
   private val farkasSolver = new FarkasLemmaSolver(ctx, program)
-
-  def generateCtrsForUNSAT(lnctrs: Seq[LinearConstraint], temps: Seq[LinearTemplate]): Expr = {
+  val disjunctChooser = new DisjunctChooser(ctx, program, ctrTracker, defaultEval)
+  
+  def getSolvedCtrs = currentCtr  
+  
+  def generateCtrsForUNSAT(fd: FunDef, univModel: LazyModel, tempModel: Model) = {
+    // chooose a sat numerical disjunct from the model
+    val (lnctrs, temps, calls) =
+      time {
+        disjunctChooser.chooseNumericalDisjunct(ctrTracker.getVC(fd), univModel, tempModel.toMap)
+      } { chTime =>
+        updateCounterTime(chTime, "Disj-choosing-time", "disjuncts")
+        updateCumTime(chTime, "Total-Choose-Time")
+      }
+    val disjunct = (lnctrs ++ temps)    
     if (temps.isEmpty) {
       //here ants ^ conseq is sat (otherwise we wouldn't reach here) and there is no way to falsify this path
-      fls
-    } else farkasSolver.constraintsForUnsat(lnctrs, temps)
+      (fls, disjunct, calls)
+    } else 
+      (farkasSolver.constraintsForUnsat(lnctrs, temps), disjunct, calls)
   }
 
   /**

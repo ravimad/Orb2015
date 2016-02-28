@@ -35,6 +35,7 @@ class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: Const
   val debugChooseDisjunct = false
   val debugTheoryReduction = false
   val debugAxioms = false
+  val debugReducedFormula = false
   val verifyInvariant = false
   val printPathToConsole = false
   val dumpPathAsSMTLIB = false
@@ -161,7 +162,16 @@ class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: Const
       numericalDisjuncts :+= createAnd((lnctrs ++ temps).map(_.template).toSeq)
     }
     val tempCtrs = temps.toSeq
-    (eliminateVars(lnctrs.toSeq, tempCtrs), tempCtrs, calls)
+    val elimCtrs = eliminateVars(lnctrs.toSeq, tempCtrs)
+    //for debugging
+    if (debugReducedFormula) {
+      println("Final Path Constraints: " + elimCtrs ++ tempCtrs)
+      if (verifyInvariant) {
+        println("checking invariant for final disjunct... ")
+        checkInvariant(createAnd((elimCtrs ++ tempCtrs).map(_.template)), leonctx, program)
+      }
+    }
+    (elimCtrs, tempCtrs, calls)
   }
 
   /**

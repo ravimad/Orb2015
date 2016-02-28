@@ -5,6 +5,7 @@ import purescala.Expressions._
 import purescala.ExprOps._
 import purescala.Types._
 import invariant.util._
+import Util._
 import PredicateUtil._
 import TypeUtil._
 import purescala.Extractors._
