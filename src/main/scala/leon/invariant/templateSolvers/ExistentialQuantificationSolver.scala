@@ -64,7 +64,7 @@ class ExistentialQuantificationSolver(ctx: InferenceContext, program: Program,
   /**
    * Solves the nonlinear Farkas' constraints
    */
-  def falsifySATDisjunct(newctrs: Seq[Expr], oldModel: Model): (Option[Boolean], Model) = {
+  def solveConstraints(newctrs: Seq[Expr], oldModel: Model): (Option[Boolean], Model) = {
     val newPart = createAnd(newctrs)
     val newSize = atomNum(newPart)
     val currSize = atomNum(currentCtr)

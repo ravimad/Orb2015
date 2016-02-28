@@ -110,6 +110,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
     var lastCorrectModel: Option[Model] = None
     var minStartTime: Long = 0 // for stats
 
+    def started = minStarted
     def reset() = {
       minStarted = false
       lastCorrectModel = None
@@ -211,7 +212,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
             NoSolution() //TODO: what to unroll here ?
           }
         case Some(newctrs) =>
-          existSolver.falsifySATDisjunct(newctrs, tempModel) match {
+          existSolver.solveConstraints(newctrs, tempModel) match {
             case (None, _) =>
               //here we have timed out while solving the non-linear constraints
               if (verbose)
@@ -267,8 +268,26 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
           Some(true)
         case NoSolution() => // here template is unsolvable or only hard paths remain 
           None
-        case UnsolvableVC() =>
-          None
+        case UnsolvableVC() if minInfo.started =>
+          tempModel = minInfo.getLastCorrectModel.get
+          Some(false)
+        case UnsolvableVC() if !ctx.abort =>
+          if (verbose) {
+            reporter.info("VC solving failed!...retrying for a bigger model...")
+          }
+          // Strategy: try to find a value for templates that is bigger than the current value
+          val strategy = tempModel.map{ 
+            case (id, v) => GreaterThan(id.toVariable, v)
+          }.toSeq
+          existSolver.solveConstraints(strategy, tempModel) match {
+            case (Some(true), newModel) =>
+              foundModel(newModel)
+              tempModel = newModel
+              Some(true)
+            case _=> // give up, no other bigger invariant exist or solving timed out!
+              None            
+          }          
+        case _ => None
       }
       callsInPaths ++= modRefiner.callsEncountered
     }    
@@ -344,6 +363,8 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
         updateCounterTime(vccTime, "VC-check-time", "disjuncts")
         updateCumTime(vccTime, "TotalVCCTime")
       }
+    // reset the solver if it was broken due to timeout
+      
     //println("Packed model: "+packedModel.toMap)
     //for statistics
     if (trackCompressedVCCTime) {
