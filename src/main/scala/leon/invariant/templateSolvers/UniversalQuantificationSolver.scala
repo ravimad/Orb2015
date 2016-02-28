@@ -362,9 +362,15 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
         if (verbose) reporter.info("checked VC inst... in " + vccTime / 1000.0 + "s")
         updateCounterTime(vccTime, "VC-check-time", "disjuncts")
         updateCumTime(vccTime, "TotalVCCTime")
-      }
-    // reset the solver if it was broken due to timeout
-      
+      }    
+//    res match {
+//      // recover from the interrupt if it was broken due to timeout
+//      case None => 
+//        solver.recoverInterrupt()
+//        solver.reset()
+//      case _ =>
+//    }
+    
     //println("Packed model: "+packedModel.toMap)
     //for statistics
     if (trackCompressedVCCTime) {
