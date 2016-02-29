@@ -1,4 +1,4 @@
-package lazybenchmarks
+package orb
 
 import leon.lazyeval._
 import leon.lang._

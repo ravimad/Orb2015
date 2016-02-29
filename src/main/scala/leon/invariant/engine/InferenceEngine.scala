@@ -24,7 +24,8 @@ import Stats._
 class InferenceEngine(ctx: InferenceContext) extends Interruptible {
 
   val debugBottomupIterations = false
-  
+  val debugAnalysisOrder = false
+
   val ti = new TimeoutFor(this)
   val reporter = ctx.reporter
 
@@ -48,7 +49,7 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
     }
   }
 
-  private def run(progressCallback: Option[InferenceCondition => Unit] = None): InferenceReport = {    
+  private def run(progressCallback: Option[InferenceCondition => Unit] = None): InferenceReport = {
     val program = ctx.inferProgram
     reporter.info("Running Inference Engine...")
     if (ctx.dumpStats) { //register a shutdownhook
@@ -56,8 +57,8 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
     }
     val relfuns = ctx.functionsToInfer.getOrElse(program.definedFunctions.map(InstUtil.userFunctionName))
     var results: Map[FunDef, InferenceCondition] = null
-    time {      
-      if (!ctx.useCegis) {        
+    time {
+      if (!ctx.useCegis) {
         results = analyseProgram(program, relfuns, defaultVCSolver, progressCallback)
         //println("Inferrence did not succeeded for functions: "+functionsToAnalyze.filterNot(succeededFuncs.contains _).map(_.id))
       } else {
@@ -105,32 +106,33 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
       else
         new UnfoldingTemplateSolver(ctx, prog, funDef)
     }
-        
+
   /**
    * sort the given functions based on ascending topological order of the callgraph.
-   * For SCCs, preserve the order in which the functions are called in the program 
+   * For SCCs, preserve the order in which the functions are called in the program
    */
-  def sortByTopologicalOrder(program: Program, relfuns: Seq[String]) = {        
+  def sortByTopologicalOrder(program: Program, relfuns: Seq[String]) = {
     val callgraph = CallGraphUtil.constructCallGraph(program, onlyBody = true)
     val relset = relfuns.toSet
     val relfds = program.definedFunctions.filter(fd => relset(InstUtil.userFunctionName(fd)))
     val funsToAnalyze = relfds.flatMap(callgraph.transitiveCallees _).toSet
     // note: the order preserves the order in which functions appear in the program within an SCC
     val funsInOrder = callgraph.reverseTopologicalOrder(program.definedFunctions).filter(funsToAnalyze)
-    reporter.info("Analysis Order: " + funsInOrder.map(_.id.uniqueName))
+    if(debugAnalysisOrder)
+      reporter.info("Analysis Order: " + funsInOrder.map(_.id.uniqueName))
     funsInOrder
   }
 
   /**
    * Returns map from analyzed functions to their inference conditions.
-   * @param - a list of user-level function names that need to analyzed. The names should not 
-   * include the instrumentation suffixes 
+   * @param - a list of user-level function names that need to analyzed. The names should not
+   * include the instrumentation suffixes
    * TODO: use function names in inference conditions, so that
    * we an get rid of dependence on origFd in many places.
    */
   def analyseProgram(startProg: Program, relfuns: Seq[String],
                      vcSolver: (FunDef, Program) => FunctionTemplateSolver,
-                     progressCallback: Option[InferenceCondition => Unit]): Map[FunDef, InferenceCondition] = {    
+                     progressCallback: Option[InferenceCondition => Unit]): Map[FunDef, InferenceCondition] = {
     val functionsToAnalyze = sortByTopologicalOrder(startProg, relfuns)
     val funToTmpl =
       if (ctx.autoInference) {
@@ -144,10 +146,11 @@ class InferenceEngine(ctx: InferenceContext) extends Interruptible {
     val progWithTemplates = assignTemplateAndCojoinPost(funToTmpl, startProg)
     var analyzedSet = Map[FunDef, InferenceCondition]()
 
-    functionsToAnalyze.filterNot((fd) => {
+    functionsToAnalyze.filterNot(fd => {
       (fd.annotations contains "verified") ||
         (fd.annotations contains "library") ||
-        (fd.annotations contains "theoryop")
+        (fd.annotations contains "theoryop") ||
+        (fd.annotations contains "extern")
     }).foldLeft(progWithTemplates) { (prog, origFun) =>
 
       if (debugBottomupIterations) {

@@ -186,6 +186,11 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
               val condCtr = conds match {
                 case Seq(bc: BoolConstraint) => BoolConstraint(Not(bc.toExpr))
                 case Seq(lc: LinearTemplate) => lc.pickSatDisjunctOfNegation(model, tmplModel, eval)
+                case Seq(adteq: ADTConstraint) if adteq.comp =>
+                  adteq.toExpr match {
+                    case Not(eq) => ADTConstraint(eq)
+                    case eq      => ADTConstraint(Not(eq))
+                  }
               }
               condCtr +: traverseAnds(elzes)
             }
