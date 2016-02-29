@@ -26,17 +26,17 @@ class ConstraintTracker(ctx : InferenceContext, program: Program, rootFun : FunD
 
   /**
    * @param body the body part of the VC that may possibly have instrumentation
-   * @param assump is the additional assumptions e.g. pre and conseq 
-   * is the goal e.g. post 
+   * @param assump is the additional assumptions e.g. pre and conseq
+   * is the goal e.g. post
    * The VC constructed is assump ^ body ^ Not(conseq)
    */
   def addVC(fd: FunDef, assump: Expr, body: Expr, conseq: Expr) = {
     if(debugVC) {
-      println(s"Init VC \n assumption: $assump \n body: $body \n conseq: $conseq") 
+      println(s"Init VC \n assumption: $assump \n body: $body \n conseq: $conseq")
     }
     val flatBody = normalizeExpr(body, ctx.multOp)
     val flatAssump = normalizeExpr(assump, ctx.multOp)
-    val conseqNeg = normalizeExpr(Not(conseq), ctx.multOp)    
+    val conseqNeg = normalizeExpr(Not(conseq), ctx.multOp)
     val callCollect = collect {
       case c @ Equals(_, _: FunctionInvocation) => Set[Expr](c)
       case _ => Set[Expr]()

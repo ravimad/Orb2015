@@ -18,7 +18,7 @@ import TVarFactory._
  * A collection of transformation on expressions and some utility methods.
  * These operations are mostly semantic preserving (specific assumptions/requirements are specified on the operations)
  */
-object ExpressionTransformer {    
+object ExpressionTransformer {
 
   // identifier for temporaries that are generated during flattening of terms other than functions
   val flatContext = newContext
@@ -438,8 +438,8 @@ object ExpressionTransformer {
       // specially handle boolean function to prevent unnecessary simplifications
       case Or(args)           => Or(args map rec)
       case And(args)          => And(args map rec)
-      case Not(arg)           => Not(rec(arg))
-      case Operator(args, op) => op(args map rec)
+      case IfExpr(cond, th, elze) => IfExpr(rec(cond), rec(th), rec(elze))
+      case e => e // we should not recurse in other operations, note: Not(equals) should not be considered
     }
     val newe = rec(ine)
     val closure = (e: Expr) => replaceFromIDs(idMap, e)

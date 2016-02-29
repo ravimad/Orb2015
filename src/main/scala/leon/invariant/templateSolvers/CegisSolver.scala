@@ -15,6 +15,7 @@ import leon.invariant.util.RealValuedExprEvaluator._
 import PredicateUtil._
 import SolverUtil._
 import Stats._
+import Util._
 
 class CegisSolver(ctx: InferenceContext, program: Program,
   rootFun: FunDef, ctrTracker: ConstraintTracker,

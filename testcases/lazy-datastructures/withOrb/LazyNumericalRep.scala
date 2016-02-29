@@ -5,6 +5,7 @@ import leon.lang._
 import leon.annotation._
 import leon.instrumentation._
 import leon.lazyeval.$._
+import leon.invariant._
 
 object DigitObject {
   sealed abstract class Digit
@@ -33,13 +34,13 @@ object LazyNumericalRep {
   /**
    * Checks whether there is a zero before an unevaluated closure
    */
-  def zeroPreceedsLazy[T](q: $[NumStream]): Boolean = {
+  def zeroPrecedeLazy[T](q: $[NumStream]): Boolean = {
     if (q.isEvaluated) {
       q* match {
         case Spine(Zero(), _, rear) =>
           true // here we have seen a zero
         case Spine(_, _, rear) =>
-          zeroPreceedsLazy(rear) //here we have not seen a zero
+          zeroPrecedeLazy(rear) //here we have not seen a zero
         case Tip() => true
       }
     } else false
@@ -48,12 +49,12 @@ object LazyNumericalRep {
   /**
    * Checks whether there is a zero before a given suffix
    */
-  def zeroPreceedsSuf[T](q: $[NumStream], suf: $[NumStream]): Boolean = {
+  def zeroPrecedeSuf[T](q: $[NumStream], suf: $[NumStream]): Boolean = {
     if (q != suf) {
       q* match {
         case Spine(Zero(), _, rear) => true
         case Spine(_, _, rear) =>
-          zeroPreceedsSuf(rear, suf)
+          zeroPrecedeSuf(rear, suf)
         case Tip() => false
       }
     } else false
@@ -102,11 +103,12 @@ object LazyNumericalRep {
     }
   }
 
+  @invisibleBody
   def strongSchedsProp[T](q: $[NumStream], schs: Scheds) = {
     q.isEvaluated && {
       schs match {
         case Cons(head, tail) =>
-          zeroPreceedsSuf(q, head) // zeroPreceedsSuf holds initially
+          zeroPrecedeSuf(q, head) // zeroPrecedeSuf holds initially
         case Nil() => true
       }
     } &&
@@ -116,6 +118,7 @@ object LazyNumericalRep {
   /**
    * Note: if 'q' has a suspension then it would have a carry.
    */
+  @invisibleBody
   def pushUntilCarry[T](q: $[NumStream]): $[NumStream] = {
     q* match {
       case Spine(Zero(), _, rear) => // if we push a carry and get back 0 then there is a new carry
@@ -131,8 +134,9 @@ object LazyNumericalRep {
     val valid = strongSchedsProp(digs, schedule)
   }
 
+  @invisibleBody
   def inc(xs: $[NumStream]): NumStream = {
-    require(zeroPreceedsLazy(xs))
+    require(zeroPrecedeLazy(xs))
     xs.value match {
       case Tip() =>
         Spine(One(), False(), xs)
@@ -141,17 +145,18 @@ object LazyNumericalRep {
       case s @ Spine(_, _, _) =>
         incLazy(xs)
     }
-  } ensuring (_ => time <= 70)
+  } ensuring (_ => time <= ?)
 
+  @invisibleBody
   @invstate
   def incLazy(xs: $[NumStream]): NumStream = {
-    require(zeroPreceedsLazy(xs) &&
+    require(zeroPrecedeLazy(xs) &&
       (xs* match {
         case Spine(h, _, _) => h != Zero() // xs doesn't start with a zero
         case _ => false
       }))
     xs.value match {
-      case Spine(head, _, rear) => // here, rear is guaranteed to be evaluated by 'zeroPreceedsLazy' invariant
+      case Spine(head, _, rear) => // here, rear is guaranteed to be evaluated by 'zeroPrecedeLazy' invariant
         val carry = One()
         rear.value match {
           case s @ Spine(Zero(), _, srear) =>
@@ -177,16 +182,17 @@ object LazyNumericalRep {
       case _ =>
         false
     }) &&
-      time <= 40
+      time <= ?
   }
 
   /**
    * Lemma:
    * forall suf. suf*.head != Zero() ^ zeroPredsSuf(xs, suf) ^ concUntil(xs.tail.tail, suf) => concUntil(push(rear), suf)
    */
+  @invisibleBody
   @invstate
   def incLazyLemma[T](xs: $[NumStream], suf: $[NumStream]): Boolean = {
-    require(zeroPreceedsSuf(xs, suf) &&
+    require(zeroPrecedeSuf(xs, suf) &&
       (xs* match {
         case Spine(h, _, _) => h != Zero()
         case _ => false
@@ -207,7 +213,7 @@ object LazyNumericalRep {
           case _ => true
         }
     }) &&
-      // instantiate the lemma that implies zeroPreceedsLazy
+      // instantiate the lemma that implies zeroPrecedeLazy
       (if (zeroPredSufConcreteUntilLemma(xs, suf)) {
         // property
         (incLazy(xs) match {
@@ -217,9 +223,10 @@ object LazyNumericalRep {
       } else false)
   } holds
 
+  @invisibleBody
   def incNum[T](w: Number) = {
     require(w.valid &&
-      // instantiate the lemma that implies zeroPreceedsLazy
+      // instantiate the lemma that implies zeroPrecedeLazy
       (w.schedule match {
         case Cons(h, _) =>
           zeroPredSufConcreteUntilLemma(w.digs, h)
@@ -252,9 +259,10 @@ object LazyNumericalRep {
       case _ => true
     }) &&
       schedulesProperty(res._1, res._2) &&
-      time <= 80
+      time <= ?
   }
 
+  @invisibleBody
   def Pay[T](q: $[NumStream], scheds: Scheds): Scheds = {
     require(schedulesProperty(q, scheds) && q.isEvaluated)
     scheds match {
@@ -290,7 +298,7 @@ object LazyNumericalRep {
             })
         case _ => true
       }) &&
-        // instantiations for zeroPreceedsSuf property
+        // instantiations for zeroPrecedeSuf property
         (scheds match {
           case Cons(head, rest) =>
             (concreteUntilIsSuffix(q, head) withState in) &&
@@ -298,7 +306,7 @@ object LazyNumericalRep {
                 case Cons(rhead, rtail) =>
                   concreteUntilIsSuffix(pushUntilCarry(head), rhead) &&
                     suffixZeroLemma(q, head, rhead) &&
-                    zeroPreceedsSuf(q, rhead)
+                    zeroPrecedeSuf(q, rhead)
                 case _ =>
                   true
               })
@@ -307,8 +315,21 @@ object LazyNumericalRep {
         })
     } && // properties
       schedulesProperty(q, res) &&
-      time <= 70
+      time <= ?
   }
+
+  /**
+   * Pushing an element to the left of the queue preserves the data-structure invariants
+   */
+  @invisibleBody
+  def incAndPay[T](w: Number) = {
+    require(w.valid)
+
+    val (q, scheds) = incNum(w)
+    val nscheds = Pay(q, scheds)
+    Number(q, nscheds)
+
+  } ensuring { res => res.valid && time <= ? }
 
   // monotonicity lemmas
   def schedMonotone[T](st1: Set[$[NumStream]], st2: Set[$[NumStream]], scheds: Scheds, l: $[NumStream]): Boolean = {
@@ -420,20 +441,22 @@ object LazyNumericalRep {
     (concreteUntil(q, suf1) && concreteUntil(suf1, suf2)) ==> concreteUntil(q, suf2)
   } holds
 
-  // properties that relate `concUntil`, `concrete`,  `zeroPreceedsSuf` with `zeroPreceedsLazy`
-  //   - these are used in preconditions to derive the `zeroPreceedsLazy` property
+  // properties that relate `concUntil`, `concrete`,  `zeroPrecedeSuf` with `zeroPrecedeLazy`
+  //   - these are used in preconditions to derive the `zeroPrecedeLazy` property
 
+  @invisibleBody
   @traceInduct
   def zeroPredSufConcreteUntilLemma[T](q: $[NumStream], suf: $[NumStream]): Boolean = {
-    (zeroPreceedsSuf(q, suf) && concreteUntil(q, suf)) ==> zeroPreceedsLazy(q)
+    (zeroPrecedeSuf(q, suf) && concreteUntil(q, suf)) ==> zeroPrecedeLazy(q)
   } holds
 
+  @invisibleBody
   @traceInduct
   def concreteZeroPredLemma[T](q: $[NumStream]): Boolean = {
-    isConcrete(q) ==> zeroPreceedsLazy(q)
+    isConcrete(q) ==> zeroPrecedeLazy(q)
   } holds
 
-  // properties relating `suffix` an `zeroPreceedsSuf`
+  // properties relating `suffix` an `zeroPrecedeSuf`
 
   def suffixZeroLemma[T](q: $[NumStream], suf: $[NumStream], suf2: $[NumStream]): Boolean = {
     require(suf* match {
@@ -451,18 +474,6 @@ object LazyNumericalRep {
             true
         }
       } else true) &&
-      zeroPreceedsSuf(q, suf2) // property
+      zeroPrecedeSuf(q, suf2) // property
   }.holds
-
-  /**
-   * Pushing an element to the left of the queue preserves the data-structure invariants
-   */
-  def incAndPay[T](w: Number) = {
-    require(w.valid)
-
-    val (q, scheds) = incNum(w)
-    val nscheds = Pay(q, scheds)
-    Number(q, nscheds)
-
-  } ensuring { res => res.valid && time <= 200 }
 }

@@ -20,13 +20,6 @@ abstract class TemplateSolver(ctx: InferenceContext, val rootFun: FunDef,
   val ctrTracker: ConstraintTracker) {
 
   protected val reporter = ctx.reporter
-  //protected val cg = CallGraphUtil.constructCallGraph(program)
-
-  //some constants
-  protected val fls = BooleanLiteral(false)
-  protected val tru = BooleanLiteral(true)
-  //protected val zero = IntLiteral(0)
-
   private val dumpVCtoConsole = false
   private val dumpVCasText = false
 
@@ -40,7 +33,7 @@ abstract class TemplateSolver(ctx: InferenceContext, val rootFun: FunDef,
       } else (id, model(id))
     }.toMap
     new Model(idmap)
-  }  
+  }
 
   var vcCache = Map[FunDef, Expr]()
   protected def getVCForFun(fd: FunDef): Expr = {
