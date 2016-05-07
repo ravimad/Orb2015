@@ -42,6 +42,19 @@ tmp
 Leon.eml
 Leon.iml
 /.idea_modules
+Orb2015.iml
+library/library.iml
+src/main/main.iml
+src/test/resources/regression/orb/lazy/lazy.iml
+src/test/test.iml
+testcases/lazy-datastructures/lazy-datastructures.iml
+testcases/lazy-datastructures/lazy-datastructures1.iml
+testcases/orb-testcases/orb-testcases.iml
+testcases/orb-testcases/orb-testcases1.iml
+testcases/repair/repair.iml
+testcases/repair/repair1.iml
+testcases/testcases.iml
+testcases/testcases1.iml
 
 #scripts
 out-classes
