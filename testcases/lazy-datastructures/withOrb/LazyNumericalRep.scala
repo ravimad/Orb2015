@@ -35,14 +35,16 @@ object LazyNumericalRep {
   case class Spine(head: Digit, rear: NumStream) extends NumList
 
   sealed abstract class NumStream {
-    @inline
+    @invisibleBody
     def get: NumList = {
       this match {
         case Susp(f) => fval
         case Val(x)  => x
       }
-    }
-    @inline
+    } ensuring{_ =>
+      if((isCached withState inState[NumStream])) time <= 11 else true}
+
+    //@inline
     def isSusp = this match {
       case _: Susp => true
       case _       => false
@@ -55,13 +57,14 @@ object LazyNumericalRep {
       }
     }
 
-    @inline
+    //@inline
+    @invisibleBody
     def getV = this match {
       case Susp(f) => fval*
       case Val(x)  => x
     }
 
-    @inline
+    //@inline
     def isCached = this match {
       case _: Val => true
       case _      => fval.cached
@@ -73,6 +76,7 @@ object LazyNumericalRep {
   /**
    * Checks whether there is a zero before an unevaluated closure
    */
+  @invisibleBody
   def zeroPrecedesLazy(q: NumStream): Boolean = {
     if (q.isCached) {
       q.getV match {
@@ -109,6 +113,7 @@ object LazyNumericalRep {
     } else true
   }
 
+  @invisibleBody
   def isConcrete(l: NumStream): Boolean = {
     l.isCached && (l.getV match {
       case Spine(_, tail) => isConcrete(tail)
@@ -166,7 +171,7 @@ object LazyNumericalRep {
   @invisibleBody
   def inc(xs: NumStream): NumList = {
     require(zeroPrecedesLazy(xs))
-    xs.getV match {
+    xs.get match {
       case Tip() =>
         Spine(One(), xs)
       case s @ Spine(Zero(), rear) =>
@@ -174,29 +179,32 @@ object LazyNumericalRep {
       case s @ Spine(_, _) =>
         incLazy(xs)
     }
-  } ensuring (_ => time <= ?)
+  } //ensuring (_ => time <= ?)
 
   @invisibleBody
   @invstate
   def incLazy(xs: NumStream): NumList = {
     require(zeroPrecedesLazy(xs) &&
+      xs.isCached &&
       (xs.getV match {
-        case Spine(h, _) => h != Zero() // xs is a spine and it doesn't start with a zero
+        case Spine(h, rear) => h != Zero() && rear.isCached // xs is a spine and it doesn't start with a zero
         case _           => false
       }))
     xs.get match {
-      case s @ Spine(head, rear) => // here, rear is guaranteed to be evaluated by 'zeroPrecedeLazy' invariant
-        val carry = One()
+      case Spine(head, rear) => // here, rear is guaranteed to be evaluated by 'zeroPrecedeLazy' invariant
+        val _ = Susp(() => incLazy(rear))
+        rear.get
+        /*val carry = One()
         rear.get match {
           case Tip() =>
             Spine(Zero(), Val(Spine(carry, rear)))
 
-          case s @ Spine(Zero(), srearfun) =>
+          case Spine(Zero(), srearfun) =>
             Spine(Zero(), Val(Spine(carry, srearfun)))
 
           case s =>
             Spine(Zero(), Susp(() => incLazy(rear)))
-        }
+        }*/
     }
   } ensuring { res =>
     (res match {
@@ -273,8 +281,8 @@ object LazyNumericalRep {
         }
       case _ => true
     }) &&
-      schedulesProperty(res._1, res._2) &&
-      time <= ?
+      schedulesProperty(res._1, res._2) //&&
+      //time <= ?
   }
 
   @invisibleBody
@@ -326,8 +334,8 @@ object LazyNumericalRep {
             true
         })
     } && // properties
-      schedulesProperty(q, res) &&
-      time <= ?
+      schedulesProperty(q, res) //&&
+      //time <= ?
   }
 
   /**
@@ -340,7 +348,7 @@ object LazyNumericalRep {
     val nscheds = Pay(q, scheds)
     Number(q, nscheds)
 
-  } ensuring { res => res.valid && time <= ? }
+  } ensuring { res => res.valid } // && time <= ? }
 
   def firstDigit(w: Number): Digit = {
     require(!w.digs.getV.isTip)

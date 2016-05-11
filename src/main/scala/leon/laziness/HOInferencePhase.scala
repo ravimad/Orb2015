@@ -25,7 +25,7 @@ object HOInferencePhase extends SimpleLeonPhase[Program, LazyVerificationReport]
   val dumpProgWOInstSpecs = true
   val dumpInstrumentedProgram = true
   val debugSolvers = false
-  val skipStateVerification = false
+  val skipStateVerification = true
   val skipResourceVerification = false
 
   val name = "Laziness Elimination Phase"
@@ -63,7 +63,7 @@ object HOInferencePhase extends SimpleLeonPhase[Program, LazyVerificationReport]
     new LazyVerificationReport(stateVeri, resourceVeri)
   }
 
-  def genVerifiablePrograms(ctx: LeonContext, prog: Program): (Program, Program) = {    
+  def genVerifiablePrograms(ctx: LeonContext, prog: Program): (Program, Program) = {
     if (dumpInputProg)
       println("Input prog: \n" + ScalaPrinter.apply(prog))
 
