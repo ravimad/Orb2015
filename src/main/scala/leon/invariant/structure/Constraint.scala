@@ -327,7 +327,7 @@ object SetConstraint {
 case class SetConstraint(expr: Expr) extends Constraint {
   var union = false
   var newset = false
-  var equal = false
+  var comp = false
   var elemof = false
   var subset = false
   // TODO: add more operations here
@@ -338,8 +338,9 @@ case class SetConstraint(expr: Expr) extends Constraint {
         case FiniteSet(_, _) => newset = true
         case ElementOfSet(_, _) => elemof = true
         case SubsetOf(_, _) => subset = true
-        case Variable(_) => equal = true
+        case Variable(_) => comp = true
       }
+    case Not(Equals(Variable(_), Variable(_))) => comp = true
   }
   override def toString(): String = {
     expr.toString

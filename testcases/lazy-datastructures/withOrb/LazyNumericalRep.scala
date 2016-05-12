@@ -8,6 +8,10 @@ import instrumentation._
 import invariant._
 import leon.collection._
 
+/**
+ * This benchmark requires an unrollfactor of 5
+ */
+
 object DigitObject {
   sealed abstract class Digit
   case class Zero() extends Digit {
@@ -35,16 +39,8 @@ object LazyNumericalRep {
   case class Spine(head: Digit, rear: NumStream) extends NumList
 
   sealed abstract class NumStream {
-    @invisibleBody
-    def get: NumList = {
-      this match {
-        case Susp(f) => fval
-        case Val(x)  => x
-      }
-    } ensuring{_ =>
-      if((isCached withState inState[NumStream])) time <= 11 else true}
 
-    //@inline
+    @inline
     def isSusp = this match {
       case _: Susp => true
       case _       => false
@@ -58,7 +54,14 @@ object LazyNumericalRep {
     }
 
     //@inline
-    @invisibleBody
+    def get: NumList = {
+      this match {
+        case Susp(f) => fval
+        case Val(x)  => x
+      }
+    }
+
+    //@inline
     def getV = this match {
       case Susp(f) => fval*
       case Val(x)  => x
@@ -76,7 +79,6 @@ object LazyNumericalRep {
   /**
    * Checks whether there is a zero before an unevaluated closure
    */
-  @invisibleBody
   def zeroPrecedesLazy(q: NumStream): Boolean = {
     if (q.isCached) {
       q.getV match {
@@ -90,6 +92,7 @@ object LazyNumericalRep {
   /**
    * Checks whether there is a zero before a given suffix
    */
+  @invisibleBody
   def zeroPrecedesSuf(q: NumStream, suf: NumStream): Boolean = {
     if (q != suf) {
       q.getV match {
@@ -104,6 +107,7 @@ object LazyNumericalRep {
    * Everything until suf is evaluated. This
    * also asserts that suf should be a suffix of the list
    */
+  @invisibleBody
   def concreteUntil(l: NumStream, suf: NumStream): Boolean = {
     if (l != suf) {
       l.isCached && (l.getV match {
@@ -121,6 +125,7 @@ object LazyNumericalRep {
     })
   }
 
+  @invisibleBody
   def schedulesProperty(q: NumStream, schs: List[NumStream]): Boolean = {
     schs match {
       case Cons(head, tail) =>
@@ -179,7 +184,7 @@ object LazyNumericalRep {
       case s @ Spine(_, _) =>
         incLazy(xs)
     }
-  } //ensuring (_ => time <= ?)
+  } ensuring (_ => time <= ?)
 
   @invisibleBody
   @invstate
@@ -192,9 +197,7 @@ object LazyNumericalRep {
       }))
     xs.get match {
       case Spine(head, rear) => // here, rear is guaranteed to be evaluated by 'zeroPrecedeLazy' invariant
-        val _ = Susp(() => incLazy(rear))
-        rear.get
-        /*val carry = One()
+        val carry = One()
         rear.get match {
           case Tip() =>
             Spine(Zero(), Val(Spine(carry, rear)))
@@ -204,7 +207,7 @@ object LazyNumericalRep {
 
           case s =>
             Spine(Zero(), Susp(() => incLazy(rear)))
-        }*/
+        }
     }
   } ensuring { res =>
     (res match {
@@ -281,8 +284,8 @@ object LazyNumericalRep {
         }
       case _ => true
     }) &&
-      schedulesProperty(res._1, res._2) //&&
-      //time <= ?
+      schedulesProperty(res._1, res._2) &&
+      time <= ?
   }
 
   @invisibleBody
@@ -334,8 +337,8 @@ object LazyNumericalRep {
             true
         })
     } && // properties
-      schedulesProperty(q, res) //&&
-      //time <= ?
+      schedulesProperty(q, res) &&
+      time <= ?
   }
 
   /**
@@ -348,7 +351,7 @@ object LazyNumericalRep {
     val nscheds = Pay(q, scheds)
     Number(q, nscheds)
 
-  } ensuring { res => res.valid } // && time <= ? }
+  } ensuring { res => res.valid && time <= ? }
 
   def firstDigit(w: Number): Digit = {
     require(!w.digs.getV.isTip)

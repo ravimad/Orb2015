@@ -25,7 +25,7 @@ object HOInferencePhase extends SimpleLeonPhase[Program, LazyVerificationReport]
   val dumpProgWOInstSpecs = true
   val dumpInstrumentedProgram = true
   val debugSolvers = false
-  val skipStateVerification = true
+  val skipStateVerification = false
   val skipResourceVerification = false
 
   val name = "Laziness Elimination Phase"
