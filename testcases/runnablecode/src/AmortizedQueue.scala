@@ -128,7 +128,7 @@ object Queue {
     val rand = Random
 
     val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-    val size = points
+    val size = points.map(x => 2*x).toList
     var operAlloc = List[Any]() // Keeps track of allocation
 
     points.foreach { i =>
@@ -137,11 +137,11 @@ object Queue {
           AmortizedQueue.Cons(1, f)  
         }
       }
-      val q = AmortizedQueue.Queue(AmortizedQueue.Nil(), input)
-      operAlloc :+= (q.enqueuealloc(2))._2
+      val q = AmortizedQueue.Queue(input, input)
+      operAlloc :+= (dequeuealloc(q))._2
     }
 
-    val orbAlloc = size.map(x => x).toList // Keeps track of Orb predicted results
+    val orbAlloc = size.map(x => x + 2).toList // Keeps track of Orb predicted results
 
     var j = 0
     for(i <- size) {
