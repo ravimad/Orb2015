@@ -68,6 +68,12 @@ class SerialInstrumenter(program: Program,
 
   def instrumenters(fd: FunDef) = funcInsts(fd) map instToInstrumenter.apply _
   def instTypes(fd: FunDef) = funcInsts(fd).map(_.getType)
+
+  /**
+   * Tracks the instrumentations necessary for a function type
+   */
+  def instTypesOfLambdaType(ft: FunctionType): Seq[TypeTree] = ???
+
   /**
    * Index of the instrumentation 'inst' in result tuple that would be created.
    * The return value will be >= 2 as the actual result value would be at index 1
@@ -96,23 +102,6 @@ class SerialInstrumenter(program: Program,
           funMap += (fd -> newfd)
         }
       }
-
-      // create a map from datatypes to datatypes to handle function types in the datatypes
-//      var dataMap = Map[ClassDef, ClassDef]()
-//      (program.definedClasses).distinct.foreach { fd =>
-//        if (instFuncs.contains(fd)) {
-//          val newRetType = TupleType(fd.returnType +: instTypes(fd))
-//          // let the names of the function encode the kind of instrumentations performed
-//          val freshId = FreshIdentifier(fd.id.name + "-" + funcInsts(fd).map(_.name).mkString("-"), newRetType)
-//          val newfd = new FunDef(freshId, fd.tparams, fd.params, newRetType)
-//          funMap += (fd -> newfd)
-//        } else {
-//          //here we need not augment the return types but do need to create a new copy
-//          val freshId = FreshIdentifier(fd.id.name, fd.returnType)
-//          val newfd = new FunDef(freshId, fd.tparams, fd.params, fd.returnType)
-//          funMap += (fd -> newfd)
-//        }
-//      }
 
       def mapExpr(ine: Expr): Expr = {
         simplePostTransform((e: Expr) => e match {
@@ -208,14 +197,32 @@ class SerialInstrumenter(program: Program,
   }
 }
 
+class InstContext {
+  
+}
+
 class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrumenter)(implicit currFun: FunDef) {
   val retainMatches = true
 
-  val insts = serialInst.funcInsts(currFun)
+  /*val insts = serialInst.funcInsts(currFun)
   val instrumenters = serialInst.instrumenters(currFun)
   val instIndex = serialInst.instIndex(currFun) _
   val selectInst = serialInst.selectInst(currFun) _
-  val instTypes = serialInst.instTypes(currFun)
+  val instTypes = serialInst.instTypes(currFun)*/
+
+  val adtSpecializer = new ADTSpecializer()
+
+  def instrumentType(tpe: TypeTree): TypeTree = {
+    adtSpecializer.specializeType {
+      case ft @ FunctionType(argts, rett) =>
+        val instTypes = serialInst.instTypesOfLambdaType(ft)
+        if (instTypes.isEmpty) ft
+        else {
+          FunctionType(argts, TupleType(rett +: instTypes))
+        }
+      case t => t
+    }(tpe)
+  }
 
   // Should be called only if 'expr' has to be instrumented
   // Returned Expr is always an expr of type tuple (Expr, Int)
@@ -405,6 +412,9 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
       val nelse = nelseCons(finalElInsts)
       nifCons(nthen, nelse)
     }
+
+    case Lambda(args, body) =>
+      val nbody = transform(body)
 
     // For all other operations, we go through a common tupleifier.
     case n @ Operator(ss, recons) =>

@@ -127,4 +127,12 @@ object TypeUtil {
     case ct: CaseClassType       => ct.parent
     case _                       => None
   }
+
+  def uninstantiatedType(tp: TypeTree): TypeTree = tp match {
+    case CaseClassType(ccd, tps) => ccd.typed
+    case FunctionType(argts, rett) =>
+      FunctionType(argts.map(uninstantiatedType), uninstantiatedType(rett))
+    case NAryType(tps, op) =>
+      op(tps.map(uninstantiatedType))
+  }
 }
