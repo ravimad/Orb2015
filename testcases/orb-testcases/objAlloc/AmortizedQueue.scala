@@ -5,38 +5,38 @@ import invariant._
 import instrumentation._
 
 object AmortizedQueue {
-  sealed abstract class List {
+  sealed abstract class MyList {
     val size: BigInt = this match {
       case Nil()       => 0
       case Cons(_, xs) => 1 + xs.size
     }
   }
-  case class Cons(head: BigInt, tail: List) extends List
-  case class Nil() extends List
+  case class Cons(head: BigInt, tail: MyList) extends MyList
+  case class Nil() extends MyList
 
-  def length(l: List): BigInt = {
+  def length(l: MyList): BigInt = {
     l match {
       case Nil()       => BigInt(0)
       case Cons(_, xs) => 1 + length(xs)
     }
   } ensuring(res => res >= 0 && alloc <= ?)
 
-  def concat(l1: List, l2: List): List = (l1 match {
+  def concat(l1: MyList, l2: MyList): MyList = (l1 match {
     case Nil()       => l2
     case Cons(x, xs) => Cons(x, concat(xs, l2))
 
   }) ensuring (res => res.size == l1.size + l2.size && alloc <= ? * l1.size + ?)
 
-  def reverseRec(l1: List, l2: List): List = (l1 match {
+  def reverseRec(l1: MyList, l2: MyList): MyList = (l1 match {
     case Nil()       => l2
     case Cons(x, xs) => reverseRec(xs, Cons(x, l2))
   }) ensuring (res => l1.size + l2.size == res.size && alloc <= ? * l1.size + ?)
 
-  def listRev(l: List): List = {
+  def MyListRev(l: MyList): MyList = {
     reverseRec(l, Nil())
   } ensuring (res => l.size == res.size && alloc <= ? * l.size + ?)
 
-  def removeLast(l: List): List = {
+  def removeLast(l: MyList): MyList = {
     require(l != Nil())
     l match {
       case Cons(x, Nil()) => Nil()
@@ -45,10 +45,10 @@ object AmortizedQueue {
     }
   } ensuring (res => res.size <= l.size && tmpl((a, b) => alloc <= a * l.size + b))
 
-  case class Queue(front: List, rear: List) {
+  case class Queue(front: MyList, rear: MyList) {
     def qsize: BigInt = front.size + rear.size
 
-    def asList: List = concat(front, listRev(rear))
+    def asMyList: MyList = concat(front, MyListRev(rear))
 
     def isAmortized: Boolean = length(front) >= length(rear)
 
@@ -57,11 +57,11 @@ object AmortizedQueue {
       case _                   => false
     }
 
-    def amortizedQueue(front: List, rear: List): Queue = {
+    def amortizedQueue(front: MyList, rear: MyList): Queue = {
       if (length(rear) <= length(front))
         Queue(front, rear)
       else
-        Queue(concat(front, listRev(rear)), Nil())
+        Queue(concat(front, MyListRev(rear)), Nil())
     }
 
     def enqueue(elem: BigInt): Queue = ({
