@@ -66,20 +66,16 @@ class SerialInstrumenter(program: Program,
   }
   val instFuncs = funcInsts.keySet
 
-  def instrumenters(fd: FunDef) = funcInsts(fd) map instToInstrumenter.apply _
-  def instTypes(fd: FunDef) = funcInsts(fd).map(_.getType)
+  /*def instrumenters(fd: FunDef) = funcInsts(fd) map instToInstrumenter.apply _
+  def instTypes(fd: FunDef) = funcInsts(fd).map(_.getType)*/
 
   /**
    * Tracks the instrumentations necessary for a function type
    */
-  def instTypesOfLambdaType(ft: FunctionType): Seq[TypeTree] = ???
+  def instsOfLambdaType(ft: TypeTree): Seq[Instrumentation] = ???
 
-  /**
-   * Index of the instrumentation 'inst' in result tuple that would be created.
-   * The return value will be >= 2 as the actual result value would be at index 1
-   */
-  def instIndex(fd: FunDef)(ins: Instrumentation) = funcInsts(fd).indexOf(ins) + 2
-  def selectInst(fd: FunDef)(e: Expr, ins: Instrumentation) = TupleSelect(e, instIndex(fd)(ins))
+  /*def instIndex(fd: FunDef)(ins: Instrumentation) = funcInsts(fd).indexOf(ins) + 2
+  def selectInst(fd: FunDef)(e: Expr, ins: Instrumentation) = TupleSelect(e, instIndex(fd)(ins))*/
 
   def apply: Program = {
 
@@ -197,25 +193,35 @@ class SerialInstrumenter(program: Program,
   }
 }
 
-class InstContext {
-  
+class InstruContext(
+    val funMap: Map[FunDef, FunDef],
+    val currFun: FunDef,
+    val enclLambda: Option[Lambda],
+    val serialInst: SerialInstrumenter,
+    val insts: Seq[Instrumentation]) {
+
+  val instrumenters = insts map serialInst.instToInstrumenter.apply _
+
+  val instTypes = insts.map(_.getType)
+
+  /**
+   * Index of the instrumentation 'inst' in result tuple that would be created.
+   * The return value will be >= 2 as the actual result value would be at index 1
+   */
+  def instIndex(ins: Instrumentation) = insts.indexOf(ins) + 2
+
+  def selectInst(e: Expr, ins: Instrumentation) = TupleSelect(e, instIndex(ins))
 }
 
-class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrumenter)(implicit currFun: FunDef) {
+class ExprInstrumenter(ictx: InstruContext) {
   val retainMatches = true
-
-  /*val insts = serialInst.funcInsts(currFun)
-  val instrumenters = serialInst.instrumenters(currFun)
-  val instIndex = serialInst.instIndex(currFun) _
-  val selectInst = serialInst.selectInst(currFun) _
-  val instTypes = serialInst.instTypes(currFun)*/
 
   val adtSpecializer = new ADTSpecializer()
 
   def instrumentType(tpe: TypeTree): TypeTree = {
     adtSpecializer.specializeType {
       case ft @ FunctionType(argts, rett) =>
-        val instTypes = serialInst.instTypesOfLambdaType(ft)
+        val instTypes = ictx.serialInst.instsOfLambdaType(ft).map(_.getType)
         if (instTypes.isEmpty) ft
         else {
           FunctionType(argts, TupleType(rett +: instTypes))
@@ -249,6 +255,8 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
 
   def tupleifyRecur(e: Expr, subs: Seq[Expr], recons: Seq[Expr] => Expr, subeVals: List[Expr],
                     subeInsts: Map[Instrumentation, List[Expr]])(implicit letIdMap: Map[Identifier, Identifier]): Expr = {
+    implicit val currFun = ictx.currFun
+    import ictx._
     //note: subs.size should be zero if e is a terminal
     if (subs.size == 0) {
       e match {
@@ -256,11 +264,11 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
           val valPart = if (letIdMap.contains(id)) {
             TupleSelect(letIdMap(id).toVariable, 1) //this takes care of replacement
           } else v
-          val instPart = instrumenters map (_.instrument(v, Seq()))
+          val instPart = ictx.instrumenters map (_.instrument(v, Seq()))
           Tuple(valPart +: instPart)
 
         case t: Terminal =>
-          val instPart = instrumenters map (_.instrument(t, Seq()))
+          val instPart = ictx.instrumenters map (_.instrument(t, Seq()))
           val finalRes = Tuple(t +: instPart)
           finalRes
 
@@ -269,27 +277,30 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
 
         case _ =>
           val exprPart = recons(subeVals)
-          val instexprs = instrumenters.zipWithIndex.map {
+          val instexprs = ictx.instrumenters.zipWithIndex.map {
             case (menter, i) => menter.instrument(e, subeInsts.getOrElse(menter.inst, List()))
           }
           Tuple(exprPart +: instexprs)
       }
     } else {
       val currExp = subs.head
-      val resvar = Variable(FreshIdentifier("e", TupleType(currExp.getType +: instTypes), true))
+      //transform the current expression
+      val transCurrExpr = transform(currExp)
+      val resvar = Variable(FreshIdentifier("e", transCurrExpr.getType, true))
       val eval = TupleSelect(resvar, 1)
       val instMap = insts.map { inst =>
         (inst -> (subeInsts.getOrElse(inst, List()) :+ selectInst(resvar, inst)))
       }.toMap
       //process the remaining arguments
       val recRes = tupleifyRecur(e, subs.tail, recons, subeVals :+ eval, instMap)
-      //transform the current expression
-      val newCurrExpr = transform(currExp)
-      Let(resvar.id, newCurrExpr, recRes)
+      Let(resvar.id, transCurrExpr, recRes)
     }
   }
 
   def tupleifyCall(f: FunctionInvocation, subeVals: List[Expr], subeInsts: Map[Instrumentation, List[Expr]])(implicit letIdMap: Map[Identifier, Identifier]): Expr = {
+    import ictx._
+    implicit val currFun = ictx.currFun
+
     val FunctionInvocation(TypedFunDef(fd, tps), args) = f
     if (!fd.hasLazyFieldFlag) {
       val newfd = TypedFunDef(funMap(fd), tps)
@@ -299,10 +310,10 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
         //this function is also instrumented
         val resvar = Variable(FreshIdentifier("e", newfd.returnType, true))
         val valexpr = TupleSelect(resvar, 1)
-        val instexprs = instrumenters.map { m =>
+        val instexprs = ictx.instrumenters.map { m =>
           val calleeInst =
             if (serialInst.funcInsts(fd).contains(m.inst) && fd.isUserFunction) {
-              List(serialInst.selectInst(fd)(resvar, m.inst))
+              List(selectInst(resvar, m.inst))
             } else List() // ignoring fields here
           //Note we need to ensure that the last element of list is the instval of the finv
           m.instrument(f, subeInsts.getOrElse(m.inst, List()) ++ calleeInst, Some(resvar))
@@ -310,7 +321,7 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
         Let(resvar.id, newFunInv, Tuple(valexpr +: instexprs))
       } else {
         val resvar = Variable(FreshIdentifier("e", newFunInv.getType, true))
-        val instexprs = instrumenters.map { m =>
+        val instexprs = ictx.instrumenters.map { m =>
           m.instrument(f, subeInsts.getOrElse(m.inst, List()))
         }
         Let(resvar.id, newFunInv, Tuple(resvar +: instexprs))
@@ -324,104 +335,120 @@ class ExprInstrumenter(funMap: Map[FunDef, FunDef], serialInst: SerialInstrument
    * TODO: need to handle new expression trees
    * Match statements without guards are now instrumented directly
    */
-  def transform(e: Expr)(implicit letIdMap: Map[Identifier, Identifier]): Expr = e match {
-    // Assume that none of the matchcases has a guard. It has already been converted into an if then else
-    case me @ MatchExpr(scrutinee, matchCases) =>
-      if (matchCases.exists(_.optGuard.isDefined)) {
-        // converts match to if-then-else here.
-        val condsAndRhs = for (cse <- matchCases) yield {
-          val map = mapForPattern(scrutinee, cse.pattern)
-          val patCond = conditionForPattern(scrutinee, cse.pattern, includeBinders = false)
-          val realCond = cse.optGuard match {
-            case Some(g) => And(patCond, replaceFromIDs(map, g))
-            case None    => patCond
+  def transform(e: Expr)(implicit letIdMap: Map[Identifier, Identifier]): Expr = {
+    import ictx._
+    implicit val currFun = ictx.currFun
+    e match {
+      // Assume that none of the matchcases has a guard. It has already been converted into an if then else
+      case me @ MatchExpr(scrutinee, matchCases) =>
+        if (matchCases.exists(_.optGuard.isDefined)) {
+          // converts match to if-then-else here.
+          val condsAndRhs = for (cse <- matchCases) yield {
+            val map = mapForPattern(scrutinee, cse.pattern)
+            val patCond = conditionForPattern(scrutinee, cse.pattern, includeBinders = false)
+            val realCond = cse.optGuard match {
+              case Some(g) => And(patCond, replaceFromIDs(map, g))
+              case None    => patCond
+            }
+            val newRhs = replaceFromIDs(map, cse.rhs)
+            (realCond, newRhs)
           }
-          val newRhs = replaceFromIDs(map, cse.rhs)
-          (realCond, newRhs)
+          val ite = condsAndRhs.foldRight[Expr](Error(me.getType, "Match is non-exhaustive").copiedFrom(me)) {
+            case ((cond, rhs), elze) =>
+              if (cond == tru) rhs else IfExpr(cond, rhs, elze)
+          }
+          transform(ite)
+        } else {
+          val transScrut = transform(scrutinee)
+          val scrutRes =
+            Variable(FreshIdentifier("scr", transScrut.getType, true))
+          val matchExpr = MatchExpr(TupleSelect(scrutRes, 1),
+            matchCases.map {
+              case mCase @ MatchCase(pattern, guard, body) =>
+                val transBody = transform(body)
+                val bodyRes = Variable(FreshIdentifier("mc", transBody.getType, true))
+                val instExprs = ictx.instrumenters map { m =>
+                  m.instrumentMatchCase(me, mCase, ictx.selectInst(bodyRes, m.inst),
+                    ictx.selectInst(scrutRes, m.inst))
+                }
+                MatchCase(pattern, guard,
+                  Let(bodyRes.id, transBody, Tuple(TupleSelect(bodyRes, 1) +: instExprs)))
+            })
+          Let(scrutRes.id, transScrut, matchExpr)
         }
-        val ite = condsAndRhs.foldRight[Expr](Error(me.getType, "Match is non-exhaustive").copiedFrom(me)) {
-          case ((cond, rhs), elze) =>
-            if (cond == tru) rhs else IfExpr(cond, rhs, elze)
-        }
-        transform(ite)
-      } else {
-        val scrutRes =
-          Variable(FreshIdentifier("scr", TupleType(scrutinee.getType +: instTypes), true))
-        val matchExpr = MatchExpr(TupleSelect(scrutRes, 1),
-          matchCases.map {
-            case mCase @ MatchCase(pattern, guard, body) =>
-              val bodyRes = Variable(FreshIdentifier("mc", TupleType(body.getType +: instTypes), true))
-              val instExprs = instrumenters map { m =>
-                m.instrumentMatchCase(me, mCase, selectInst(bodyRes, m.inst),
-                  selectInst(scrutRes, m.inst))
-              }
-              MatchCase(pattern, guard,
-                Let(bodyRes.id, transform(body), Tuple(TupleSelect(bodyRes, 1) +: instExprs)))
-          })
-        Let(scrutRes.id, transform(scrutinee), matchExpr)
-      }
 
-    case Let(i, v, b) => {
-      val (ni, nv) = {
-        val ir = Variable(FreshIdentifier("ir", TupleType(v.getType +: instTypes), true))
-        val transv = transform(v)
-        (ir, transv)
-      }
-      val r = Variable(FreshIdentifier("r", TupleType(b.getType +: instTypes), true))
-      val transformedBody = transform(b)(letIdMap + (i -> ni.id))
-      val instexprs = instrumenters map { m =>
-        m.instrument(e, List(selectInst(ni, m.inst), selectInst(r, m.inst)))
-      }
-      Let(ni.id, nv,
-        Let(r.id, transformedBody, Tuple(TupleSelect(r, 1) +: instexprs)))
+      case Let(i, v, b) =>
+        val (ni, nv) = {
+          val transv = transform(v)
+          val ir = Variable(FreshIdentifier("ir", transv.getType, true))
+          (ir, transv)
+        }
+        val transformedBody = transform(b)(letIdMap + (i -> ni.id))
+        val r = Variable(FreshIdentifier("r", transformedBody.getType, true))
+        val instexprs = instrumenters map { m =>
+          m.instrument(e, List(selectInst(ni, m.inst), selectInst(r, m.inst)))
+        }
+        Let(ni.id, nv,
+          Let(r.id, transformedBody, Tuple(TupleSelect(r, 1) +: instexprs)))
+
+      case ife @ IfExpr(cond, th, elze) =>
+        val (nifCons, condInsts) = {
+          val rescond = Variable(FreshIdentifier("c", TupleType(cond.getType +: instTypes), true))
+          val condInstPart = insts.map { inst => (inst -> selectInst(rescond, inst)) }.toMap
+          val recons = (e1: Expr, e2: Expr) => {
+            Let(rescond.id, transform(cond), IfExpr(TupleSelect(rescond, 1), e1, e2))
+          }
+          (recons, condInstPart)
+        }
+        val (nthenCons, thenInsts) = {
+          val transThen = transform(th)
+          val resthen = Variable(FreshIdentifier("th", transThen.getType, true))
+          val thInstPart = insts.map { inst => (inst -> selectInst(resthen, inst)) }.toMap
+          val recons = (theninsts: List[Expr]) => {
+            Let(resthen.id, transThen, Tuple(TupleSelect(resthen, 1) +: theninsts))
+          }
+          (recons, thInstPart)
+        }
+        val (nelseCons, elseInsts) = {
+          val transElze = transform(elze)
+          val reselse = Variable(FreshIdentifier("el", transElze.getType, true))
+          val elInstPart = insts.map { inst => (inst -> selectInst(reselse, inst)) }.toMap
+          val recons = (einsts: List[Expr]) => {
+            Let(reselse.id, transElze, Tuple(TupleSelect(reselse, 1) +: einsts))
+          }
+          (recons, elInstPart)
+        }
+        val (finalThInsts, finalElInsts) = instrumenters.foldLeft((List[Expr](), List[Expr]())) {
+          case ((thinsts, elinsts), menter) =>
+            val inst = menter.inst
+            val (thinst, elinst) = menter.instrumentIfThenElseExpr(ife,
+              Some(condInsts(inst)), Some(thenInsts(inst)), Some(elseInsts(inst)))
+            (thinsts :+ thinst, elinsts :+ elinst)
+        }
+        val nthen = nthenCons(finalThInsts)
+        val nelse = nelseCons(finalElInsts)
+        nifCons(nthen, nelse)
+
+      case l@Lambda(args, body) =>
+        // instrument the lambda using a new context
+        val nbody = (new ExprInstrumenter(new InstruContext(ictx.funMap, ictx.currFun, Some(l),
+            serialInst, serialInst.instsOfLambdaType(l.getType))))(body)
+       // need to model the time taken for constructing the lambda
+       val instexprs = instrumenters map { m => m.instrument(l, List()) }
+       Tuple(Lambda(args, nbody) +: instexprs)
+
+      // model application
+      //case Application
+
+      // model case class constructions
+
+      // For all other operations, we go through a common tupleifier.
+      case n @ Operator(ss, recons) =>
+        tupleify(e, ss, recons)
+
+      case t: Terminal =>
+        tupleify(e, Seq(), { case Seq() => t })
     }
-
-    case ife @ IfExpr(cond, th, elze) => {
-      val (nifCons, condInsts) = {
-        val rescond = Variable(FreshIdentifier("c", TupleType(cond.getType +: instTypes), true))
-        val condInstPart = insts.map { inst => (inst -> selectInst(rescond, inst)) }.toMap
-        val recons = (e1: Expr, e2: Expr) => {
-          Let(rescond.id, transform(cond), IfExpr(TupleSelect(rescond, 1), e1, e2))
-        }
-        (recons, condInstPart)
-      }
-      val (nthenCons, thenInsts) = {
-        val resthen = Variable(FreshIdentifier("th", TupleType(th.getType +: instTypes), true))
-        val thInstPart = insts.map { inst => (inst -> selectInst(resthen, inst)) }.toMap
-        val recons = (theninsts: List[Expr]) => {
-          Let(resthen.id, transform(th), Tuple(TupleSelect(resthen, 1) +: theninsts))
-        }
-        (recons, thInstPart)
-      }
-      val (nelseCons, elseInsts) = {
-        val reselse = Variable(FreshIdentifier("el", TupleType(elze.getType +: instTypes), true))
-        val elInstPart = insts.map { inst => (inst -> selectInst(reselse, inst)) }.toMap
-        val recons = (einsts: List[Expr]) => {
-          Let(reselse.id, transform(elze), Tuple(TupleSelect(reselse, 1) +: einsts))
-        }
-        (recons, elInstPart)
-      }
-      val (finalThInsts, finalElInsts) = instrumenters.foldLeft((List[Expr](), List[Expr]())) {
-        case ((thinsts, elinsts), menter) =>
-          val inst = menter.inst
-          val (thinst, elinst) = menter.instrumentIfThenElseExpr(ife,
-            Some(condInsts(inst)), Some(thenInsts(inst)), Some(elseInsts(inst)))
-          (thinsts :+ thinst, elinsts :+ elinst)
-      }
-      val nthen = nthenCons(finalThInsts)
-      val nelse = nelseCons(finalElInsts)
-      nifCons(nthen, nelse)
-    }
-
-    case Lambda(args, body) =>
-      val nbody = transform(body)
-
-    // For all other operations, we go through a common tupleifier.
-    case n @ Operator(ss, recons) =>
-      tupleify(e, ss, recons)
-
-    case t: Terminal =>
-      tupleify(e, Seq(), { case Seq() => t })
   }
 
   def apply(e: Expr): Expr = {
