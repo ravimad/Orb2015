@@ -28,9 +28,29 @@ class TimeInstrumenter(p: Program, si: SerialInstrumenter) extends Instrumenter(
 
   def inst = Time
 
+  def functionNeedingTime() = {
+
+    (instFuns: Set[FunDef]) => {
+      //(b) find all function types of applications in the nextSets
+      val appTypes = instFuns flatMap {
+        case ifd if ifd.hasBody =>
+          collect {
+            case Application(l, _) => Set(l.getType.asInstanceOf[FunctionType])
+            case _ => Set[FunctionType]()
+          }(ifd.body.get)
+        case _ => Set[FunctionType]()
+      }
+      // (b) find all userLevelFunctions that may create a lambda compatible with the types of the application.
+      // (c) find all functions transitively called from rootFuncs (here ignore functions called via pre/post conditions)
+      val nextFunSet = instFuns.flatMap{fd => cg.transitiveCallees(fd)}.filter(_.hasBody) // ignore uninterpreted functions
+      //
+      nextFunSet
+    }
+    getRootFuncs()
+  }
+
   def functionsToInstrument(): Map[FunDef, List[Instrumentation]] = {
-    //find all functions transitively called from rootFuncs (here ignore functions called via pre/post conditions)
-    val instFunSet = getRootFuncs().foldLeft(Set[FunDef]())((acc, fd) => acc ++ cg.transitiveCallees(fd)).filter(_.hasBody) // ignore uninterpreted functions
+
     //println("Root funs: "+getRootFuncs().map(_.id).mkString(",")+" All funcs: "+ instFunSet.map(_.id).mkString(","))
     instFunSet.map(x => (x, List(Time))).toMap
   }

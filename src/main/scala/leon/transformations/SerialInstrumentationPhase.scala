@@ -17,7 +17,7 @@ import ProgramUtil._
 import PredicateUtil._
 import invariant.util.CallGraphUtil
 import invariant.structure.FunctionUtils._
-import scala.collection.mutable.{ Map => MutableMap }
+import scala.collection.mutable.{ Map => MutableMap, Set => MutableSet }
 
 /**
  * An instrumentation phase that performs a sequence of instrumentations
@@ -36,10 +36,10 @@ object InstrumentationPhase extends TransformationPhase {
 }
 
 class SerialInstrumenter(program: Program,
-                         exprInstOpt: Option[(Map[FunDef, FunDef], SerialInstrumenter, FunDef) => ExprInstrumenter] = None) {
+                         exprInstOpt: Option[InstruContext => ExprInstrumenter] = None) {
   val debugInstrumentation = false
 
-  val exprInstFactory = exprInstOpt.getOrElse((x: Map[FunDef, FunDef], y: SerialInstrumenter, z: FunDef) => new ExprInstrumenter(x, y)(z))
+  val exprInstFactory = exprInstOpt.getOrElse((ictx: InstruContext) => new ExprInstrumenter(ictx))
 
   val instToInstrumenter: Map[Instrumentation, Instrumenter] =
     Map(Time -> new TimeInstrumenter(program, this),
@@ -49,56 +49,107 @@ class SerialInstrumenter(program: Program,
       TPR -> new TPRInstrumenter(program, this))
 
   // a map from functions to the list of instrumentations to be performed for the function
-  val funcInsts = {
-    var emap = MutableMap[FunDef, List[Instrumentation]]()
-    def update(fd: FunDef, inst: Instrumentation) {
+  val (funcInsts, ftypeInsts) = {
+    def update[T](fd: T, inst: Instrumentation, emap: MutableMap[T, List[Instrumentation]]) {
       if (emap.contains(fd))
         emap(fd) = (emap(fd) :+ inst).distinct
       else emap.update(fd, List(inst))
     }
+    var fdmap = MutableMap[FunDef, List[Instrumentation]]()
+    var ftypeMap = MutableMap[FunctionType, List[Instrumentation]]()
+
     instToInstrumenter.values.foreach { m =>
       m.functionsToInstrument.foreach({
         case (fd, instsToPerform) =>
-          instsToPerform.foreach(instToPerform => update(fd, instToPerform))
+          instsToPerform.foreach(instToPerform => update(fd, instToPerform, fdmap))
+      })
+      m.functionTypesToInstrument.foreach({
+        case (ft, instsToPerform) =>
+          instsToPerform.foreach(instToPerform => update(ft, instToPerform, ftypeMap))
       })
     }
-    emap.toMap
+    (fdmap.toMap, ftypeMap.toMap)
   }
   val instFuncs = funcInsts.keySet
-
-  /*def instrumenters(fd: FunDef) = funcInsts(fd) map instToInstrumenter.apply _
-  def instTypes(fd: FunDef) = funcInsts(fd).map(_.getType)*/
+  val instFuncTypes = ftypeInsts.keySet
 
   /**
    * Tracks the instrumentations necessary for a function type
    */
-  def instsOfLambdaType(ft: TypeTree): Seq[Instrumentation] = ???
+  def instsOfLambdaType(ft: FunctionType): Seq[Instrumentation] = ftypeInsts.getOrElse(ft, Seq())
 
-  /*def instIndex(fd: FunDef)(ins: Instrumentation) = funcInsts(fd).indexOf(ins) + 2
-  def selectInst(fd: FunDef)(e: Expr, ins: Instrumentation) = TupleSelect(e, instIndex(fd)(ins))*/
+  val adtsToInstrument = {
+    Util.fix((adts: Set[ClassDef]) => {
+      adts ++ program.definedClasses.collect {
+        case cd: CaseClassDef if (cd.fields.map(_.getType).exists {
+          case ft: FunctionType => instFuncTypes(ft)
+          case ct: ClassType    => adts(ct.classDef)
+          case _                => false
+        }) =>
+          cd.root
+      }.toSet
+    })(Set[ClassDef]())
+  }
+
+  val absTypeMap = adtsToInstrument.map {
+    case adef @ AbstractClassDef(id, tparams, parent) =>
+      adef -> new AbstractClassDef(FreshIdentifier(id.name, Untyped, true), tparams, parent)
+    case cdef @ CaseClassDef(id, tparams, None, cobj) =>
+      cdef -> new CaseClassDef(FreshIdentifier(id.name, Untyped, true), tparams, None, cobj)
+  }.toMap[ClassDef, ClassDef]
+
+  def fieldReplacementMap(fields: Seq[ValDef]) = {
+    var fldMap = Map[TypeTree, TypeTree]()
+    fields.map(_.getType).foreach {
+      case ft @ FunctionType(argts, rett) =>
+        val instTypes = instsOfLambdaType(ft).map(_.getType)
+        if (!instTypes.isEmpty)
+          fldMap += (ft -> FunctionType(argts, TupleType(rett +: instTypes)))
+      case at: AbstractClassType if absTypeMap.contains(at.classDef) =>
+        fldMap += (at -> AbstractClassType(absTypeMap(at.classDef).asInstanceOf[AbstractClassDef], at.tps))
+      case ct: CaseClassType if absTypeMap.contains(ct.classDef) =>
+        fldMap += (ct -> CaseClassType(absTypeMap(ct.classDef).asInstanceOf[CaseClassDef], ct.tps))
+      case _ =>
+    }
+    fldMap
+  }
+
+  val adtSpecializer = new ADTSpecializer()
+  /**
+   * A map from old to new adts. The fields of the adts may have to be updated if they are of function types.
+   */
+  val adtMap = adtsToInstrument.flatMap {
+    case absDef: AbstractClassDef =>
+      val newTypeMap = absDef.typed.knownCCDescendants.flatMap { cc => fieldReplacementMap(cc.fields.toList) }.toMap
+      val newDef = adtSpecializer.specialize(absDef, newTypeMap).asInstanceOf[AbstractClassDef]
+      (absDef, newDef) +: (absDef.knownDescendants zip newDef.knownDescendants)
+
+    case cdef: CaseClassDef if !cdef.parent.isDefined =>
+      Seq((cdef, adtSpecializer.specialize(cdef, fieldReplacementMap(cdef.fields.toList))))
+  }.toMap
+
+  //create new functions. Augment the return type of a function iff the postcondition uses
+  //the instrumentation variable or if the function is transitively called from such a function
+  val funMap = (userLevelFunctions(program) ++ instFuncs).distinct.map { fd =>
+    if (instFuncs.contains(fd)) {
+      val newRetType = TupleType(fd.returnType +: funcInsts(fd).map(_.getType))
+      // let the names of the function encode the kind of instrumentations performed
+      val freshId = FreshIdentifier(fd.id.name + "-" + funcInsts(fd).map(_.name).mkString("-"), newRetType)
+      (fd -> new FunDef(freshId, fd.tparams, fd.params, newRetType))
+    } else {
+      //here we need not augment the return types but do need to create a new copy
+      (fd -> new FunDef(FreshIdentifier(fd.id.name, fd.returnType), fd.tparams, fd.params, fd.returnType))
+    }
+  }.toMap
+
+  def instrumenters(fd: FunDef) = funcInsts(fd) map instToInstrumenter.apply _
+  def instIndex(fd: FunDef)(ins: Instrumentation) = funcInsts(fd).indexOf(ins) + 2
+  def selectInst(fd: FunDef)(e: Expr, ins: Instrumentation) = TupleSelect(e, instIndex(fd)(ins))
 
   def apply: Program = {
 
     if (instFuncs.isEmpty) program
     else {
-      //create new functions. Augment the return type of a function iff the postcondition uses
-      //the instrumentation variable or if the function is transitively called from such a function
-      var funMap = Map[FunDef, FunDef]()
-      (userLevelFunctions(program) ++ instFuncs).distinct.foreach { fd =>
-        if (instFuncs.contains(fd)) {
-          val newRetType = TupleType(fd.returnType +: instTypes(fd))
-          // let the names of the function encode the kind of instrumentations performed
-          val freshId = FreshIdentifier(fd.id.name + "-" + funcInsts(fd).map(_.name).mkString("-"), newRetType)
-          val newfd = new FunDef(freshId, fd.tparams, fd.params, newRetType)
-          funMap += (fd -> newfd)
-        } else {
-          //here we need not augment the return types but do need to create a new copy
-          val freshId = FreshIdentifier(fd.id.name, fd.returnType)
-          val newfd = new FunDef(freshId, fd.tparams, fd.params, fd.returnType)
-          funMap += (fd -> newfd)
-        }
-      }
-
       def mapExpr(ine: Expr): Expr = {
         simplePostTransform((e: Expr) => e match {
           case FunctionInvocation(tfd, args) if funMap.contains(tfd.fd) =>
@@ -117,7 +168,8 @@ class SerialInstrumenter(program: Program,
             // so make the body empty
             NoTree(to.returnType)
           } else if (instFuncs.contains(from)) {
-            exprInstFactory(funMap, this, from)(body)
+            val ictx = new InstruContext(from, this, funcInsts(from))
+            exprInstFactory(ictx)(body)
           } else
             mapExpr(body)
         res
@@ -193,42 +245,29 @@ class SerialInstrumenter(program: Program,
   }
 }
 
+/**
+ * A set of paramteres that need to be passed around
+ */
 class InstruContext(
-    val funMap: Map[FunDef, FunDef],
     val currFun: FunDef,
-    val enclLambda: Option[Lambda],
     val serialInst: SerialInstrumenter,
-    val insts: Seq[Instrumentation]) {
+    val insts: Seq[Instrumentation],
+    val enclLambda: Option[Lambda] = None) {
 
   val instrumenters = insts map serialInst.instToInstrumenter.apply _
-
   val instTypes = insts.map(_.getType)
-
+  val funMap = serialInst.funMap
+  val adtMap = serialInst.adtMap
   /**
    * Index of the instrumentation 'inst' in result tuple that would be created.
    * The return value will be >= 2 as the actual result value would be at index 1
    */
   def instIndex(ins: Instrumentation) = insts.indexOf(ins) + 2
-
   def selectInst(e: Expr, ins: Instrumentation) = TupleSelect(e, instIndex(ins))
 }
 
 class ExprInstrumenter(ictx: InstruContext) {
   val retainMatches = true
-
-  val adtSpecializer = new ADTSpecializer()
-
-  def instrumentType(tpe: TypeTree): TypeTree = {
-    adtSpecializer.specializeType {
-      case ft @ FunctionType(argts, rett) =>
-        val instTypes = ictx.serialInst.instsOfLambdaType(ft).map(_.getType)
-        if (instTypes.isEmpty) ft
-        else {
-          FunctionType(argts, TupleType(rett +: instTypes))
-        }
-      case t => t
-    }(tpe)
-  }
 
   // Should be called only if 'expr' has to be instrumented
   // Returned Expr is always an expr of type tuple (Expr, Int)
@@ -272,15 +311,14 @@ class ExprInstrumenter(ictx: InstruContext) {
           val finalRes = Tuple(t +: instPart)
           finalRes
 
-        // TODO: We are ignoring the construction cost of fields. Fix this.
-        case f: FunctionInvocation => tupleifyCall(f, subeVals, subeInsts)
+        case _: FunctionInvocation | _: Application => tupleifyCall(e, subeVals, subeInsts)
 
+        // TODO: We are ignoring the construction cost of fields. Fix this.
         case _ =>
-          val exprPart = recons(subeVals)
           val instexprs = ictx.instrumenters.zipWithIndex.map {
             case (menter, i) => menter.instrument(e, subeInsts.getOrElse(menter.inst, List()))
           }
-          Tuple(exprPart +: instexprs)
+          Tuple(recons(subeVals) +: instexprs)
       }
     } else {
       val currExp = subs.head
@@ -297,38 +335,56 @@ class ExprInstrumenter(ictx: InstruContext) {
     }
   }
 
-  def tupleifyCall(f: FunctionInvocation, subeVals: List[Expr], subeInsts: Map[Instrumentation, List[Expr]])(implicit letIdMap: Map[Identifier, Identifier]): Expr = {
+  def tupleifyCall(f: Expr, subeVals: List[Expr], subeInsts: Map[Instrumentation, List[Expr]])(implicit letIdMap: Map[Identifier, Identifier]): Expr = {
     import ictx._
     implicit val currFun = ictx.currFun
+    f match {
+      case FunctionInvocation(TypedFunDef(fd, tps), args) =>
+        if (!fd.hasLazyFieldFlag) {
+          val newfd = TypedFunDef(funMap(fd), tps)
+          val newFunInv = FunctionInvocation(newfd, subeVals)
+          //create a variables to store the result of function invocation
+          if (serialInst.instFuncs(fd)) {
+            //this function is also instrumented
+            val resvar = Variable(FreshIdentifier("e", newfd.returnType, true))
+            val valexpr = TupleSelect(resvar, 1)
+            val instexprs = ictx.instrumenters.map { m =>
+              val calleeInst =
+                if (serialInst.funcInsts(fd).contains(m.inst) && fd.isUserFunction) {
+                  List(selectInst(resvar, m.inst))
+                } else List() // ignoring fields here
+              m.instrument(f, subeInsts.getOrElse(m.inst, List()) ++ calleeInst, Some(resvar)) // note: even though calleeInst is passed, it may or may not be used.
+            }
+            Let(resvar.id, newFunInv, Tuple(valexpr +: instexprs))
+          } else {
+            val resvar = Variable(FreshIdentifier("e", newFunInv.getType, true))
+            val instexprs = ictx.instrumenters.map { m =>
+              m.instrument(f, subeInsts.getOrElse(m.inst, List()))
+            }
+            Let(resvar.id, newFunInv, Tuple(resvar +: instexprs))
+          }
+        } else
+          throw new UnsupportedOperationException("Lazy fields are not handled directly by instrumentation." +
+            " Consider using the --mem option")
 
-    val FunctionInvocation(TypedFunDef(fd, tps), args) = f
-    if (!fd.hasLazyFieldFlag) {
-      val newfd = TypedFunDef(funMap(fd), tps)
-      val newFunInv = FunctionInvocation(newfd, subeVals)
-      //create a variables to store the result of function invocation
-      if (serialInst.instFuncs(fd)) {
-        //this function is also instrumented
-        val resvar = Variable(FreshIdentifier("e", newfd.returnType, true))
-        val valexpr = TupleSelect(resvar, 1)
-        val instexprs = ictx.instrumenters.map { m =>
-          val calleeInst =
-            if (serialInst.funcInsts(fd).contains(m.inst) && fd.isUserFunction) {
-              List(selectInst(resvar, m.inst))
-            } else List() // ignoring fields here
-          //Note we need to ensure that the last element of list is the instval of the finv
-          m.instrument(f, subeInsts.getOrElse(m.inst, List()) ++ calleeInst, Some(resvar))
+      case Application(fterm, args) =>
+        val newApp = Application(subeVals.head, subeVals.tail)
+        //create a variables to store the result of application
+        if (!serialInst.instsOfLambdaType(fterm.getType.asInstanceOf[FunctionType]).isEmpty) { //the lambda is instrumented
+          val resvar = Variable(FreshIdentifier("e", newApp.getType, true))
+          val valexpr = TupleSelect(resvar, 1)
+          val instexprs = ictx.instrumenters.map { m =>
+            m.instrument(f, subeInsts.getOrElse(m.inst, List()) ++ List(selectInst(resvar, m.inst)), Some(resvar)) // note: even though calleeInst is passed, it may or may not be used.
+          }
+          Let(resvar.id, newApp, Tuple(valexpr +: instexprs))
+        } else {
+          val resvar = Variable(FreshIdentifier("e", newApp.getType, true))
+          val instexprs = ictx.instrumenters.map { m =>
+            m.instrument(f, subeInsts.getOrElse(m.inst, List()))
+          }
+          Let(resvar.id, newApp, Tuple(resvar +: instexprs))
         }
-        Let(resvar.id, newFunInv, Tuple(valexpr +: instexprs))
-      } else {
-        val resvar = Variable(FreshIdentifier("e", newFunInv.getType, true))
-        val instexprs = ictx.instrumenters.map { m =>
-          m.instrument(f, subeInsts.getOrElse(m.inst, List()))
-        }
-        Let(resvar.id, newFunInv, Tuple(resvar +: instexprs))
-      }
-    } else
-      throw new UnsupportedOperationException("Lazy fields are not handled directly by instrumentation." +
-        " Consider using the --mem option")
+    }
   }
 
   /**
@@ -429,20 +485,24 @@ class ExprInstrumenter(ictx: InstruContext) {
         val nelse = nelseCons(finalElInsts)
         nifCons(nthen, nelse)
 
-      case l@Lambda(args, body) =>
-        // instrument the lambda using a new context
-        val nbody = (new ExprInstrumenter(new InstruContext(ictx.funMap, ictx.currFun, Some(l),
-            serialInst, serialInst.instsOfLambdaType(l.getType))))(body)
-       // need to model the time taken for constructing the lambda
-       val instexprs = instrumenters map { m => m.instrument(l, List()) }
-       Tuple(Lambda(args, nbody) +: instexprs)
+      case l @ Lambda(args, body) => // instrument the lambda using a new context
+        val nbody = (new ExprInstrumenter(new InstruContext(ictx.currFun,
+          serialInst, serialInst.instsOfLambdaType(l.getType.asInstanceOf[FunctionType]), Some(l))))(body)
+        val instexprs = instrumenters map { m => m.instrument(l, List()) } // model the time taken for constructing the lambda
+        Tuple(Lambda(args, nbody) +: instexprs)
 
-      // model application
-      //case Application
+      case CaseClass(ct, args) =>
+        tupleify(e, args, CaseClass(mapClassType(ct), _))
 
-      // model case class constructions
+      case IsInstanceOf(arg, ct) =>
+        tupleify(e, Seq(arg), (nargs: Seq[Expr]) => IsInstanceOf(nargs.head, mapClassType(ct)))
 
-      // For all other operations, we go through a common tupleifier.
+      case CaseClassSelector(ct, arg, index) =>
+        tupleify(e, Seq(arg), (nargs: Seq[Expr]) => CaseClassSelector(mapClassType(ct), nargs.head, index))
+
+      case AsInstanceOf(arg, ct) =>
+        tupleify(e, Seq(arg), (nargs: Seq[Expr]) => AsInstanceOf(nargs.head, mapClassType(ct)))
+
       case n @ Operator(ss, recons) =>
         tupleify(e, ss, recons)
 
@@ -451,7 +511,20 @@ class ExprInstrumenter(ictx: InstruContext) {
     }
   }
 
+  def mapClassType[T <: ClassType](ct: T): T = {
+    import ictx._
+    ct match {
+      case CaseClassType(cd, tps) if adtMap.contains(cd) =>
+        CaseClassType(adtMap(cd).asInstanceOf[CaseClassDef], tps).asInstanceOf[T]
+      case AbstractClassType(ad, tps) if adtMap.contains(ad) =>
+        AbstractClassType(adtMap(ad).asInstanceOf[AbstractClassDef], tps).asInstanceOf[T]
+      case _ => ct
+    }
+  }
+
   def apply(e: Expr): Expr = {
+    import ictx._
+    implicit val currFun = ictx.currFun
     // Apply transformations
     val newe =
       if (retainMatches) e
@@ -459,8 +532,7 @@ class ExprInstrumenter(ictx: InstruContext) {
     val transformed = transform(newe)(Map())
     val bodyId = FreshIdentifier("bd", transformed.getType, true)
     val instExprs = instrumenters map { m =>
-      m.instrumentBody(newe,
-        selectInst(bodyId.toVariable, m.inst))
+      m.instrumentBody(newe, selectInst(bodyId.toVariable, m.inst))
     }
     Let(bodyId, transformed,
       Tuple(TupleSelect(bodyId.toVariable, 1) +: instExprs))
@@ -495,6 +567,8 @@ abstract class Instrumenter(program: Program, si: SerialInstrumenter) {
   protected val cg = CallGraphUtil.constructCallGraph(program, onlyBody = true)
 
   def functionsToInstrument(): Map[FunDef, List[Instrumentation]]
+
+  def functionTypesToInstrument(): Map[FunctionType, List[Instrumentation]]
 
   def additionalfunctionsToAdd(): Seq[FunDef]
 
