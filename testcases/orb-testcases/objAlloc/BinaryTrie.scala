@@ -40,7 +40,7 @@ object BinaryTrie {
       }
       case _ => t
     }
-  } ensuring (_ => alloc <= ? * listSize(inp) + ?)
+  } ensuring (_ => alloc <= ?)
 
   def insert(inp: IList, t: Tree): Tree = {
     t match {

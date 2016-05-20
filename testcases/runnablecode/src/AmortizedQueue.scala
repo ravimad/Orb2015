@@ -11,53 +11,53 @@ object AmortizedQueue {
   
   case class Queue(front : MyList, rear : MyList)
   
-  def lengthalloc(l : MyList): (BigInt, BigInt) = {
+  def lengthtime(l : MyList): (BigInt, BigInt) = {
     val bd1 = l match {
       case Nil() =>
-        (BigInt(0), BigInt(0))
+        (BigInt(0), BigInt(2))
       case Cons(_, xs) =>
-        val e32 = lengthalloc(xs)
-        (BigInt(1) + e32._1, e32._2)
+        val e32 = lengthtime(xs)
+        (BigInt(1) + e32._1, BigInt(6) + e32._2)
     }
     bd1
   }
   
-  def concatalloc(l1 : MyList, l2 : MyList): (MyList, BigInt) = {
+  def concattime(l1 : MyList, l2 : MyList): (MyList, BigInt) = {
     val bd4 = l1 match {
       case Nil() =>
-        (l2, BigInt(0))
+        (l2, BigInt(2))
       case Cons(x, xs) =>
-        val e48 = concatalloc(xs, l2)
-        (Cons(x, e48._1), BigInt(1) + e48._2)
+        val e48 = concattime(xs, l2)
+        (Cons(x, e48._1), BigInt(7) + e48._2)
     }
     bd4
   }
   
-  def reverseRecalloc(l1 : MyList, l2 : MyList): (MyList, BigInt) = {
+  def reverseRectime(l1 : MyList, l2 : MyList): (MyList, BigInt) = {
     val bd7 = l1 match {
       case Nil() =>
-        (l2, BigInt(0))
+        (l2, BigInt(2))
       case Cons(x, xs) =>
-        val e63 = reverseRecalloc(xs, Cons(x, l2))
-        (e63._1, BigInt(1) + e63._2)
+        val e63 = reverseRectime(xs, Cons(x, l2))
+        (e63._1, BigInt(7) + e63._2)
     }
     bd7
   }
   
-  def MyListRevalloc(l : MyList): (MyList, BigInt) = {
-    val e43 = reverseRecalloc(l, Nil())
-    (e43._1, BigInt(1) + e43._2)
+  def MyListRevtime(l : MyList): (MyList, BigInt) = {
+    val e43 = reverseRectime(l, Nil())
+    (e43._1, BigInt(2) + e43._2)
   }
   
-  def removeLastalloc(l : MyList): (MyList, BigInt) = {
+  def removeLasttime(l : MyList): (MyList, BigInt) = {
     val bd5 = l match {
       case Cons(x, Nil()) =>
-        (Nil(), BigInt(1))
+        (Nil(), BigInt(6))
       case Cons(x, xs) =>
-        val e52 = removeLastalloc(xs)
-        (Cons(x, e52._1), BigInt(1) + e52._2)
+        val e52 = removeLasttime(xs)
+        (Cons(x, e52._1), BigInt(9) + e52._2)
       case _ =>
-        (Nil(), BigInt(1))
+        (Nil(), BigInt(6))
     }
     bd5
   }
@@ -73,36 +73,36 @@ object MyList {
 }
 
 object Queue {
-  def isAmortized(thiss : AmortizedQueue.Queue): Boolean = AmortizedQueue.lengthalloc(thiss.front)._1 >= AmortizedQueue.lengthalloc(thiss.rear)._1
+  def isAmortized(thiss : AmortizedQueue.Queue): Boolean = AmortizedQueue.lengthtime(thiss.front)._1 >= AmortizedQueue.lengthtime(thiss.rear)._1
   
-  def amortizedQueuealloc(thiss : AmortizedQueue.Queue, front : AmortizedQueue.MyList, rear : AmortizedQueue.MyList): (AmortizedQueue.Queue, BigInt) = {
-    val e28 = AmortizedQueue.lengthalloc(rear)
-    val e26 = AmortizedQueue.lengthalloc(front)
-    val c10 = e26._2 + e28._2
+  def amortizedQueuetime(thiss : AmortizedQueue.Queue, front : AmortizedQueue.MyList, rear : AmortizedQueue.MyList): (AmortizedQueue.Queue, BigInt) = {
+    val e28 = AmortizedQueue.lengthtime(rear)
+    val e26 = AmortizedQueue.lengthtime(front)
+    val c10 = (BigInt(3) + e26._2) + e28._2
     val bd = if (e28._1 <= e26._1) {
-      (AmortizedQueue.Queue(front, rear), BigInt(1) + c10)
+      (AmortizedQueue.Queue(front, rear), BigInt(2) + c10)
     } else {
-      val e22 = AmortizedQueue.MyListRevalloc(rear)
-      val e20 = AmortizedQueue.concatalloc(front, e22._1)
-      (AmortizedQueue.Queue(e20._1, AmortizedQueue.Nil()), ((BigInt(2) + c10) + e20._2) + e22._2)
+      val e22 = AmortizedQueue.MyListRevtime(rear)
+      val e20 = AmortizedQueue.concattime(front, e22._1)
+      (AmortizedQueue.Queue(e20._1, AmortizedQueue.Nil()), ((BigInt(5) + c10) + e20._2) + e22._2)
     }
     bd
   }
   
-  def dequeuealloc(thiss : AmortizedQueue.Queue): (AmortizedQueue.Queue, BigInt) = {
+  def dequeuetime(thiss : AmortizedQueue.Queue): (AmortizedQueue.Queue, BigInt) = {
     val bd2 = thiss.front match {
       case AmortizedQueue.Cons(f, fs) =>
-        val e36 = amortizedQueuealloc(thiss, fs, thiss.rear)
-        e36
+        val e36 = amortizedQueuetime(thiss, fs, thiss.rear)
+        (e36._1, BigInt(7) + e36._2)
       case _ =>
-        (AmortizedQueue.Queue(AmortizedQueue.Nil(), AmortizedQueue.Nil()), BigInt(3))
+        (AmortizedQueue.Queue(AmortizedQueue.Nil(), AmortizedQueue.Nil()), BigInt(6))
     }
     bd2
   }
   
   def qsize(thiss : AmortizedQueue.Queue): BigInt = MyList.size(thiss.front) + MyList.size(thiss.rear)
   
-  def reverse(thiss : AmortizedQueue.Queue): AmortizedQueue.Queue = amortizedQueuealloc(thiss, thiss.rear, thiss.front)._1
+  def reverse(thiss : AmortizedQueue.Queue): AmortizedQueue.Queue = amortizedQueuetime(thiss, thiss.rear, thiss.front)._1
   
   def head(thiss : AmortizedQueue.Queue): BigInt = {
     val AmortizedQueue.Cons(f, _) = thiss.front
@@ -116,12 +116,12 @@ object Queue {
       false
   }
   
-  def enqueuealloc(thiss : AmortizedQueue.Queue, elem : BigInt): (AmortizedQueue.Queue, BigInt) = {
-    val e56 = amortizedQueuealloc(thiss, thiss.front, AmortizedQueue.Cons(elem, thiss.rear))
-    (e56._1, BigInt(1) + e56._2)
+  def enqueuetime(thiss : AmortizedQueue.Queue, elem : BigInt): (AmortizedQueue.Queue, BigInt) = {
+    val e56 = amortizedQueuetime(thiss, thiss.front, AmortizedQueue.Cons(elem, thiss.rear))
+    (e56._1, BigInt(4) + e56._2)
   }
   
-  def asMyList(thiss : AmortizedQueue.Queue): AmortizedQueue.MyList = AmortizedQueue.concatalloc(thiss.front, AmortizedQueue.MyListRevalloc(thiss.rear)._1)._1
+  def asMyList(thiss : AmortizedQueue.Queue): AmortizedQueue.MyList = AmortizedQueue.concattime(thiss.front, AmortizedQueue.MyListRevtime(thiss.rear)._1)._1
 
   def main(args: Array[String]): Unit = {
     import scala.util.Random
@@ -138,10 +138,10 @@ object Queue {
         }
       }
       val q = AmortizedQueue.Queue(input, input)
-      operAlloc :+= (dequeuealloc(q))._2
+      operAlloc :+= (enqueuetime(q, 2))._2
     }
 
-    val orbAlloc = size.map(x => x + 2).toList // Keeps track of Orb predicted results
+    val orbAlloc = size.map(x => 11*x + 35).toList // Keeps track of Orb predicted results
 
     var j = 0
     for(i <- size) {
