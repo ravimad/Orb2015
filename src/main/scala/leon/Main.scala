@@ -28,6 +28,7 @@ object Main {
       solvers.isabelle.IsabellePhase,
       transformations.InstrumentationPhase,
       invariant.engine.InferInvariantsPhase,
+      invariant.engine.DynamicMinimizationPhase,
       laziness.HOInferencePhase,
       genc.GenerateCPhase,
       genc.CFileOutputPhase
@@ -57,11 +58,12 @@ object Main {
     val optHelp        = LeonFlagOptionDef("help",        "Show help message",                                         false)
     val optInstrument  = LeonFlagOptionDef("instrument",  "Instrument the code for inferring time/depth/stack bounds", false)
     val optInferInv    = LeonFlagOptionDef("inferInv",    "Infer invariants from (instrumented) the code",             false)
+    val optDynMin    = LeonFlagOptionDef("dynamicMin",    "Infer invariants from (instrumented) the code and minimize dynamically",             false)
     val optLazyEval    = LeonFlagOptionDef("mem",        "Handles programs that may use the memoization and higher-order programs", false)
     val optGenc        = LeonFlagOptionDef("genc",        "Generate C code",                                           false)
 
     override val definedOptions: Set[LeonOptionDef[Any]] =
-      Set(optTermination, optRepair, optSynthesis, optIsabelle, optNoop, optHelp, optEval, optVerify, optInstrument, optInferInv, optLazyEval, optGenc)
+      Set(optTermination, optRepair, optSynthesis, optIsabelle, optNoop, optHelp, optEval, optVerify, optInstrument, optInferInv, optDynMin, optLazyEval, optGenc)
   }
 
   lazy val allOptions: Set[LeonOptionDef[Any]] = allComponents.flatMap(_.definedOptions)
@@ -161,6 +163,7 @@ object Main {
     import genc.CFileOutputPhase
     import MainComponent._
     import invariant.engine.InferInvariantsPhase
+    import invariant.engine.DynamicMinimizationPhase
     import transformations.InstrumentationPhase
     import laziness._
 
@@ -175,6 +178,7 @@ object Main {
     val gencF = ctx.findOptionOrDefault(optGenc)
     val evalF = ctx.findOption(optEval).isDefined
     val inferInvF = ctx.findOptionOrDefault(optInferInv)
+    val dynMinF = ctx.findOptionOrDefault(optDynMin)
     val instrumentF = ctx.findOptionOrDefault(optInstrument)
     val lazyevalF = ctx.findOptionOrDefault(optLazyEval)
     val analysisF = verifyF && terminationF
@@ -208,6 +212,7 @@ object Main {
         else if (isabelleF) IsabellePhase
         else if (evalF) EvaluationPhase
         else if (inferInvF) InferInvariantsPhase
+        else if (dynMinF) InferInvariantsPhase andThen DynamicMinimizationPhase
         else if (instrumentF) InstrumentationPhase andThen FileOutputPhase
         else if (gencF) GenerateCPhase andThen CFileOutputPhase
         else if (lazyevalF) HOInferencePhase
