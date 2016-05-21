@@ -15,7 +15,7 @@ import invariant.util._
 import Util._
 import ProgramUtil._
 import PredicateUtil._
-import invariant.util.CallGraphUtil
+import TypeUtil._
 import invariant.structure.FunctionUtils._
 import scala.collection.mutable.{ Map => MutableMap, Set => MutableSet }
 
@@ -56,17 +56,16 @@ class SerialInstrumenter(program: Program,
       else emap.update(fd, List(inst))
     }
     var fdmap = MutableMap[FunDef, List[Instrumentation]]()
-    var ftypeMap = MutableMap[FunctionType, List[Instrumentation]]()
-
+    var ftypeMap = MutableMap[CompatibleType, List[Instrumentation]]()
     instToInstrumenter.values.foreach { m =>
-      m.functionsToInstrument.foreach({
+      m.functionsToInstrument.foreach{
         case (fd, instsToPerform) =>
           instsToPerform.foreach(instToPerform => update(fd, instToPerform, fdmap))
-      })
-      m.functionTypesToInstrument.foreach({
+      }
+      m.functionTypesToInstrument.foreach{
         case (ft, instsToPerform) =>
           instsToPerform.foreach(instToPerform => update(ft, instToPerform, ftypeMap))
-      })
+      }
     }
     (fdmap.toMap, ftypeMap.toMap)
   }
@@ -76,13 +75,15 @@ class SerialInstrumenter(program: Program,
   /**
    * Tracks the instrumentations necessary for a function type
    */
-  def instsOfLambdaType(ft: FunctionType): Seq[Instrumentation] = ftypeInsts.getOrElse(ft, Seq())
+  def instsOfLambdaType(ft: FunctionType): Seq[Instrumentation] = {
+    ftypeInsts.getOrElse(new CompatibleType(ft), Seq())
+  }
 
   val adtsToInstrument = {
     Util.fix((adts: Set[ClassDef]) => {
       adts ++ program.definedClasses.collect {
         case cd: CaseClassDef if (cd.fields.map(_.getType).exists {
-          case ft: FunctionType => instFuncTypes(ft)
+          case ft: FunctionType => instFuncTypes(new CompatibleType(ft))
           case ct: ClassType    => adts(ct.classDef)
           case _                => false
         }) =>
@@ -123,7 +124,6 @@ class SerialInstrumenter(program: Program,
       val newTypeMap = absDef.typed.knownCCDescendants.flatMap { cc => fieldReplacementMap(cc.fields.toList) }.toMap
       val newDef = adtSpecializer.specialize(absDef, newTypeMap).asInstanceOf[AbstractClassDef]
       (absDef, newDef) +: (absDef.knownDescendants zip newDef.knownDescendants)
-
     case cdef: CaseClassDef if !cdef.parent.isDefined =>
       Seq((cdef, adtSpecializer.specialize(cdef, fieldReplacementMap(cdef.fields.toList))))
   }.toMap
@@ -568,7 +568,7 @@ abstract class Instrumenter(program: Program, si: SerialInstrumenter) {
 
   def functionsToInstrument(): Map[FunDef, List[Instrumentation]]
 
-  def functionTypesToInstrument(): Map[FunctionType, List[Instrumentation]]
+  def functionTypesToInstrument(): Map[CompatibleType, List[Instrumentation]]
 
   def additionalfunctionsToAdd(): Seq[FunDef]
 

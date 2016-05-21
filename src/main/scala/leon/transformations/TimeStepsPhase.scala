@@ -10,7 +10,10 @@ import purescala.Expressions._
 import purescala.ExprOps._
 import purescala.Types._
 import leon.utils._
-import leon.invariant.util.Util._
+import invariant.util._
+import Util._
+import ProgramUtil._
+import TypeUtil._
 
 object timeCostModel {
   def costOf(e: Expr): Int = e match {
@@ -28,31 +31,49 @@ class TimeInstrumenter(p: Program, si: SerialInstrumenter) extends Instrumenter(
 
   def inst = Time
 
-  def functionNeedingTime() = {
-
-    (instFuns: Set[FunDef]) => {
-      //(b) find all function types of applications in the nextSets
-      val appTypes = instFuns flatMap {
+  val (funsToInst, funTypesToInst) = {    
+    val funToFTypes = userLevelFunctions(p).map { fd => 
+      def rec(e: Expr): Set[CompatibleType] = e match {     
+        case NoTree(_) => Set()
+        case l@Lambda(_, b) => rec(b) + new CompatibleType(l.getType)
+        case Ensuring(b, Lambda(_, p)) => rec(b) ++ rec(p)
+        case Operator(args, op) => args.toSet flatMap rec
+      }      
+      fd -> rec(fd.fullBody)
+    }.toMap
+    var instFuns = getRootFuncs()
+    var newFuns = instFuns
+    var instFunTypes = Set[CompatibleType]()
+    while(!newFuns.isEmpty) {
+      // (a) find all function types of applications in the nextSets
+      val appTypes = newFuns flatMap {
         case ifd if ifd.hasBody =>
-          collect {
-            case Application(l, _) => Set(l.getType.asInstanceOf[FunctionType])
-            case _ => Set[FunctionType]()
+          collect[CompatibleType] {
+            case Application(l, _) => Set(new CompatibleType(l.getType))
+            case _ => Set()
           }(ifd.body.get)
-        case _ => Set[FunctionType]()
-      }
+        case _ => Set[CompatibleType]()
+      }         
       // (b) find all userLevelFunctions that may create a lambda compatible with the types of the application.
+      val newRoots = funToFTypes.collect { 
+        case (fd, ftypes) if !ftypes.intersect(appTypes).isEmpty => fd        
+      }
       // (c) find all functions transitively called from rootFuncs (here ignore functions called via pre/post conditions)
-      val nextFunSet = instFuns.flatMap{fd => cg.transitiveCallees(fd)}.filter(_.hasBody) // ignore uninterpreted functions
-      //
-      nextFunSet
+      val nextFunSet = newRoots.flatMap(cg.transitiveCallees).filter(_.hasBody).toSet // ignore uninterpreted functions
+      newFuns = nextFunSet -- instFuns
+      instFuns ++= nextFunSet      
+      instFunTypes ++= appTypes
     }
-    getRootFuncs()
+    (instFuns, instFunTypes)
   }
 
   def functionsToInstrument(): Map[FunDef, List[Instrumentation]] = {
-
     //println("Root funs: "+getRootFuncs().map(_.id).mkString(",")+" All funcs: "+ instFunSet.map(_.id).mkString(","))
-    instFunSet.map(x => (x, List(Time))).toMap
+    funsToInst.map(x => (x, List(Time))).toMap
+  }
+  
+  def functionTypesToInstrument(): Map[CompatibleType, List[Instrumentation]] = {
+    funTypesToInst.map(x => (x, List(Time))).toMap
   }
 
   def additionalfunctionsToAdd() = Seq()
