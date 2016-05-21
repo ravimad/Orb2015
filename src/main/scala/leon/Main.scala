@@ -27,6 +27,7 @@ object Main {
       solvers.isabelle.AdaptationPhase,
       solvers.isabelle.IsabellePhase,
       transformations.InstrumentationPhase,
+      transformations.RunnableCodePhase,
       invariant.engine.InferInvariantsPhase,
       laziness.HOInferencePhase,
       genc.GenerateCPhase,
@@ -56,12 +57,13 @@ object Main {
     val optVerify      = LeonFlagOptionDef("verify",      "Verify function contracts",                                 false)
     val optHelp        = LeonFlagOptionDef("help",        "Show help message",                                         false)
     val optInstrument  = LeonFlagOptionDef("instrument",  "Instrument the code for inferring time/depth/stack bounds", false)
+    val optRunnable    = LeonFlagOptionDef("runnable",    "Generate runnable code after instrumenting it",             false)
     val optInferInv    = LeonFlagOptionDef("inferInv",    "Infer invariants from (instrumented) the code",             false)
     val optLazyEval    = LeonFlagOptionDef("mem",        "Handles programs that may use the memoization and higher-order programs", false)
     val optGenc        = LeonFlagOptionDef("genc",        "Generate C code",                                           false)
 
     override val definedOptions: Set[LeonOptionDef[Any]] =
-      Set(optTermination, optRepair, optSynthesis, optIsabelle, optNoop, optHelp, optEval, optVerify, optInstrument, optInferInv, optLazyEval, optGenc)
+      Set(optTermination, optRepair, optSynthesis, optIsabelle, optNoop, optHelp, optEval, optVerify, optInstrument, optRunnable, optInferInv, optLazyEval, optGenc)
   }
 
   lazy val allOptions: Set[LeonOptionDef[Any]] = allComponents.flatMap(_.definedOptions)
@@ -162,6 +164,7 @@ object Main {
     import MainComponent._
     import invariant.engine.InferInvariantsPhase
     import transformations.InstrumentationPhase
+    import transformations.RunnableCodePhase
     import laziness._
 
     val helpF = ctx.findOptionOrDefault(optHelp)
@@ -176,6 +179,7 @@ object Main {
     val evalF = ctx.findOption(optEval).isDefined
     val inferInvF = ctx.findOptionOrDefault(optInferInv)
     val instrumentF = ctx.findOptionOrDefault(optInstrument)
+    val runnableF = ctx.findOptionOrDefault(optRunnable)
     val lazyevalF = ctx.findOptionOrDefault(optLazyEval)
     val analysisF = verifyF && terminationF
     // Check consistency in options
@@ -209,6 +213,7 @@ object Main {
         else if (evalF) EvaluationPhase
         else if (inferInvF) InferInvariantsPhase
         else if (instrumentF) InstrumentationPhase andThen FileOutputPhase
+        else if (runnableF) InstrumentationPhase andThen RunnableCodePhase
         else if (gencF) GenerateCPhase andThen CFileOutputPhase
         else if (lazyevalF) HOInferencePhase
         else verification
