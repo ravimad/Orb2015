@@ -29,7 +29,7 @@ class TPRInstrumenter(p: Program, si: SerialInstrumenter) extends Instrumenter(p
 
   def inst = TPR
 
-  val sccs = cg.graph.sccs.flatMap { scc =>
+  val sccs = cg.sccs.flatMap { scc =>
     scc.map(fd => (fd -> scc.toSet))
   }.toMap
 
@@ -48,6 +48,9 @@ class TPRInstrumenter(p: Program, si: SerialInstrumenter) extends Instrumenter(p
     timeFuncs.map(fd => update(fd, Time))
     emap.toMap
   }
+  
+  // TODO: ignoring applications. Fix this.
+  def functionTypesToInstrument() =  Map()  
 
   def additionalfunctionsToAdd() = Seq()
 

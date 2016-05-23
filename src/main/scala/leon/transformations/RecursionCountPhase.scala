@@ -16,7 +16,7 @@ class RecursionCountInstrumenter(p: Program, si: SerialInstrumenter) extends Ins
 
   def inst = Rec
 
-  val sccs = cg.graph.sccs.flatMap { scc =>
+  val sccs = cg.sccs.flatMap { scc =>
     scc.map(fd => (fd -> scc.toSet))
   }.toMap
 
@@ -27,6 +27,9 @@ class RecursionCountInstrumenter(p: Program, si: SerialInstrumenter) extends Ins
     val instFunSet = getRootFuncs().flatMap(sccs.apply _).filter(_.hasBody)
     instFunSet.map(x => (x, List(Rec))).toMap
   }
+  
+  // Here, we need not consider calls through lambdas
+  def functionTypesToInstrument() =  Map()  
 
   override def additionalfunctionsToAdd(): Seq[FunDef] = Seq.empty[FunDef]
 

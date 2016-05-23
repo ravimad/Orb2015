@@ -29,7 +29,7 @@ object Main {
       transformations.InstrumentationPhase,
       transformations.RunnableCodePhase,
       invariant.engine.InferInvariantsPhase,
-      laziness.LazinessEliminationPhase,
+      laziness.HOInferencePhase,
       genc.GenerateCPhase,
       genc.CFileOutputPhase
     )
@@ -59,7 +59,7 @@ object Main {
     val optInstrument  = LeonFlagOptionDef("instrument",  "Instrument the code for inferring time/depth/stack bounds", false)
     val optRunnable    = LeonFlagOptionDef("runnable",    "Generate runnable code after instrumenting it",             false)
     val optInferInv    = LeonFlagOptionDef("inferInv",    "Infer invariants from (instrumented) the code",             false)
-    val optLazyEval    = LeonFlagOptionDef("lazy",        "Handles programs that may use the 'lazy' construct",        false)
+    val optLazyEval    = LeonFlagOptionDef("mem",        "Handles programs that may use the memoization and higher-order programs", false)
     val optGenc        = LeonFlagOptionDef("genc",        "Generate C code",                                           false)
 
     override val definedOptions: Set[LeonOptionDef[Any]] =
@@ -197,6 +197,7 @@ object Main {
           new PreprocessingPhase(xlangF)
 
       val verification =
+        InstrumentationPhase andThen
         VerificationPhase andThen
         FixReportLabels.when(xlangF) andThen
         PrintReportPhase
@@ -214,7 +215,7 @@ object Main {
         else if (instrumentF) InstrumentationPhase andThen FileOutputPhase
         else if (runnableF) InstrumentationPhase andThen RunnableCodePhase
         else if (gencF) GenerateCPhase andThen CFileOutputPhase
-        else if (lazyevalF) LazinessEliminationPhase
+        else if (lazyevalF) HOInferencePhase
         else verification
       }
 

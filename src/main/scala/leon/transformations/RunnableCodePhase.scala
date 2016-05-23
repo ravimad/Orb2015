@@ -13,6 +13,7 @@ import purescala.ExprOps._
 import purescala.Types._
 import purescala.TypeOps._
 import leon._
+
 import leon.purescala.ScalaPrinter
 import leon.utils._
 import invariant.util._
