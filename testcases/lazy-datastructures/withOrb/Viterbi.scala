@@ -68,35 +68,40 @@ object Viterbi {
   } ensuring (_ => time <= 1)
 
   // deps and it's lemmas
-  def deps(i: BigInt, j: BigInt, K: BigInt): Boolean = {
-    require(i >= 0 && j >= 0 && K >= i + 1)
-    viterbi(i, j, K).cached &&
-      (if (i <= 0 && j <= 0) true
-      else if (i <= 0) deps(i, j - 1, K)
-      else if (j <= 0) deps(i - 1, j, K)
-      else deps(i - 1, j, K) && deps(i, j - 1, K))
+  def deps(j: BigInt, K: BigInt): Boolean = {
+    require(j >= 0 && K >= 0)
+    if(j <= 0) true
+    else viterbiCached(0, j - 1, K) && deps(j - 1, K)
   }
 
-  @invisibleBody
-  @traceInduct
-  def depsMono(i: BigInt, j: BigInt, K: BigInt, st1: Set[Fun[BigInt]], st2: Set[Fun[BigInt]]) = {
-    require(i >= 0 && j >= 0 && K >= i + 1)
-    (st1.subsetOf(st2) && (deps(i, j, K) withState st1)) ==> (deps(i, j, K) withState st2)
-  } holds
+  def viterbiCached(l: BigInt, j: BigInt, K: BigInt): Boolean = {
+    require(l >= 0 && j >= 0 && K >= l)
+    viterbi(l, j, K).cached && {
+    if(l == K) true
+    else viterbiCached(l + 1, j, K)} 
+  }
 
   @traceInduct
-  def depsLem(i: BigInt, j: BigInt, m: BigInt, n: BigInt, K: BigInt) = {
-    require(i >= 0 && j >= 0 && m >= 0 && n >= 0 && K >= m + 1 && K >= i + 1)
-    (i <= m && j <= n && deps(m, n, K)) ==> deps(i, j, K)
+  def depsMono(j: BigInt, K: BigInt, st1: Set[Fun[BigInt]], st2: Set[Fun[BigInt]]) = {
+    require(j >= 0 && K >= 0)
+    (st1.subsetOf(st2) && (deps(j, K) withState st1)) ==> (deps(j, K) withState st2)
+  } holds
+
+  def cachedLem(l: BigInt, j: BigInt, K: BigInt): Boolean = {
+    require(j >= 0 && l >= 0 && K >= l)
+    (if(l == 0) true
+      else if(l == K) cachedLem(l - 1, j, K)
+      else cachedLem(l + 1, j, K) && cachedLem(l - 1, j, K)
+      ) && (viterbiCached(0, j, K) ==> viterbiCached(l, j, K))    
   } holds
 
   @invstate
   def fillEntry(l: BigInt, i: BigInt, j: BigInt, K: BigInt): BigInt = {
-    require(i >= 0 && j >= 1 && l >= 0 && K >= l && K >= i + 1 && deps(K - 1, j - 1, K))
-    if(l == K) BigInt(0)
+    require(i >= 0 && j >= 1 && l >= 0 && K >= l && K >= i && deps(j, K) && cachedLem(l, j - 1, K))
+    val a1 = viterbi(l, j - 1, K) + A(l, i) + B(i, Y(j))
+    if(l == K) a1
     else {
       val a2 = fillEntry(l + 1, i, j, K)
-      val a1 = viterbi(l, j - 1, K) + A(l, i) + B(i, Y(j))
       if(a1 > a2) a1 else a2
     }
   } ensuring(time <= ? * (K - l) + ?)
@@ -104,7 +109,7 @@ object Viterbi {
   @invstate
   @memoize
   def viterbi(i: BigInt, j: BigInt, K: BigInt): BigInt = {
-    require(i >= 0 && j >= 0 && K >= i + 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K)))
+    require(i >= 0 && j >= 0 && K >= i && (j == 0 || j > 0 && deps(j, K)))
     if(j == 0) {
       C(i) + B(i, Y(0))
     } else {
@@ -113,24 +118,24 @@ object Viterbi {
   } ensuring(time <= ? * K + ?)
 
   def fillColumn(i: BigInt, j: BigInt, K: BigInt): BigInt = {
-    require(i >= 0 && j >= 0 && K >= i + 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K)))
+    require(i >= 0 && j >= 0 && K >= i && (j == 0 || j > 0 && deps(j, K)))
     val v = viterbi(i, j, K)
-    if(i != K - 1) fillColumn(i + 1, j, K) else BigInt(0)
+    if(i != K) fillColumn(i + 1, j, K) else BigInt(0)
   } ensuring(res => {
     val in = inState[BigInt]
     val out = outState[BigInt]
-      (j == 0 || depsMono(K - 1, j - 1, K, in, out)) && time <= ? * ((K - i) * K) + ?
+      (j == 0 || depsMono(j, K, in, out)) && time <= ? * ((K - i) * K) + ?
   })
 
-  def fillTable(j: BigInt, T: BigInt, K: BigInt): BigInt = {
-    require(j >= 0 && T >= j + 1 && K >= 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K))) //depsLem(K - 1, j - , K - 1, T - 1, K) )
-    val s = fillColumn(0, j, K)
-    if(j != T - 1) fillTable(j + 1, T, K) else BigInt(0)
-  } ensuring(deps(K - 1, j, K) && time <= ? *((K * K) * (T - j)) + ?)
+  // def fillTable(j: BigInt, T: BigInt, K: BigInt): BigInt = {
+  //   require(j >= 0 && T >= j + 1 && K >= 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K))) //cachedLem(K - 1, j - , K - 1, T - 1, K) )
+  //   val s = fillColumn(0, j, K)
+  //   if(j != T - 1) fillTable(j + 1, T, K) else BigInt(0)
+  // } ensuring(deps(K - 1, j, K) && time <= ? *((K * K) * (T - j)) + ?)
 
-  def viterbiSols(T: BigInt, K: BigInt): BigInt = {
-    require(T >= 1 && K >= 1)
-    fillTable(0, T, K)
-  } ensuring(time <= ? * ((K * K) * T) + ?)
+  // def viterbiSols(T: BigInt, K: BigInt): BigInt = {
+  //   require(T >= 1 && K >= 1)
+  //   fillTable(0, T, K)
+  // } ensuring(time <= ? * ((K * K) * T) + ?)
 
 }
