@@ -49,7 +49,7 @@ class SelectorToCons {
       case Equals(r: Variable, TupleSelect(tp: Variable, idx)) =>
         val tupleType = tp.getType.asInstanceOf[TupleType]
         //convert this to a Tuple by creating dummy variables
-        val args = (1 until tupleType.dimension + 1).map { i =>
+        val args = (1 to tupleType.dimension).map { i =>
           if (i == idx) r
           else {
             val t = createTemp("fld", tupleType.bases(i - 1), fieldSelContext) //note: we have to use i-1
@@ -71,8 +71,8 @@ class SelectorToCons {
         throw new IllegalStateException("Selector not flattened")
       case e => e
     }
-//    println("Output expression: "+rese)
-//    rese
+    //    println("Output expression: "+rese)
+    //    rese
   }
 
   //  def tupleSelToCons(e: Expr): Expr = {
@@ -106,7 +106,7 @@ class SelectorToCons {
           case Some((Variable(inst), fldIdx)) =>
             initModel(inst) match {
               case CaseClass(_, args) => Some(args(fldIdx))
-              case Tuple(args)        => Some(args(fldIdx))
+              case tup @ Tuple(args)  => Some(args(fldIdx))
             }
           case None => None
         }

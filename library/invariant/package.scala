@@ -19,7 +19,7 @@ package object invariant {
   def tmpl(templateFunc: (BigInt, BigInt, BigInt, BigInt, BigInt) => Boolean): Boolean = true
 
   @library
-  def ? : BigInt = 0
+  def ? : BigInt = 0 // here, the value of zero is important
 
   @library
   def ?(id: BigInt) = id

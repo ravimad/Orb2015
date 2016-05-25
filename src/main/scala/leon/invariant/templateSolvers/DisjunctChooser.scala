@@ -32,7 +32,7 @@ import SolverUtil._
 
 class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: ConstraintTracker, defaultEval: DefaultEvaluator) {
   val debugElimination = false
-  val debugChooseDisjunct = false
+  val debugChooseDisjunct = true
   val debugTheoryReduction = false
   val debugAxioms = false
   val debugReducedFormula = false
@@ -46,17 +46,6 @@ class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: Const
   //additional book-keeping for statistics
   val trackNumericalDisjuncts = false
   var numericalDisjuncts = List[Expr]()
-
-  /**
-   * A helper function used only in debugging.
-   */
-  protected def doesSatisfyExpr(expr: Expr, model: LazyModel): Boolean = {
-    val compModel = variablesOf(expr).map { k => k -> model(k) }.toMap
-    defaultEval.eval(expr, new Model(compModel)).result match {
-      case Some(BooleanLiteral(true)) => true
-      case _                          => false
-    }
-  }
 
   /**
    * This solver does not use any theories other than UF/ADT. It assumes that other theories are axiomatized in the VC.
@@ -87,8 +76,8 @@ class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: Const
         println("Path dumped to: " + filename)
       }
       if (debugChooseDisjunct) {
-        satCtrs.filter(_.isInstanceOf[LinearConstraint]).map(_.toExpr).foreach((ctr) => {
-          if (!doesSatisfyExpr(ctr, initModel))
+        ConstraintUtil.filterUnevalCtrs(satCtrs).map(_.toExpr).foreach((ctr) => {
+          if (!initModel.doesSatisfyExpr(ctr, defaultEval))
             throw new IllegalStateException("Path ctr not satisfied by model: " + ctr)
         })
       }
@@ -138,10 +127,18 @@ class DisjunctChooser(ctx: InferenceContext, program: Program, ctrTracker: Const
       case _                   => ;
     }
     if (debugChooseDisjunct) {
-      lnctrs.map(_.toExpr).foreach((ctr) => {
-        if (!doesSatisfyExpr(ctr, expModel))
-          throw new IllegalStateException("Ctr not satisfied by model: " + ctr)
-      })
+      lnctrs.foreach{ctr =>
+        if (!expModel.doesSatisfyExpr(ctr.toExpr, defaultEval)) {
+          val ctrType =
+            if(callCtrs.contains(ctr)) "Call Constraint"
+            else if (theoryCtrs.contains(ctr)) "Theory Constraint"
+            else if (axiomCtrs.contains(ctr)) "Axiom Constraint"
+            else if (satCtrs.contains(ctr)) "Sat Ctr"
+            else "Unknown"
+          //println("Value of vars: "+variablesOf(ctr.toExpr).map(id => id -> expModel(id)).mkString("\n"))
+          throw new IllegalStateException(s"Ctr not satisfied by model: ${ctr.toExpr} type: $ctrType")
+        }
+      }
     }
     if (debugTheoryReduction) {
       val simpPathCond = createAnd((lnctrs ++ temps).map(_.template).toSeq)

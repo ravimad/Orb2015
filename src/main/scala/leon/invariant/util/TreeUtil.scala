@@ -34,12 +34,12 @@ object ProgramUtil {
    * Here, we exclude empty units that do not have any modules and empty
    * modules that do not have any definitions
    */
-  def copyProgram(prog: Program, mapdefs: (Seq[Definition] => Seq[Definition]), 
+  def copyProgram(prog: Program, mapdefs: (Seq[Definition] => Seq[Definition]),
       newdefs: Map[ModuleDef, Seq[Definition]] = Map()): Program = {
     prog.copy(units = prog.units.collect {
       case unit if unit.defs.nonEmpty => unit.copy(defs = unit.defs.collect {
         case module: ModuleDef if module.defs.nonEmpty || newdefs.contains(module) =>
-          module.copy(defs = mapdefs(module.defs) ++ newdefs.getOrElse(module, Seq()))          
+          module.copy(defs = mapdefs(module.defs) ++ newdefs.getOrElse(module, Seq()))
         case other => other
       })
     })
@@ -299,13 +299,13 @@ object ClassExpr {
     case IsInstanceOf(arg, ct) =>
       Some(ct, Seq(arg), (nct: ClassType) => (nargs: Seq[Expr]) => IsInstanceOf(nargs.head, nct))
     case CaseClassSelector(ct, arg, index) =>
-      val r: ClassType => Seq[Expr] => Expr = (nt: ClassType) => {        
-        val nct = nt.asInstanceOf[CaseClassType]        
+      val r: ClassType => Seq[Expr] => Expr = (nt: ClassType) => {
+        val nct = nt.asInstanceOf[CaseClassType]
         val nindex = nct.classDef.fields.find(_.id.name == index.name).get.id
-        (nargs: Seq[Expr]) => CaseClassSelector(nct, nargs.head, nindex)        
+        (nargs: Seq[Expr]) => CaseClassSelector(nct, nargs.head, nindex)
       }
       Some(ct, Seq(arg), r)
-        
+
     case AsInstanceOf(arg, ct) =>
       Some(ct, Seq(arg), (nct: ClassType) => (nargs: Seq[Expr]) =>
         AsInstanceOf(nargs.head, nct))
@@ -452,7 +452,6 @@ object PredicateUtil {
 
   def isCallExpr(e: Expr): Boolean = e match {
     case Equals(Variable(_), FunctionInvocation(_, _)) => true
-    // case Iff(Variable(_),FunctionInvocation(_,_)) => true
     case _ => false
   }
 

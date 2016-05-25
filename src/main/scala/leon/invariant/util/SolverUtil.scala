@@ -57,6 +57,7 @@ object SolverUtil {
       case (Some(false), _) =>
         throw new IllegalStateException("Model doesn't staisfy formula!")
       case _ =>
+        println("Model statisfies formula!")
     }
   }
 
@@ -141,6 +142,39 @@ object SolverUtil {
       case Some(true) => true
       case _ => false
     }
+  }
+
+  /**
+   * A method for picking a sat disjunct of unflat formula. Mostly used for debugging.
+   */
+  def pickSatFromExpr(ine: Expr, model: Model, evaluator: DefaultEvaluator): Seq[Expr] = {
+    def rec(e: Expr): Seq[Expr] = e match {
+      case IfExpr(cond, thn, elze) =>
+        evaluator.eval(cond, model) match {
+          case Successful(BooleanLiteral(true)) => cond +: rec(thn)
+          case Successful(BooleanLiteral(false)) => Not(cond) +: rec(elze)
+        }
+      case And(args) => args flatMap rec
+      case Or(args) => rec(args.find(evaluator.eval(_, model) == Successful(BooleanLiteral(true))).get)
+      case Equals(_, _: FunctionInvocation) =>
+        // uninterpreted functions cannot be evaluated
+        Seq(e)
+      case Equals(b: Variable, rhs) if b.getType == BooleanType =>
+        evaluator.eval(b, model) match {
+          case Successful(BooleanLiteral(true)) =>
+            b +: rec(rhs)
+          case Successful(BooleanLiteral(false)) =>
+            Seq(Not(b))
+        }
+      case _: Equals | _: Not =>
+        evaluator.eval(e, model) match {
+          case Successful(BooleanLiteral(true)) => Seq(e)
+          case _ =>
+            throw new IllegalStateException("Cannot find sat path ! model does not satisfy expresssion: "+e)
+        }
+      case e => Seq(e)
+    }
+    rec(ine)
   }
 
 }

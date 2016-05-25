@@ -23,6 +23,22 @@ trait LazyModel {
     }
 
   def isDefinedAt(iden: Identifier) = get(iden).isDefined
+
+  /**
+   * A helper function used only in debugging.
+   * Note this is a very inefficient function that constructs a model eagerly.
+   */
+ def doesSatisfyExpr(expr: Expr, defaultEval: DefaultEvaluator): Boolean = {
+    val compModel = variablesOf(expr).map { k => k -> apply(k) }.toMap
+    compModel.foreach { case (k, v) =>
+      if(k.uniqueName == "cs101" || k.uniqueName == "t7")
+        println(s"$k --> $v")
+    }
+    defaultEval.eval(expr, new Model(compModel)).result match {
+      case Some(BooleanLiteral(true)) => true
+      case _                          => false
+    }
+  }
 }
 
 class SimpleLazyModel(m: Model) extends LazyModel {

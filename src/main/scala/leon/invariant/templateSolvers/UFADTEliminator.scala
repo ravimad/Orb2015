@@ -124,6 +124,7 @@ class UFADTEliminator(ctx: LeonContext, program: Program) {
    * 'predEval' is an evaluator that evaluates a predicate to a boolean value
    * TODO: is type parameter inheritance handled correctly ?
    */
+  import purescala.ExprOps._
   def constraintsForCalls(calls: Set[Expr], predEval: (Expr => Option[Boolean])): Seq[Expr] = {
 
     //check if two calls (to functions or ADT cons) have the same value in the model
@@ -232,13 +233,13 @@ class UFADTEliminator(ctx: LeonContext, program: Program) {
                       neqSet ++= Set((t1, t2))
                       preds ++= predForDisequality(t1, t2)
                     case _ =>
-                    // in this case, we construct a weaker disjunct by dropping this predicate                      
+                    // in this case, we construct a weaker disjunct by dropping this predicate
                   }
                 }
               }
             }
         }
-    }   
+    }
     Stats.updateCounterStats(preds.size, "CallADT-Constraints", "disjuncts")
     preds.toSeq
   }

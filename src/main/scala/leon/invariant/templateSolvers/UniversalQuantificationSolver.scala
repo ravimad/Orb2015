@@ -40,12 +40,12 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
   import NLTemplateSolver._
 
   //flags controlling debugging
-  val debugUnflattening = false
+  val debugUnflattening = true
   val debugIncrementalVC = false
   val trackCompressedVCCTime = false
 
   val printCounterExample = false
-  val dumpInstantiatedVC = false
+  val dumpInstantiatedVC = true
 
   val reporter = ctx.reporter
   val timeout = ctx.vcTimeout
@@ -70,7 +70,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
 
   def splitVC(fd: FunDef) = {
     val (paramPart, rest, modCons) =
-      time { ctrTracker.getVC(fd).toUnflatExpr } {
+      time { ctrTracker.getVC(fd).splitParamPart /*toUnflatExpr */} {
         t => Stats.updateCounterTime(t, "UnflatTime", "VC-refinement")
       }
     if (ctx.usereals) {
@@ -371,7 +371,12 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
         SimpleSolverAPI(SolverFactory(() => solverFactory.getNewSolver())),
         defaultEval)*/
       verifyModel(funData.simpleParts, packedModel, SimpleSolverAPI(SolverFactory(() => solverFactory.getNewSolver())))
-      //val unflatPath = ctrTracker.getVC(fd).pickSatFromUnflatFormula(funData.simpleParts, packedModel, defaultEval)
+      if(packedModel.isEmpty)
+        println("Warinig packedmodel is empty!!")
+      else {
+        val satpath = pickSatFromExpr(funData.simpleParts, packedModel, defaultEval)
+        ExpressionTransformer.PrintWithIndentation("instSatPath", createAnd(satpath))
+      }
     }
     //for statistics
     if (trackCompressedVCCTime) {
@@ -383,6 +388,14 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
       } { compTime =>
         Stats.updateCumTime(compTime, "TotalCompressVCCTime")
         reporter.info("checked compressed VC... in " + compTime / 1000.0 + "s")
+      }
+    }
+    val relids = packedModel.ids.collect {
+      case id if id.uniqueName == "b361" || id.uniqueName == "b358" || id.uniqueName == "cs101" || id.uniqueName == "t7"  => id
+      }
+    if(!relids.isEmpty) {
+      relids.foreach { id =>
+        println(s"Value of $id in the model: ${packedModel.get(id)}")
       }
     }
     (res, modelCons(packedModel, defaultEval))

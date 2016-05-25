@@ -531,7 +531,6 @@ trait AbstractZ3Solver extends Solver {
           z3.mkStore(m, rec(k), rec(CaseClass(library.someType(t), Seq(v))))
         }
 
-
       case gv @ GenericValue(tp, id) =>
         z3.mkApp(genericValueToDecl(gv))
 
@@ -568,7 +567,7 @@ trait AbstractZ3Solver extends Solver {
               case IntegerType => InfiniteIntegerLiteral(BigInt(v))
               case other =>
                 unsupported(other, "Unexpected type for BV value: " + other)
-            } 
+            }
           }
 
         case Z3NumeralIntAST(None) =>
@@ -577,15 +576,15 @@ trait AbstractZ3Solver extends Solver {
           if(ts.length > 4 && ts.substring(0, 2) == "bv" && ts.substring(ts.length - 4) == "[32]") {
             val integer = ts.substring(2, ts.length - 4)
             tpe match {
-              case Int32Type => 
+              case Int32Type =>
                 IntLiteral(integer.toLong.toInt)
               case CharType  => CharLiteral(integer.toInt.toChar)
-              case IntegerType => 
+              case IntegerType =>
                 InfiniteIntegerLiteral(BigInt(integer))
               case _ =>
                 reporter.fatalError("Unexpected target type for BV value: " + tpe.asString)
             }
-          } else {  
+          } else {
             _root_.smtlib.common.Hexadecimal.fromString(t.toString.substring(2)) match {
               case Some(hexa) =>
                 tpe match {
@@ -725,7 +724,7 @@ trait AbstractZ3Solver extends Solver {
             //      case OpDiv =>     Division(rargs(0), rargs(1))
             //      case OpIDiv =>    Division(rargs(0), rargs(1))
             //      case OpMod =>     Modulo(rargs(0), rargs(1))
-                  case other => unsound(t, 
+                  case other => unsound(t,
                       s"""|Don't know what to do with this declKind: $other
                           |Expected type: ${Option(tpe).map{_.asString}.getOrElse("")}
                           |Tree: $t

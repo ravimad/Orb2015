@@ -387,4 +387,15 @@ object ConstraintUtil {
       case Not(Equals(lhs, rhs)) if !isNumericType(lhs.getType)                        => ADTConstraint(ie)
     }
   }
+
+  /**
+   * Only used for debugging
+   */
+  def filterUnevalCtrs(ctrs: Seq[Constraint]) = {
+    ctrs.filter {
+      case _: LinearConstraint         => true
+      case _: Call | _: LinearTemplate => false
+      case _                           => true
+    }
+  }
 }

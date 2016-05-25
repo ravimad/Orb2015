@@ -26,7 +26,7 @@ import evaluators._
 import invariant.factories._
 import evaluators._
 import EvaluationResults._
-
+import ConstraintUtil._
 /**
  * Data associated with a call.
  * @param inSpec true if the call (transitively) made within specifications
@@ -35,7 +35,7 @@ class CallData(val guard : Variable, val parents: List[FunDef], val inSpec: Bool
 
 object Formula {
   val debugUnflatten = false
-  val dumpUnflatFormula = false
+  val dumpUnflatFormula = true
   // a context for creating blockers
   val blockContext = newContext
 }
@@ -180,32 +180,75 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
     }
     def traverseAnds(inctrs: Seq[Constraint]): Seq[Constraint] =
       inctrs.foldLeft(Seq[Constraint]()) {
-        case (acc, ITE(BoolConstraint(c: Variable), ths, elzes)) =>
+        case (acc, ite@ITE(BoolConstraint(c: Variable), ths, elzes)) =>
           val conds = disjuncts(c) // here, cond it guaranteed to be an atom
           assert(conds.size <= 1)
+          def negCond =
+            conds match {
+              case Seq(bc: BoolConstraint) => BoolConstraint(Not(bc.toExpr))
+              case Seq(lc: LinearTemplate) => lc.pickSatDisjunctOfNegation(model, tmplModel, eval)
+              case Seq(adteq: ADTConstraint) if adteq.comp =>
+                adteq.toExpr match {
+                  case Not(eq) => ADTConstraint(eq)
+                  case eq      => ADTConstraint(Not(eq))
+                }
+            }
           val ctrs =
             if (model(c.id) == tru)
               conds ++ traverseAnds(ths)
             else {
-              val condCtr = conds match {
-                case Seq(bc: BoolConstraint) => BoolConstraint(Not(bc.toExpr))
-                case Seq(lc: LinearTemplate) => lc.pickSatDisjunctOfNegation(model, tmplModel, eval)
-                case Seq(adteq: ADTConstraint) if adteq.comp =>
-                  adteq.toExpr match {
-                    case Not(eq) => ADTConstraint(eq)
-                    case eq      => ADTConstraint(Not(eq))
-                  }
-              }
-              condCtr +: traverseAnds(elzes)
+              negCond +: traverseAnds(elzes)
             }
+          // for debugging
+          if(!model.doesSatisfyExpr(createAnd(filterUnevalCtrs(ctrs).map(_.toExpr)), eval)) {
+            val condExpr = createAnd(filterUnevalCtrs(conds).map(_.toExpr))
+            if(model(c.id) == tru) {
+              if(!model.doesSatisfyExpr(condExpr, eval))
+                throw new IllegalStateException("Condition not satisfied: blocker: "+" conds: "+condExpr)
+              val thnExpr = createAnd(filterUnevalCtrs(ths).map(_.toExpr))
+              if(!model.doesSatisfyExpr(thnExpr, eval))
+                throw new IllegalStateException("Thn not satisfied: blocker: "+model(c.id)+" thn: "+thnExpr)
+              ths.foreach{th =>
+                val thTraversalExpr = createAnd(filterUnevalCtrs(traverseAnds(Seq(th))).map(_.toExpr))
+                if(!model.doesSatisfyExpr(thTraversalExpr, eval))
+                  throw new IllegalStateException(s"Thn traversal not satisfied: $thTraversalExpr Initial blocker: $th")
+              }
+              if(!model.doesSatisfyExpr(createAnd(filterUnevalCtrs(traverseAnds(ths)).map(_.toExpr)), eval))
+                throw new IllegalStateException("Some traversal of then is not satisfied !!")
+
+            } else{
+              val notCond = createAnd(filterUnevalCtrs(Seq(negCond)).map(_.toExpr))
+              if(!model.doesSatisfyExpr(notCond, eval))
+                throw new IllegalStateException(s"Not of condition $notCond is not satisfied by $ite")
+              elzes.foreach{el =>
+                val elzeExpr = createAnd(filterUnevalCtrs(Seq(el)).map(_.toExpr))
+                if(!model.doesSatisfyExpr(elzeExpr, eval)) {
+                  throw new IllegalStateException(s"Else Conjunct: $el is not satisfied by $ite")
+                }
+              }
+            }
+            throw new IllegalStateException(s"Violated ITE: $ite blocker: ${model(c.id)}")
+          }
           acc ++ ctrs
         case (acc, elt: ExtendedConstraint) =>
           acc :+ elt.pickSatDisjunct(model, tmplModel, eval)
         case (acc, ctr @ BoolConstraint(v: Variable)) if conjuncts.contains(v) => //assert(model(v.id) == tru)
           acc ++ (ctr +: traverseOrs(conjuncts(v)))
         case (acc, ctr @ BoolConstraint(v: Variable)) if disjuncts.contains(v) => //assert(model(v.id) == tru)
-          acc ++ (ctr +: traverseAnds(disjuncts(v)))
-        case (acc, ctr) => acc :+ ctr
+          val andCtrs = traverseAnds(disjuncts(v))
+          if (!model.doesSatisfyExpr(createAnd(filterUnevalCtrs(andCtrs).map(_.toExpr)), eval)) {
+            andCtrs.foreach { ac =>
+              val aTraversalExpr = createAnd(filterUnevalCtrs(traverseAnds(Seq(ac))).map(_.toExpr))
+              if (!model.doesSatisfyExpr(aTraversalExpr, eval))
+                throw new IllegalStateException(s"And traversal not satisfied: $aTraversalExpr Initial blocker: $ac")
+            }
+            throw new IllegalStateException(s"And expr traversal not satisfied: " + andCtrs)
+          }
+          acc ++ (ctr +: andCtrs)
+        case (acc, ctr) =>
+          if(purescala.ExprOps.variablesOf(ctr.toExpr).exists { id => id.uniqueName == "ts127" })
+            println("Adding constraint: "+ctr.toExpr)
+          acc :+ ctr
       }
     val path =
       if (model(startGaurd.id) == fls) Seq() //if startGuard is unsat return empty
@@ -260,7 +303,7 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
    * The first return value is param part and the second one is the
    * non-parametric part
    */
-  def splitParamPart : (Expr, Expr) = {
+  def splitParamPart  = {
     val paramPart = paramBlockers.toSeq.map{ g =>
       combiningOp(g,createAnd(disjuncts(g).map(_.toExpr)))
     }
@@ -269,7 +312,8 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
         combiningOp(g, createAnd(ctrs.map(_.toExpr)))
     }.toSeq
     val conjs = conjuncts.map((entry) => combiningOp(entry._1, entry._2)).toSeq ++ roots
-    (createAnd(paramPart), createAnd(rest ++ conjs))
+    val restExpr = createAnd(rest ++ conjs)
+    (createAnd(paramPart), restExpr, (m: Model, d: DefaultEvaluator) => new FlatModel(variablesOf(restExpr), Map(), m, d))
   }
 
   def toExpr : Expr={
@@ -458,29 +502,5 @@ class Formula(val fd: FunDef, initexpr: Expr, ctx: InferenceContext, initSpecCal
           throw new IllegalStateException("Model do not agree on diffs: " + diffs)
       }
     }
-  }
-
-  /**
-   * A method for picking a sat disjunct of unflat formula. Mostly used for debugging.
-   */
-  def pickSatFromUnflatFormula(unflate: Expr, model: Model, evaluator: DefaultEvaluator): Seq[Expr] = {
-    def rec(e: Expr): Seq[Expr] = e match {
-      case IfExpr(cond, thn, elze) =>
-        evaluator.eval(cond, model) match {
-          case Successful(BooleanLiteral(true)) => cond +: rec(thn)
-          case Successful(BooleanLiteral(false)) => Not(cond) +: rec(elze)
-        }
-      case And(args) => args flatMap rec
-      case Or(args) => rec(args.find(evaluator.eval(_, model) == Successful(BooleanLiteral(true))).get)
-      case Equals(b: Variable, rhs) if b.getType == BooleanType =>
-        evaluator.eval(b, model) match {
-          case Successful(BooleanLiteral(true)) =>
-            rec(b) ++ rec(rhs)
-          case Successful(BooleanLiteral(false)) =>
-            Seq(Not(b))
-        }
-      case e => Seq(e)
-    }
-    rec(unflate)
   }
 }

@@ -23,7 +23,7 @@ abstract class TemplateSolver(ctx: InferenceContext, val rootFun: FunDef,
 
   protected val reporter = ctx.reporter
   private val dumpVCtoConsole = false
-  private val dumpVCasText = false
+  private val dumpVCasText = true
 
   /**
    * Completes a model by adding mapping to new template variables
