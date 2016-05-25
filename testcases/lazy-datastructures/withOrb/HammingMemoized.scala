@@ -9,7 +9,7 @@ import invariant._
 
 /**
  * A memoized version of the implementation of Hamming problem shown in
- * section 4.3 of Type-based allocation analysis for Co-recursion
+ * section 4.3 of Type-based allocation analysis for Co-recursion.
  */
 object Hamming {
   sealed abstract class IList
@@ -47,11 +47,11 @@ object Hamming {
 
   def depsEval(i: BigInt): Boolean = {
     require(i >= 0)
-    ham(i).isCached && (if (i <= 0) true else depsEval(i - 1))
+    ham(i).cached && (if (i <= 0) true else depsEval(i - 1))
   }
 
   @traceInduct
-  def depsEvalMono(i: BigInt, st1: Set[Mem[Data]], st2: Set[Mem[Data]]) = {
+  def depsEvalMono(i: BigInt, st1: Set[Fun[Data]], st2: Set[Fun[Data]]) = {
     require(i >= 0)
     (st1.subsetOf(st2) && (depsEval(i) withState st1)) ==> (depsEval(i) withState st2)
   } holds

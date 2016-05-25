@@ -1,0 +1,10 @@
+- [ ] fix instumentation of match in dispatch function
+- [ ] fix problems in nonlinearity
+- [ ] allow compisitional verification
+- [ ] support @finite annotation
+- [ ] check that lambdas do not escape for soundness of analyzing data structures
+- [ ] Support type instances in closure conversion
+- [ ] benchmarks ? iterative DP, lazy pairing heaps, implicit queues, amortized bounds, cyk ?
+- [ ] collect results for timing and allocations
+- [ ] compare with related works e.g. Vasconsolos work.
+- [ ] Consider the application of synthesizing thresholds
