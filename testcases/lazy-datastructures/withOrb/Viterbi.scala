@@ -85,11 +85,12 @@ object Viterbi {
   } holds
 
   @traceInduct
-  def depsLem(i: BigInt, j: BigInt, m: BigInt, n: BigInt) = {
-    require(i >= 0 && j >= 0 && m >= 0 && n >= 0)
-    (i <= m && j <= n && deps(m, n)) ==> deps(i, j)
+  def depsLem(i: BigInt, j: BigInt, m: BigInt, n: BigInt, K: BigInt) = {
+    require(i >= 0 && j >= 0 && m >= 0 && n >= 0 && K >= m + 1 && K >= i + 1)
+    (i <= m && j <= n && deps(m, n, K)) ==> deps(i, j, K)
   } holds
 
+  @invstate
   def fillEntry(l: BigInt, i: BigInt, j: BigInt, K: BigInt): BigInt = {
     require(i >= 0 && j >= 1 && l >= 0 && K >= l && K >= i + 1 && deps(K - 1, j - 1, K))
     if(l == K) BigInt(0)
@@ -102,35 +103,34 @@ object Viterbi {
 
   @invstate
   @memoize
-  @invisibleBody
   def viterbi(i: BigInt, j: BigInt, K: BigInt): BigInt = {
-    require(i >= 0 && j >= 0 && K >= i + 1 && (j == 0 || deps(K - 1, j - 1, K)))
+    require(i >= 0 && j >= 0 && K >= i + 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K)))
     if(j == 0) {
       C(i) + B(i, Y(0))
     } else {
       fillEntry(0, i, j, K)
     }
+  } ensuring(time <= ? * K + ?)
+
+  def fillColumn(i: BigInt, j: BigInt, K: BigInt): BigInt = {
+    require(i >= 0 && j >= 0 && K >= i + 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K)))
+    val v = viterbi(i, j, K)
+    if(i != K - 1) fillColumn(i + 1, j, K) else BigInt(0)
   } ensuring(res => {
     val in = inState[BigInt]
     val out = outState[BigInt]
-      (j == 0 || depsMono(K - 1, j - 1, K, in, out)) && (time <= ? * K + ?)
+      (j == 0 || depsMono(K - 1, j - 1, K, in, out)) && time <= ? * ((K - i) * K) + ?
   })
 
-  def fillColumn(i: BigInt, j: BigInt, K: BigInt): Unit = {
-    require(i >= 0 && j >= 0 && K >= i + 1 && (j == 0 || deps(K - 1, j - 1, K)))
-    val v = viterbi(i, j, K)
-    if(i != K - 1) fillColumn(i + 1, j, K)
-  } ensuring(time <= ? * ((K - i) * K) + ?)
-
-  def fillTable(j: BigInt, T: BigInt, K: BigInt): Unit = {
-    require(j >= 0 && T >= j + 1 && K >= 1 && (j == 0 || deps(K - 1, j - 1, K)))
+  def fillTable(j: BigInt, T: BigInt, K: BigInt): BigInt = {
+    require(j >= 0 && T >= j + 1 && K >= 1 && (j == 0 || j > 0 && deps(K - 1, j - 1, K))) //depsLem(K - 1, j - , K - 1, T - 1, K) )
     val s = fillColumn(0, j, K)
-    if(j != T - 1) fillTable(j + 1, T, K)
-  } ensuring(time <= ? *((K * K) * (T - j)) + ?)
+    if(j != T - 1) fillTable(j + 1, T, K) else BigInt(0)
+  } ensuring(deps(K - 1, j, K) && time <= ? *((K * K) * (T - j)) + ?)
 
-  def viterbiSols(T: BigInt, K: BigInt): Unit = {
+  def viterbiSols(T: BigInt, K: BigInt): BigInt = {
     require(T >= 1 && K >= 1)
     fillTable(0, T, K)
-  } ensuring(deps(K - 1, T - 1, K) && time <= ? * ((K * K) * T) + ?)
+  } ensuring(time <= ? * ((K * K) * T) + ?)
 
 }
