@@ -169,14 +169,14 @@ object BottomUpMergeSort {
   /**
    * A function that accesses the first element of a list using lazy sorting.
    */
-//  def firstMin(l: IList) : BigInt ={
-//    require(l != INil())
-//    mergeSort(l) match {
-//      case SCons(x, rest) => x
-//    }
-//  } ensuring (res => time <= ? * l.size + ?)
+  def firstMin(l: List[BigInt]) : BigInt ={
+    require(l != Nil[BigInt]())
+    mergeSort(l).list match {
+      case SCons(x, rest) => x
+    }
+  } ensuring (res => time <= ? * l.size + ?)
 //
-  /*def kthMin(s: Stream, k: BigInt): BigInt = {
+  def kthMin(s: Stream, k: BigInt): BigInt = {
     require(k >= 0)
     s.list match {
       case SCons(x, xs) =>
@@ -185,7 +185,7 @@ object BottomUpMergeSort {
           kthMin(xs, k - 1)
       case SNil() => BigInt(0)
     }
-  } ensuring (_ => time <= ? * (k * s.size) + ?)*/
+  } ensuring (_ => time <= ? * (k * s.size) + ? * s.size + ?)
 
   @ignore
   def main(args: Array[String]) {

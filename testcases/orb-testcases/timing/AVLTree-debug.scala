@@ -6,7 +6,7 @@ import leon.annotation._
 object AVLTree {
   sealed abstract class Tree
   case class Leaf() extends Tree
-  case class Node(left: Tree, value: BigInt, right: Tree, rank: BigInt) extends Tree
+  case class Node(left: Tree, value: BigInt, right: Tree /*, rank: BigInt*/ ) extends Tree
 
   sealed abstract class OptionInt
   case class None() extends OptionInt
@@ -19,14 +19,14 @@ object AVLTree {
       3/2 * twopower(x - 1)
   } ensuring(res => res >= 1 template((a) => a <= 0))*/
 
-  def rank(t: Tree): BigInt = {
+  /*def rank(t: Tree): BigInt = {
     t match {
       case Leaf()            => 0
       case Node(_, _, _, rk) => rk
     }
-  }
+  }*/
 
-  def height(t: Tree): BigInt = {
+  /*def height(t: Tree): BigInt = {
     t match {
       case Leaf() => 0
       case Node(l, x, r, _) => {
@@ -35,7 +35,7 @@ object AVLTree {
         max(hl, hr) + 1
       }
     }
-  }
+  }*/
 
   /*def size(t: Tree): BigInt = {
     //require(isAVL(t))
@@ -85,22 +85,15 @@ object AVLTree {
     balance(unbalancedInsert(t, e))
   } ensuring (_ => time <= ? * height(t) + ?)*/
 
-  def balance(t:  Tree): Tree = t
+  //def balance(t:  Tree): Tree = t
 
-  def deletemax(t: Tree): (Tree, OptionInt) = {
+  def deletemax(t: Tree): Boolean = {
     t match {
-      case Node(Leaf(), v, Leaf(), _) => (Leaf(), Some(v))
-      case Node(l, v, Leaf(), _) => {
-        deletemax(l) match {
-          case (_, None()) => (t, None())
-          case (newl, Some(lmax)) =>
-            (balance(Node(newl, lmax, Leaf(), rank(newl) + 1)), Some(v))
-        }
-      }
-      case Node(_, _, r, _) => deletemax(r)
-      case _                => (t, None())
+      case Node(l, v, Leaf()) => true
+        //Node(deletemax(l), 0, Leaf())
+      case _             => false
     }
-  } ensuring (res => time <= ? * height(t) + ?)
+  } ensuring (res => time <= ?) // * height(t) + ?)
 
   /*def unbalancedDelete(t: Tree, e: BigInt): Tree = {
     t match {

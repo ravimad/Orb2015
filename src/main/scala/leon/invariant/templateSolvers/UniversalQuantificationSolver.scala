@@ -374,6 +374,7 @@ class UniversalQuantificationSolver(ctx: InferenceContext, program: Program,
       if(packedModel.isEmpty)
         println("Warinig packedmodel is empty!!")
       else {
+        println("Packed model: "+packedModel.toMap.mkString("\n"))
         val satpath = pickSatFromExpr(funData.simpleParts, packedModel, defaultEval)
         ExpressionTransformer.PrintWithIndentation("instSatPath", createAnd(satpath))
       }
