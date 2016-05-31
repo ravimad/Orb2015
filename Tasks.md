@@ -1,10 +1,27 @@
-- [ ] fix instumentation of match in dispatch function
-- [ ] fix problems in nonlinearity
-- [ ] allow compisitional verification
+### fixed
+- [x] fix instumentation of match in dispatch function
+- [x] fix problems in nonlinearity
+- [x] check that lambdas do not escape for soundness of analyzing data structures
+
+### immediate 
+- [ ] get initial results for lazy benchmarks
+- [ ] get initial results for dp programs
+- [ ] make allocations first class, like time
+- [ ] minimizations of the inference and counterexamples
+- [ ] report on related works e.g. Vasconsolos work
+- [ ] freeze benchmarks and code
+- [ ] final results 
+
+### supports results
+- [ ] DAG inlining (in general Leon context)
+
+### if time permits
+- [ ] more benchmarks? iterative DP, lazy pairing heaps, implicit queues, amortized bounds, cyk ?
+
+### done, needs fixing
+- [ ] allow compositional verification
+
+### work in source, future 
 - [ ] support @finite annotation
-- [ ] check that lambdas do not escape for soundness of analyzing data structures
 - [ ] Support type instances in closure conversion
-- [ ] benchmarks ? iterative DP, lazy pairing heaps, implicit queues, amortized bounds, cyk ?
-- [ ] collect results for timing and allocations
-- [ ] compare with related works e.g. Vasconsolos work.
 - [ ] Consider the application of synthesizing thresholds
