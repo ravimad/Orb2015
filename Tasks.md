@@ -7,6 +7,8 @@
 - [ ] get initial results for lazy benchmarks
 - [ ] get initial results for dp programs
 - [ ] make allocations first class, like time
+- [ ] prove non-linear bound of Knapsack
+- [ ] improve bounds of forceAndMerge in BottomUpMergeSort, update results
 - [ ] minimizations of the inference and counterexamples
 - [ ] report on related works e.g. Vasconsolos work
 - [ ] freeze benchmarks and code
