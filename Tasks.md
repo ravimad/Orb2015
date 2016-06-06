@@ -2,17 +2,23 @@
 - [x] fix instumentation of match in dispatch function
 - [x] fix problems in nonlinearity
 - [x] check that lambdas do not escape for soundness of analyzing data structures
+- [x] get initial results for lazy benchmarks
+- [x] minimizations of the inference and counterexamples
+- [x] Nonlinear bound of Knapsack
+- [x] Actual solution of lcs
+- [x] Try out trees in RAML
 
 ### immediate 
-- [ ] get initial results for lazy benchmarks
+- [ ] BottomUpMergeSort
 - [ ] get initial results for dp programs
+- [ ] try out minimization for programs
 - [ ] make allocations first class, like time
-- [ ] prove non-linear bound of Knapsack
-- [ ] improve bounds of forceAndMerge in BottomUpMergeSort, update results
-- [ ] minimizations of the inference and counterexamples
-- [ ] report on related works e.g. Vasconsolos work
+- [ ] Viterbi algorithm
+- [ ] report on related works
+- [ ] Log bound for Divide and conquer MergeSort
+- [ ] Cases like (j >= 0 && lookup(j)) not being handled correctly 
 - [ ] freeze benchmarks and code
-- [ ] final results 
+- [ ] final results and related work 
 
 ### supports results
 - [ ] DAG inlining (in general Leon context)
