@@ -36,8 +36,7 @@ object InstrumentationPhase extends TransformationPhase {
           Depth -> new DepthInstrumenter(program, si),
           Rec -> new RecursionCountInstrumenter(program, si),
           Stack -> new StackSpaceInstrumenter(program, si),
-          TPR -> new TPRInstrumenter(program, si),
-          Alloc -> new AllocInstrumenter(program, si))
+          TPR -> new TPRInstrumenter(program, si))
     val si = new SerialInstrumenter(program, instrumenterFactory)
     val instprog = si.apply
     //println("Instrumented Program: "+ScalaPrinter.apply(instprog, purescala.PrinterOptions(printUniqueIds = true)))
@@ -55,7 +54,6 @@ class SerialInstrumenter(program: Program,
   val exprInstFactory = exprInstOpt.getOrElse((ictx: InstruContext) => new ExprInstrumenter(ictx))
 
   val instToInstrumenter: Map[Instrumentation, Instrumenter] = instFactory(this)
-
 
   // a map from functions to the list of instrumentations to be performed for the function
   val (funcInsts, ftypeInsts) = {
@@ -622,7 +620,6 @@ class ExprInstrumenter(ictx: InstruContext) {
           val ir = Variable(createInstVar("ir", transv.getType))
           (ir, transv)
         }
-
         val transformedBody = transform(b)(letIdMap + (i -> ni.id))
         val r = Variable(createInstVar("r", transformedBody.getType))
         val instexprs = instrumenters map { m =>
@@ -648,7 +645,6 @@ class ExprInstrumenter(ictx: InstruContext) {
             Let(resthen.id, transThen, Tuple(TupleSelect(resthen, 1) +: theninsts))
           }
           (recons, thInstPart)
-
         }
         val (nelseCons, elseInsts) = {
           val transElze = transform(elze)
