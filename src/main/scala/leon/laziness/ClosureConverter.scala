@@ -157,7 +157,7 @@ class ClosureConverter(p: Program, ctx: LeonContext,
       } :+ ValDef(FreshIdentifier("st", stType))
       val retTypeWithState = TupleType(Seq(replaceClosureTypes(retTp), stType))
       // the type parameters will be unified later
-      val nfd = new FunDef(FreshIdentifier("u"+tname),
+      val nfd = new FunDef(FreshIdentifier("u" + tname),
         (getTypeParameters(ft) ++ stTparams) map TypeParameterDef,
         params, retTypeWithState)
       (tname -> nfd)
@@ -351,6 +351,8 @@ class ClosureConverter(p: Program, ctx: LeonContext,
     // (d) Pattern matching on lambdas
     case finv @ FunctionInvocation(_, Seq(CaseClass(_, Seq(cl)), Lambda(_, MatchExpr(_, mcases)))) if isFunMatch(finv)(p) =>
       val ncases = mcases.map {
+        case MatchCase(pat @ WildcardPattern(None), None, body) =>
+          MatchCase(pat, None, body)
         case mc @ MatchCase(pat, Some(guard), body) =>
           val freevars = pat match {
             case TuplePattern(_, subpats) => subpats.collect {
@@ -383,10 +385,25 @@ class ClosureConverter(p: Program, ctx: LeonContext,
                   throw new IllegalStateException(s"Error: no Lambda in the program could match $l!")
               }
           }
-        case MatchCase(pat @ WildcardPattern(None), None, body) =>
-          MatchCase(pat, None, body)
       }
       mapExpr(MatchExpr(cl, ncases))
+
+    // a solitary `is` fun invocation
+    case finv @ FunctionInvocation(_, Seq(CaseClass(_, Seq(cl)), l @ Lambda(args, lbody))) if isIsFun(finv)(p) =>
+      try {
+        val tname = uninstantiatedFunctionTypeName(l.getType).get
+        val uninstType = functionType(tname)
+        val targs = getTypeArguments(l.getType, uninstType).get
+        val ncapvars = capturedVars(l).map { id => makeIdOfType(id, replaceClosureTypes(id.getType)).toVariable }
+        val (nclCons, updatesState) = mapExpr(cl)
+        if (updatesState)
+          throw new IllegalStateException(s"Receiver $cl of `is` function call updates state!")
+        ((st: Option[Expr]) =>
+          Equals(nclCons(st), CaseClass(CaseClassType(closureOfLambda(l), targs), ncapvars)), false)
+      } catch {
+        case _: NoSuchElementException =>
+          throw new IllegalStateException(s"Error: no Lambda in the program could match $l!")
+      }
 
     // (e) withState construct
     case withst @ FunctionInvocation(_, Seq(recvr, stArg)) if isWithStateFun(withst)(p) =>
@@ -473,7 +490,7 @@ class ClosureConverter(p: Program, ctx: LeonContext,
     case finv @ FunctionInvocation(tfd, argFun) if InstUtil.instCall(finv).isDefined =>
       ((st: Option[Expr]) => {
         argFun match {
-          case Seq() => finv
+          case Seq()     => finv
           case Seq(finv) => FunctionInvocation(tfd, Seq(mapExpr(finv)._1(st)))
         }
       }, false)
@@ -643,9 +660,7 @@ class ClosureConverter(p: Program, ctx: LeonContext,
               nbody
           //println(s"Body of ${fd.id.name} after conversion:  ${rawBody}")
           nfd.body = Some(simplifyLets(replace(paramMap, bodyWithState)))
-
         }
-
         // Important: specifications use memoized semantics but their state changes are ignored after their execution.
         // This guarantees their observational purity/transparency collect class invariants that need to be added.
         if (fd.hasPrecondition) {
@@ -656,21 +671,18 @@ class ClosureConverter(p: Program, ctx: LeonContext,
               Some(TupleSelect(npre, 1)) // ignore state updated by pre
             else Some(npre)
         }
-
         // create a new result variable
         val newres =
           if (fd.hasPostcondition) {
             val Lambda(Seq(ValDef(r)), _) = fd.postcondition.get
             FreshIdentifier(r.name, nfd.returnType) //bodyType.getOrElse(nfd.returnType))
           } else FreshIdentifier("r", nfd.returnType)
-
         // create an output state map
         val outState =
           if (funsRetStates(fd)) { //Old code: bodyUpdatesState == Some(true) || funsRetStates(fd)
             Some(TupleSelect(newres.toVariable, 2))
           } else
             stateParam
-
         // create a specification that relates input-output states
         val stateRel =
           if (funsRetStates(fd)) { // add specs on states
@@ -709,7 +721,6 @@ class ClosureConverter(p: Program, ctx: LeonContext,
               case e if isOutStateCall(e)(p) => outState.get
               case e                         => e
             }(replace(paramMap ++ Map(resid.toVariable -> resval), npostFun(outState)))
-
             val npost =
               if (postUpdatesState) {
                 TupleSelect(tpost, 1) // ignore state updated by post
@@ -719,8 +730,22 @@ class ClosureConverter(p: Program, ctx: LeonContext,
           } else {
             None
           }
-        nfd.postcondition = Some(Lambda(Seq(ValDef(newres)),
-          createAnd(stateRel.toList ++ valRel.toList ++ targetPost.toList)))
+        // try to add to the body of a let (if it exists) so that it is easy to extract the resource spec.
+        val addPosts = stateRel.toList ++ valRel.toList
+        val nfdPost = targetPost match {
+          case Some(post) =>
+            val (letsCons, letsBody) = letStarUnapply(post)
+            letsBody match {
+              case And(args) => letsCons(createAnd(addPosts ++ args))
+              case p =>
+                if (exists(InstUtil.instCall(_).isDefined)(p) && exists(_.isInstanceOf[And])(p)) {
+                  ctx.reporter.warning("Postcondition has resource template in conjunctions which cannot be separated!")
+                }
+                letsCons(createAnd(addPosts :+ p))
+            }
+          case _ => createAnd(addPosts)
+        }
+        nfd.postcondition = Some(Lambda(Seq(ValDef(newres)), nfdPost))
       case _ =>
     }
   }
@@ -761,7 +786,7 @@ class ClosureConverter(p: Program, ctx: LeonContext,
         MatchCase(pattern, None, rhs)
       }
       // create a default case to match other cases (esp. the unknown external function)
-      val defaultRhs = if (stateUpdatingTypes(tname)) {
+      val defaultRhs = if (escapingTypes(tname)) {
         val stateParam = evalfd.params.collectFirst { case vd if isStateParam(vd.id) => vd.id.toVariable }
         SubsetOf(stateParam.get, TupleSelect(postres.toVariable, 2))
       } else Util.tru

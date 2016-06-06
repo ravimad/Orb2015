@@ -25,6 +25,7 @@
 
 ### if time permits
 - [ ] more benchmarks? iterative DP, lazy pairing heaps, implicit queues, amortized bounds, cyk ?
+- [ ] Support @traceInduct for proving timebounds. For this we need to handle templates in body.
 
 ### done, needs fixing
 - [ ] allow compositional verification
