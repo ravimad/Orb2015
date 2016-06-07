@@ -119,19 +119,4 @@ object Knapscak {
     (x <= y && deps(y, items)) ==> deps(x, items)
   } holds
 
-  @ignore
-  def main(args: Array[String]) {
-    import scala.util.Random
-    // pick some random weights and values
-    val weightsnValues1 = (1 to 10).foldRight(Nil(): IList){
-      case (i, acc) => Cons((i, i), acc)
-    }
-    val reslist1 = knapSackSol(100, weightsnValues1) // without memoization this will take too long
-    println("Optimal solutions: "+reslist1.toString)
-    val weightsnValues2 = ((1 to 10) zip (10 to 1 by -1)).foldRight(Nil(): IList){
-      case ((i, j), acc) => Cons((i, j), acc)
-    }
-    val reslist2 = knapSackSol(100, weightsnValues2)
-    println("Optimal solutions for set 2: "+reslist2.toString)
-  }
 }
