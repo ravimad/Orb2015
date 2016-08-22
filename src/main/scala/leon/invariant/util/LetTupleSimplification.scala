@@ -442,9 +442,9 @@ object LetTupleSimplification {
 
   /*
     This function tries to simplify a part of the expression tree consisting of the same operation.
-    The operatoin needs to be associative and commutative for this simplification to work .
+    The operation needs to be associative and commutative for this simplification to work .
     Arguments:
-      op: An implementation of the opertaion to be simplified
+      op: An implementation of the operation to be simplified
       getLeaves: Gets all the operands from the AST (if the argument is not of
                   the form currently being simplified, this is required to return an empty set)
       identity: The identity element for the operation

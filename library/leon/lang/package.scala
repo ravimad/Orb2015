@@ -65,9 +65,7 @@ package object lang {
    * A construct for specifying ranking function.
    */
   @library
-  def decreases(rankFun: BigInt): Unit = {
-    // no-op (rankFun will be ignored in the actual execution)
-  }
+  def decreases(rankFun: BigInt): Unit = { } // no-op (rankFun will be ignored in the actual execution)
 
   implicit class SpecsDecorations[A](val underlying: A) {
     @ignore

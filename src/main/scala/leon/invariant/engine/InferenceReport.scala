@@ -18,6 +18,7 @@ import PredicateUtil._
 import ProgramUtil._
 import FunctionUtils._
 import purescala._
+import invariant.util.LetTupleSimplification
 
 class InferenceCondition(invs: Seq[Expr], funDef: FunDef)
     extends VC(BooleanLiteral(true), funDef, null) {
@@ -163,7 +164,7 @@ object InferenceReportUtil {
     // copy bodies and specs
     for ((from, to) <- initToOutput) {
       to.decreaseMeasure = from.decreaseMeasure.map(mapExpr)
-      to.body = from.body.map(mapExpr)
+      to.body = from.body.map(mapExpr _ andThen LetTupleSimplification.simplifyLetsAndLetsWithTuples) // the simplification gets rid of any redundancy introduced during the pretty printing.
       to.precondition = from.precondition.map(mapExpr)
       val icOpt = initICMap.get(from)
       if (icOpt.isDefined) {

@@ -68,7 +68,6 @@ class DefinitionTransformer(
     new DefinitionTransformer(inverse(idMap), inverse(fdMap), inverse(cdMap))
   }
 
-
   /** Override this to provide specific ClassDef transform
     *
     * It is guaranteed to only be called once per ClassDef accross the whole
@@ -135,11 +134,13 @@ class DefinitionTransformer(
             val newReturn = transform(fd.returnType)
             lazy val newParams = fd.params.map(vd => ValDef(transform(vd.id)))
             newReturn != fd.returnType || newParams != fd.params || (checkBody && {
-              val newBody = transform(fd.fullBody)((fd.params.map(_.id) zip newParams.map(_.id)).toMap)
-              newBody != fd.fullBody
+              val paramMap = (fd.params.map(_.id) zip newParams.map(_.id)).toMap
+              val newBody = transform(fd.fullBody)(paramMap)
+              val newDecMeasure = fd.decreaseMeasure.map(transform(_)(paramMap))
+              newBody != fd.fullBody || newDecMeasure != fd.decreaseMeasure
             })
 
-          case cd: ClassDef => 
+          case cd: ClassDef =>
             !(transformedCds contains cd) &&
             (cd.fieldsIds.exists(id => transform(id.getType) != id.getType) ||
               cd.invariant.exists(required))
@@ -225,7 +226,7 @@ class DefinitionTransformer(
         nfd.params.map(vd => vd.id -> vd.id)
 
       nfd.fullBody = transform(nfd.fullBody)(bindings)
+      nfd.decreaseMeasure = fd.decreaseMeasure.map(transform(_)(bindings))
     }
   }
 }
-

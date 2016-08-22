@@ -41,7 +41,9 @@ case class TerminationReport(ctx: LeonContext, program: Program, results : Seq[(
       spanning = 2
     )))
 
-    t.render
+    t.render +
+     // a message to indicate possible dependencies
+     "\nCaution: Verificaton and Termination are interdependent. Run both phases for soundness."
   }
 
   def evaluationString : String = {

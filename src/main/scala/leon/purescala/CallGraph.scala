@@ -26,7 +26,8 @@ class CallGraph(p: Program) {
   lazy val graph: DiGraph[FunDef, SimpleEdge[FunDef]] = {
     var g = DiGraph[FunDef, SimpleEdge[FunDef]]()
 
-    for (fd <- p.definedFunctions; c <- collect(collectCalls(fd))(fd.fullBody)) {
+    for (fd <- p.definedFunctions; c <- (collect(collectCalls(fd))(fd.fullBody) ++
+        fd.decreaseMeasure.toList.flatMap(collect(collectCalls(fd))))) {
       g += SimpleEdge(c._1, c._2)
     }
 
