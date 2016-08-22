@@ -18,15 +18,13 @@ import purescala.Constructors._
 import scala.annotation.tailrec
 
 /**
- * Checks terminations of functions using the ranking function specified in the `decreasesBy`
- * construct. This termination checker invokes the complex termination checker on functions
- * that do not have a user-defined `decreasesBy` construct.
- * For now, it works only on first-order functions.
+ * Checks terminations of functions using the ranking function specified in the `decreases`
+ * construct. For now, it works only on first-order functions.
  */
 
-class DecreasesByProcessor(val checker: TerminationChecker) extends Processor {
+class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
 
-  val name: String = "User Measure Processor"
+  val name: String = "Decreases Processor"
 
   private val solver: SolverFactory[Solver] = {
     val solfac = SolverFactory.getFromSettings(checker.context, checker.program)
