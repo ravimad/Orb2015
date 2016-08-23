@@ -22,7 +22,8 @@ object SortingnConcat {
     }
 
     def rank = this match {
-      case SCons(_, _, r) => r
+      case SCons(_, _, r) =>
+        if(r >= 0) r else BigInt(0)
       case SNil()         => BigInt(0)
     }
 
@@ -46,6 +47,7 @@ object SortingnConcat {
     }
 
     def size: BigInt = {
+      decreases(this.rank)
       require(this.valid)
       this match {
         case c@SCons(_, _, r) =>

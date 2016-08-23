@@ -26,7 +26,8 @@ object RealTimeQueue {
     }
 
     val rank = this match {
-      case SCons(_, _, r) => r
+      case SCons(_, _, r) =>
+        if(r >= 0) r else BigInt(0)
       case SNil()         => BigInt(0)
     }
 
@@ -38,18 +39,19 @@ object RealTimeQueue {
     def valid: Boolean = {
       this match {
         case c @ SCons(_, tfun, r) =>
-          r >= 0 &&
+          r >= 1 &&
           (tfun fmatch[Stream[T],List[T],Stream[T],Boolean] {
             case (f, rear, a) if tfun.is(() => rotate(f,rear,a)) =>
               r == f.rank + rear.rank + a.rank + 1 && f.valid && a.valid
             case (a, _, _) if tfun.is(() => id(a)) =>
-              r == 1 + a.rank
+              r == 1 + a.rank && a.valid
           })
         case _ => true
       }
     }
 
     def size: BigInt = {
+      decreases(this.rank)
       require(this.valid)
       this match {
         case c@SCons(_, _, r) =>
@@ -71,8 +73,8 @@ object RealTimeQueue {
    * A property that holds for stream where all elements have been memoized.
    */
   def isConcrete[T](l: Stream[T]): Boolean = {
+    decreases(2 * l.rank)
     require(l.valid)
-    //decreasesBy(l.rank)
     l match {
       case c @ SCons(_, _, _) =>
         cached(c.tail) && isConcrete(c.tail*)
@@ -98,8 +100,8 @@ object RealTimeQueue {
   @invisibleBody
   @invstate // says that the function doesn't change state
   def rotate[T](f: Stream[T], r: List[T], a: Stream[T]): Stream[T] = {
+    decreases(2 * f.rank + 1)
     require(r.rank == f.rank + 1 && f.valid && a.valid && isConcrete(f))
-    // decreasesBy(f.rank)
     (f, r) match {
       case (SNil(), Cons(y, _)) => //in this case 'y' is the only element in 'r'
         SCons[T](y, () => id(a), a.rank + 1) //  rank: a.rank + 1
@@ -116,6 +118,7 @@ object RealTimeQueue {
    * Returns the first element of the stream whose tail is not memoized.
    */
   def firstUneval[T](l: Stream[T]): Stream[T] = {
+    decreases(l.rank)
     require(l.valid)
     l match {
       case c @ SCons(_, _, _) =>

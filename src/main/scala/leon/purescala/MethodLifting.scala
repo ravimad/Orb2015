@@ -181,6 +181,7 @@ object MethodLifting extends TransformationPhase {
       mdToCls += newFd -> c
 
       newFd.fullBody = eSubst(newFd.fullBody)
+      newFd.decreaseMeasure = newFd.decreaseMeasure.map(eSubst)
 
       c.unregisterMethod(fd.id)
       root.registerMethod(newFd)
@@ -228,6 +229,7 @@ object MethodLifting extends TransformationPhase {
 
           val insTp: Expr => Expr = instantiateType(_, tparamsMap, paramsMap)
           nfd.fullBody = postMap(thisToReceiver)(insTp(nfd.fullBody))
+          nfd.decreaseMeasure = nfd.decreaseMeasure.map(e => postMap(thisToReceiver)(insTp(e)))
 
           // Add precondition if the method was defined in a subclass
           val pre = and(classPre(fd), nfd.precOrTrue)
@@ -354,11 +356,13 @@ object MethodLifting extends TransformationPhase {
 
     // 5) Replace method calls with function calls
     for (fd <- pgm.definedFunctions) {
-      fd.fullBody = postMap{
+      val transFun = postMap{
         case mi @ MethodInvocation(IsTyped(rec, ct: ClassType), cd, tfd, args) =>
           Some(FunctionInvocation(mdToFds(tfd.fd).typed(ct.tps ++ tfd.tps), rec +: args).setPos(mi))
         case _ => None
-      }(fd.fullBody)
+      } _
+      fd.fullBody = transFun(fd.fullBody)
+      fd.decreaseMeasure = fd.decreaseMeasure.map(transFun)
     }
 
     pgm

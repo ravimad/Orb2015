@@ -45,9 +45,8 @@ class TypeRectifier(p: Program, clFactory: ClosureFactory) {
     // go over the body of all funs and compute mappings for place-holder `tparams`
     relfuns.filter(_.hasBody).foreach { fd =>
       postTraversal {
-        case fi@FunctionInvocation(TypedFunDef(_, targs), _)
-          if targs.exists{ case tp: TypeParameter => isPlaceHolderTParam(tp) case _ => false } =>
-            funInvs +:= fi
+        case fi @ FunctionInvocation(TypedFunDef(_, targs), _) if targs.exists { case tp: TypeParameter => isPlaceHolderTParam(tp) case _ => false } =>
+          funInvs +:= fi
         case CaseClass(ct: CaseClassType, args) =>
           if (memoClasses(ct.classDef)) { //here, we can trust the types of arguments
             (args zip ct.fieldsTypes) foreach {
@@ -64,7 +63,7 @@ class TypeRectifier(p: Program, clFactory: ClosureFactory) {
     do {
       merged = false
       funInvs.foreach {
-        case fi@FunctionInvocation(TypedFunDef(fd, targs), args) =>
+        case fi @ FunctionInvocation(TypedFunDef(fd, targs), args) =>
           //println("Considering call: "+ fi+" tparams: "+fd.tparams.mkString(",")+" targs: "+targs)
           // if two fd.tparams are merged, merge the corresponding targs
           val tparams = fd.tparams.map(_.tp)
@@ -96,8 +95,8 @@ class TypeRectifier(p: Program, clFactory: ClosureFactory) {
               concRep.get
             else if (!candReps.isEmpty)
               candReps.head
-            else{
-              if(debug)
+            else {
+              if (debug)
                 println(s"Warning: Cannot find a non-placeholder in equivalence class $tpclass for fundef: \n $fd")
               tpclass.head
             }
@@ -153,28 +152,21 @@ class TypeRectifier(p: Program, clFactory: ClosureFactory) {
       case Operator(args, op) => op(args map rec)
       case t: Terminal        => t
     }
-    val nbody = rec(ifd.fullBody)
     val initGamma = nfd.params.map(vd => vd.id -> vd.getType).toMap
-    //println(s"Inferring types for ${ifd.id}: "+nbody)
-    val typedBody = TypeChecker.inferTypesOfLocals(nbody, initGamma)
-    /*if(ifd.id.name.contains("pushLeftWrapper")) {
-      //println(s"Inferring types for ${ifd.id} new fun: $nfd \n old body: ${ifd.fullBody} \n type correct body: $typedBody")
-      System.exit(0)
-    }*/
-    typedBody
+    // TODO: this simplify is problematic, its happening before instrumentation
+    val transform = rec _ andThen (TypeChecker.inferTypesOfLocals(_, initGamma)) andThen simplifyLetsAndLetsWithTuples
+    if (!ifd.fullBody.isInstanceOf[NoTree]) {
+      nfd.fullBody = transform(ifd.fullBody)
+    }
+    nfd.decreaseMeasure = ifd.decreaseMeasure.map(transform)
+    ifd.flags.foreach(nfd.addFlag(_))
   }
 
   def apply: Program = {
     copyProgram(p, (defs: Seq[Definition]) => defs.map {
       case fd: FunDef if fdMap.contains(fd) =>
-        val nfd = fdMap(fd)._1
-        if (!fd.fullBody.isInstanceOf[NoTree]) {
-          nfd.fullBody = simplifyLetsAndLetsWithTuples(transformFunBody(fd))
-        }
-        fd.flags.foreach(nfd.addFlag(_))
-        // TODO: what about decreases ?
-        //println("New fun: "+fd)
-        nfd
+        transformFunBody(fd)
+        fdMap(fd)._1
       case d => d
     })
   }

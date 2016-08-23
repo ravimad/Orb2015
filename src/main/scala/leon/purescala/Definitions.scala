@@ -490,6 +490,7 @@ object Definitions {
     def hasBody          = body.isDefined
     def hasPrecondition  = precondition.isDefined
     def hasPostcondition = postcondition.isDefined
+    def hasMeasure = decreaseMeasure.isDefined
 
     /* Nested definitions */
     def directlyNestedFuns = directlyNestedFunDefs(fullBody)

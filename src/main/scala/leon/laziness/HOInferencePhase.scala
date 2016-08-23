@@ -20,9 +20,9 @@ import transformations._
  */
 object HOInferencePhase extends SimpleLeonPhase[Program, MemVerificationReport] {
   val dumpInputProg = false
-  val dumpLiftProg = false
-  val dumpProgramWithClosures = false
-  val dumpTypeCorrectProg = false
+  val dumpLiftProg = true
+  val dumpProgramWithClosures = true
+  val dumpTypeCorrectProg = true
   val dumpProgWithPreAsserts = false
   val dumpProgWOInstSpecs = false
   val dumpInstrumentedProgram = false
@@ -40,8 +40,14 @@ object HOInferencePhase extends SimpleLeonPhase[Program, MemVerificationReport] 
   override val definedOptions: Set[LeonOptionDef[Any]] = Set(optRefEquality, optCheckTerm)
 
   def apply(ctx: LeonContext, prog: Program): MemVerificationReport = {
-    val (progWOInstSpecs, instProg) = genVerifiablePrograms(ctx, prog)
+    val (typedProg, progWOInstSpecs, instProg) = genVerifiablePrograms(ctx, prog)
     val checkCtx = contextForChecks(ctx)
+    // check termination of all functions if enabled
+    if (ctx.findOptionOrDefault(optCheckTerm)) {
+      ctx.reporter.info("Checking termination...")
+      val termReport = leon.termination.TerminationPhase(checkCtx, typedProg)
+      ctx.reporter.info("Termintion Results: " + termReport.summaryString)
+    }
     val stateVeri =
       if (!skipStateVerification)
         Some(checkSpecifications(progWOInstSpecs, checkCtx))
@@ -65,7 +71,7 @@ object HOInferencePhase extends SimpleLeonPhase[Program, MemVerificationReport] 
     new MemVerificationReport(stateVeri, resourceVeri)
   }
 
-  def genVerifiablePrograms(ctx: LeonContext, prog: Program): (Program, Program) = {
+  def genVerifiablePrograms(ctx: LeonContext, prog: Program): (Program, Program, Program) = {
     val inprog = HOInliningPhase(ctx, prog)
     if (dumpInputProg)
       println("Input prog: \n" + ScalaPrinter.apply(inprog))
@@ -89,13 +95,6 @@ object HOInferencePhase extends SimpleLeonPhase[Program, MemVerificationReport] 
     if (dumpTypeCorrectProg)
       prettyPrintProgramToFile(typeCorrectProg, ctx, "-typed")
 
-    // check termination of all functions
-    if (ctx.findOptionOrDefault(optCheckTerm)) {
-      ctx.reporter.info("Checking termination of the input program...")
-      val termReport = leon.termination.TerminationPhase(ctx, typeCorrectProg)
-      println("Termintion Results: " + termReport.summaryString)
-    }
-
     val progWithPre = (new ClosurePreAsserter(typeCorrectProg, closureFactory)).apply
     if (dumpProgWithPreAsserts)
       prettyPrintProgramToFile(progWithPre, ctx, "-withpre", uniqueIds = true)
@@ -114,7 +113,7 @@ object HOInferencePhase extends SimpleLeonPhase[Program, MemVerificationReport] 
       prettyPrintProgramToFile(runnProg, ctx, "-withrun", uniqueIds = true)
       prettyPrintProgramToFile(instProg, ctx, "-withinst", uniqueIds = true)
     }
-    (progWOInstSpecs, instProg)
+    (typeCorrectProg, progWOInstSpecs, instProg)
   }
 
   /**
