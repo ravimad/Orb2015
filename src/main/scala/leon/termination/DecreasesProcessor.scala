@@ -15,6 +15,7 @@ import purescala.ScalaPrinter
 import purescala.SelfPrettyPrinter
 import purescala.PrettyPrinter
 import purescala.Constructors._
+import purescala.Types._
 import scala.annotation.tailrec
 
 /**
@@ -35,14 +36,25 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
   }
 
   private val zero = InfiniteIntegerLiteral(0)
+  private val tru = BooleanLiteral(true)
 
-  //TODO: Check if all visible functions do not create lambdas. Otherwise always return None.
+  /**
+   * Check if all visible functions do not perform. Otherwise always return None.
+   * Note: creating lambdas without using them is harmless. They are just like
+   * data structure creation.
+   */
+  private val hasClosures = checker.functions.filterNot(_.annotations contains "library").exists { fd =>
+    Seq(fd.fullBody, fd.decreaseMeasure.getOrElse(tru)).exists(exists {
+      case app: Application => true
+      case _                => false
+    } _)
+  }
 
   sealed abstract class FailReason(funDef: FunDef)
   case class TryOther(funDef: FunDef) extends FailReason(funDef)
   case class FailStop(funDef: FunDef) extends FailReason(funDef)
 
-  def run(problem: Problem) = {
+  def run(problem: Problem): Option[Seq[Result]] = {
     //println("Problems given: " + problem + " checker functions: " + checker.functions.map(_.id))
     val fds = problem.funDefs
     /*fds.foreach{fd =>
@@ -52,6 +64,10 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
         println(s"Function ${fd} doesn't have a decrease measure")
     }*/
     if (fds.exists { _.decreaseMeasure.isDefined }) {
+      if (hasClosures) {
+        reporter.error("Cannot use `decreases` in the presence of first-class functions")
+        return None
+      }
       val fails: Seq[FailReason] = fds.flatMap { fd =>
         if (fd.decreaseMeasure.isEmpty) {
           reporter.warning(s"${fd.id} doesn't specify a measure while other functions in its SCC do: ${problem.funDefs.map(_.id).mkString(",")}")
@@ -74,41 +90,67 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
           }(measure)) {
             Seq(FailStop(fd))
           } else {
-            // (b) check if measure is well-founded
-            SimpleSolverAPI(solver).solveSAT(LessThan(measure, zero)) match {
+            // (b) check if the measure is well-founded
+            val nonneg = measure.getType match {
+              case TupleType(tps) =>
+                And((1 to tps.size).map(i => GreaterEquals(TupleSelect(measure, i), zero)))
+              case _ =>
+                GreaterEquals(measure, zero)
+            }
+            //LessThan(measure, zero)
+            SimpleSolverAPI(solver).solveSAT(Not(nonneg)) match {
               case (Some(false), _) =>
                 //(c) check if the measure decreases for recursive calls
                 val recCallsWithPath = CollectorWithPaths {
                   case fi @ FunctionInvocation(TypedFunDef(callee, _), args) if problem.funSet(callee) =>
                     fi
                 } traverse (fd)
-                val decAcrossCalls = recCallsWithPath forall {
-                  case (fi @ FunctionInvocation(TypedFunDef(callee, tps), args), path) =>
+                val decRes = recCallsWithPath.foldLeft(None: Option[FailReason]){
+                  case (acc @ Some(_), _) => acc
+                  case (acc, (fi @ FunctionInvocation(TypedFunDef(callee, tps), args), path)) =>
                     val tparamMap = (callee.typeArgs zip tps).toMap
                     val paramMap = (callee.params.map(_.id.toVariable) zip args).toMap[Expr, Expr]
                     val callMeasure = instantiateType(replace(paramMap, freshenLocals(callee.decreaseMeasure.get)),
                       tparamMap, Map())
-                    SimpleSolverAPI(solver).solveSAT(and(path.toPath, LessEquals(measure, callMeasure))) match {
-                      case (Some(false), _) => true
-                      case (Some(true), model) =>
-                        reporter.warning(s" ==> INVALID: measure doesn't decrease for call ${ScalaPrinter(fi)}")
-                        printCounterExample(model)
-                        false
-                      case _ =>
-                        reporter.warning(s"==> UNKNOWN: measure can be shown to decrease for call ${ScalaPrinter(fi)}")
-                        false
+                    if (callMeasure.getType != measure.getType) {
+                      reporter.warning(s" ==> INVALID: recursive call ${ScalaPrinter(fi)} uses a different measure type")
+                      Some(TryOther(fd))
+                    } else {
+                      // construct a lexicographic less than check
+                      val lessPred = measure.getType match {
+                        case TupleType(tps) =>
+                          val s = tps.size
+                          (1 until s).foldRight(GreaterThan(TupleSelect(measure, s), TupleSelect(callMeasure, s)): Expr){
+                            (i, acc) =>
+                              val m1 = TupleSelect(measure, i)
+                              val m2 = TupleSelect(callMeasure, i)
+                              Or(GreaterThan(m1, m2), And(Equals(m1, m2), acc))
+                          }
+                        case _ =>
+                          GreaterThan(measure, callMeasure)
+                      }
+                      //LessEquals(measure, callMeasure)
+                      SimpleSolverAPI(solver).solveSAT(and(path.toPath, Not(lessPred))) match {
+                        case (Some(false), _) => None
+                        case (Some(true), model) =>
+                          reporter.warning(s" ==> INVALID: measure doesn't decrease for call ${ScalaPrinter(fi)}")
+                          printCounterExample(model)
+                          Some(TryOther(fd))
+                        case _ =>
+                          reporter.warning(s"==> UNKNOWN: measure can be shown to decrease for call ${ScalaPrinter(fi)}")
+                          Some(TryOther(fd))
+                      }
                     }
                 }
-                if (decAcrossCalls) {
+                if(decRes.isEmpty)
                   reporter.info(s"==> VALID")
-                  Seq()
-                } else
-                  Seq(TryOther(fd))
+                decRes.toSeq
 
               case (Some(true), model) =>
                 reporter.warning(s" ==> INVALID: measure of ${fd.id.name} is not well-founded")
                 printCounterExample(model)
                 Seq(TryOther(fd))
+
               case _ =>
                 reporter.warning(s"==> UNKNOWN: measure of ${fd.id.name} cannot be proven to be well-founded")
                 Seq(TryOther(fd))
