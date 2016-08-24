@@ -15,7 +15,7 @@ object OddEvenComplex {
   }
 
   def isEven(n: BigInt): Boolean = {
-    decreases(rank(n))
+    decreases(rank(n)) // note: here we need a measure for both functions as they are self-recursive
     if(n < 0) isEven(-n)
     else if(n == 0) true
     else isOdd(n-1)
