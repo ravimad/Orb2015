@@ -131,14 +131,15 @@ object RealTimeQueue {
     //(a) the returned stream is valid
     res.valid &&
       // (b) if there are no lazy closures then the stream is concrete
-      (!res.isEmpty || isConcrete(l)) &&
+      (!res.isEmpty || isConcrete(l)))
+      /* the following property is valid, but cannot be proven to terminate, and also not necessary for proving resource bounds.
       // (c) after evaluating the firstUneval closure in 'l'
       // we can access the next unevaluated closure
       (res match {
         case c @ SCons(_, _, _) =>
           firstUneval(l) == firstUneval(c.tail)
         case _ => true
-      }))
+      })*/
 
   case class Queue[T](f: Stream[T], r: List[T], s: Stream[T]) {
     @inline

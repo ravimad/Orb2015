@@ -82,7 +82,7 @@ object SortingnConcat {
             else Cons(y, Cons(x, ys))
         }
     }
-  } ensuring (res => res.rank == l.rank && steps <= ? * l.rank + ?)
+  } ensuring (res => res.rank == l.rank) //&& steps <= ? * l.rank + ?)
 
   def sort(l: List[BigInt]): LList = {
     pullMin(l) match {
@@ -92,7 +92,7 @@ object SortingnConcat {
       case _ =>
         SNil()
     }
-  } ensuring (res => res.valid && res.rank == l.rank && steps <= ? * l.rank + ?)
+  } ensuring (res => res.valid && res.rank == l.rank )//&& steps <= ? * l.rank + ?)
 
   def concat(l1: List[BigInt], l2: LList) : LList = {
     require(l2.valid)
@@ -100,7 +100,7 @@ object SortingnConcat {
       case Cons(x, xs) => SCons(x, () => concat(xs, l2), l1.rank + l2.rank)
       case Nil() => l2
     }
-  } ensuring(res => res.valid && res.rank == l1.rank + l2.rank && steps <= ?)
+  } ensuring(res => res.valid && res.rank == l1.rank + l2.rank) // && steps <= ?)
 
   def kthMin(l: LList, k: BigInt): BigInt = {
     require(l.valid && k >= 1)
@@ -111,5 +111,5 @@ object SortingnConcat {
           kthMin(c.tail, k - 1) // here, k itself is a ranking function.
       case SNil() => BigInt(0)
     }
-  } ensuring (_ => steps <= ? * (k * l.rank) + ? * k + ?)
+  } //ensuring (_ => steps <= ? * (k * l.rank) + ? * k + ?)
 }
