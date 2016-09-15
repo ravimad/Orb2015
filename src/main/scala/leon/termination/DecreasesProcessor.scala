@@ -44,31 +44,25 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
    * Note: creating lambdas without using them is harmless. They are just like
    * data structure creation.
    */
-  private val hasClosures = checker.functions.filterNot(_.annotations contains "library").exists { fd =>
+  /*private val hasClosures = checker.functions.filterNot(_.annotations contains "library").exists { fd =>
     Seq(fd.fullBody, fd.decreaseMeasure.getOrElse(tru)).exists(exists {
       case app: Application => true
       case _                => false
     } _)
-  }
+  }*/
 
   sealed abstract class FailReason(funDef: FunDef)
   case class TryOther(funDef: FunDef) extends FailReason(funDef)
   case class FailStop(funDef: FunDef) extends FailReason(funDef)
 
   def run(problem: Problem): Option[Seq[Result]] = {
-    //println("Problems given: " + problem + " checker functions: " + checker.functions.map(_.id))
     val fds = problem.funDefs
-    /*fds.foreach{fd =>
-      if(fd.decreaseMeasure.isDefined)
-        println(s"Function ${fd} has a decrease measure: ${fd.decreaseMeasure.get}")
-      else
-        println(s"Function ${fd} doesn't have a decrease measure")
-    }*/
+    //println("Sccs: "+checker.program.callGraph.stronglyConnectedComponents.find(_.contains(fds.head)).get)
     if (fds.exists { _.decreaseMeasure.isDefined }) {
-      if (hasClosures) {
+      /*if (hasClosures) {
         reporter.error("Cannot use `decreases` in the presence of first-class functions")
         return None
-      }
+      }*/
       // Important:
       // Here, we filter only functions that have a measure. This is sound because of the following reasoning.
       // Functions in the scc that do not have a decrease measure either will be inlined if it is not self recursive.

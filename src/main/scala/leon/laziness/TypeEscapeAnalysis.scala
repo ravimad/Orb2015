@@ -18,7 +18,7 @@ import TypeUtil._
  * completely within scope.
  * TODO: we can extend this with more sophisticated control-flow analysis
  */
-class FunctionTypeAnalysis(p: Program, funsManager: FunctionsManager) {
+class TypeEscapeAnalysis(p: Program, funsManager: FunctionsManager) {
 
   def isPrivate(d: Definition) = {
     d match {
@@ -38,17 +38,17 @@ class FunctionTypeAnalysis(p: Program, funsManager: FunctionsManager) {
         fd.params.map(_.getType)
       case _ => Seq()
     }
-  }.groupBy { TypeUtil.canonTypeName(_) }.collect{ 
+  }.groupBy { TypeUtil.canonTypeName(_) }.collect{
     case (k, v) if !v.head.isInstanceOf[TypeParameter] => v.head }
   //println("Escaping types: "+escapingTypes)
   /**
    * A function type escapes if it is a **super type** of an escaping type
    */
-  def isEscapingType(ft: FunctionType) = escapingTypes.exists{ escType => 
+  def isEscapingType(ft: FunctionType) = escapingTypes.exists{ escType =>
     canBeSubtypeOf(escType, ft).isDefined
 //    if(x.isDefined) {
 //      println("Subtype instantiation: "+x.get)
 //      true
-//    } else false      
+//    } else false
    }
 }

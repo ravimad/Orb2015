@@ -75,7 +75,7 @@ class ClosureFactory(p: Program, funsManager: FunctionsManager) {
     (cvars, tparams)
   }
 
-  val typeAnalysis = new FunctionTypeAnalysis(p, funsManager)
+  val typeAnalysis = new TypeEscapeAnalysis(p, funsManager)
   /**
    * Create a mapping from types to the lambda that may produce a value of that type.
    * TODO: are we handling subtype/supertypes correctly in lambdas List ?
@@ -186,12 +186,11 @@ class ClosureFactory(p: Program, funsManager: FunctionsManager) {
   val memoClosures = {
     val cls = memoClasses.values.toSeq
     if(cls.isEmpty) { // no memoized functin in the program, however there can be  functions coming from outside
-      val defMem = createCaseClass("DMem", memoAbsClass, Seq())      
+      val defMem = createCaseClass("DMem", memoAbsClass, Seq())
       Seq(memoAbsClass, defMem) // we create a default case just to make things type check
     }
     else memoAbsClass +: cls
   }
-  
 
   def functionType(tn: String) = tpeToADT(tn)._1
   def absClosure(tn: String) = tpeToADT(tn)._2
