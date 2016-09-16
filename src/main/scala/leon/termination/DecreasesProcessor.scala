@@ -17,6 +17,7 @@ import purescala.SelfPrettyPrinter
 import purescala.PrettyPrinter
 import purescala.Constructors._
 import purescala.Types._
+import laziness.HOMemUtil._
 import scala.annotation.tailrec
 
 /**
@@ -39,6 +40,8 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
   private val zero = InfiniteIntegerLiteral(0)
   private val tru = BooleanLiteral(true)
 
+  val p = checker.program
+
   /**
    * Check that there are no visible functions using application.
    * Note: creating lambdas without using them is harmless. They are just like
@@ -55,9 +58,10 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
   case class TryOther(funDef: FunDef) extends FailReason(funDef)
   case class FailStop(funDef: FunDef) extends FailReason(funDef)
 
+   // TODO: Should we remove cached predicate before giving it to the solver ?
   def run(problem: Problem): Option[Seq[Result]] = {
     val fds = problem.funDefs
-    //println("Sccs: "+checker.program.callGraph.stronglyConnectedComponents.find(_.contains(fds.head)).get)
+    //println("Sccs: "+checker.program.callGraph.stronglyConnectedComponents.find(_.contains(fds.head)).get.map(_.id))
     if (fds.exists { _.decreaseMeasure.isDefined }) {
       /*if (hasClosures) {
         reporter.error("Cannot use `decreases` in the presence of first-class functions")
@@ -95,6 +99,7 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
           SimpleSolverAPI(solver).solveSAT(Not(nonneg)) match {
             case (Some(false), _) =>
               //(c) check if the measure decreases for recursive calls
+              // remove certain function invocations from the body
               val recCallsWithPath = collectRecursiveCallsWithPaths(fd.fullBody, problem.funSet, Path.empty)
               val decRes = recCallsWithPath.foldLeft(None: Option[FailReason]) {
                 case (acc @ Some(_), _) => acc
