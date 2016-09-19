@@ -61,7 +61,7 @@ class DecreasesProcessor(val checker: TerminationChecker) extends Processor {
    // TODO: Should we remove cached predicate before giving it to the solver ?
   def run(problem: Problem): Option[Seq[Result]] = {
     val fds = problem.funDefs
-    //println("Sccs: "+checker.program.callGraph.stronglyConnectedComponents.find(_.contains(fds.head)).get.map(_.id))
+    println("Sccs: "+checker.program.callGraph.stronglyConnectedComponents.find(_.contains(fds.head)).get.map(_.id))
     if (fds.exists { _.decreaseMeasure.isDefined }) {
       /*if (hasClosures) {
         reporter.error("Cannot use `decreases` in the presence of first-class functions")
