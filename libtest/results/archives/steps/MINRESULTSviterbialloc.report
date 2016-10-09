@@ -1,0 +1,20 @@
+Orb infereed formula: 7*i**3 + 134*i**2 + 206*i + 121
+
+Least value of coeff 0 is 7.
+The formula that goes through is 7*i**3 + 134*i**2 + 206*i + 7.
+Counter-example for 7*i**3 + 134*i**2 + 206*i + 6 is at the point 0
+
+Least value of coeff 1 is -747.
+The formula that goes through is 7*i**3 + 134*i**2 + -747*i + 121.
+Counter-example for 7*i**3 + 134*i**2 + -748*i + 121 is at the point 5
+
+Least value of coeff 2 is -53.
+The formula that goes through is 7*i**3 + -53*i**2 + 206*i + 121.
+Counter-example for 7*i**3 + -54*i**2 + 206*i + 121 is at the point 10
+
+Least value of coeff 3 is 2.
+The formula that goes through is 2*i**3 + 134*i**2 + 206*i + 121.
+Counter-example for 1*i**3 + 134*i**2 + 206*i + 121 is at the point 70
+
+Minimization report ends here
+

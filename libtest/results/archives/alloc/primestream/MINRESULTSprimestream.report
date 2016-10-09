@@ -1,0 +1,12 @@
+Orb infereed formula: 6*i + -11
+
+Least value of coeff 0 is -11.
+The formula that goes through is 6*i + -11.
+Counter-example for 6*i + -12 is at the point 2
+
+Least value of coeff 1 is 6.
+The formula that goes through is 6*i + -11.
+Counter-example for 5*i + -11 is at the point 2
+
+Minimization report ends here
+

@@ -1,0 +1,12 @@
+Orb infereed formula: 16*i*i + 28
+
+Least value of coeff 0 is -16.
+The formula that goes through is 16*i*i + -16.
+Counter-example for 16*i*i + -17 is at the point 2
+
+Least value of coeff 1 is 5.
+The formula that goes through is 5*i*i + 28.
+Counter-example for 4*i*i + 28 is at the point 2
+
+Minimization report ends here
+

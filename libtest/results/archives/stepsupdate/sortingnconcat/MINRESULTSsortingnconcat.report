@@ -1,0 +1,12 @@
+Orb infereed formula: 15*3*length + 37
+
+Least value of coeff 0 is 8.
+The formula that goes through is 15*3*length + 8.
+Counter-example for 15*3*length + 7 is at the point 10
+
+Least value of coeff 1 is 15.
+The formula that goes through is 15*3*length + 37.
+Counter-example for 14*3*length + 37 is at the point 10
+
+Minimization report ends here
+

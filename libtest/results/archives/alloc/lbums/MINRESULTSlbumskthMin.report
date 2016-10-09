@@ -1,0 +1,16 @@
+Orb infereed formula: 6*n + 6*3*log(n - 1) + 3
+
+Least value of coeff 0 is -86.
+The formula that goes through is 6*n + 6*3*log(n - 1) + -86.
+Counter-example for 6*n + 6*3*log(n - 1) + -87 is at the point 10
+
+Least value of coeff 1 is 3.
+The formula that goes through is 6*n + 3*3*log(n - 1) + 3.
+Counter-example for 6*n + 2*3*log(n - 1) + 3 is at the point 70
+
+Least value of coeff 2 is 6.
+The formula that goes through is 6*n + 6*3*log(n - 1) + 3.
+Counter-example for 5*n + 6*3*log(n - 1) + 3 is at the point 110
+
+Minimization report ends here
+

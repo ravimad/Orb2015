@@ -1,0 +1,12 @@
+Orb infereed formula: 73*i + 70
+
+Least value of coeff 0 is 43.
+The formula that goes through is 73*i + 43.
+Counter-example for 73*i + 42 is at the point 0
+
+Least value of coeff 1 is 47.
+The formula that goes through is 47*i + 70.
+Counter-example for 46*i + 70 is at the point 30
+
+Minimization report ends here
+

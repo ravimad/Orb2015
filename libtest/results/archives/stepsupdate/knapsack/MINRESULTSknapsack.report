@@ -1,0 +1,20 @@
+Orb infereed formula: 17*w*itemsize + 18*w + 17*itemsize + 18
+
+Least value of coeff 0 is 18.
+The formula that goes through is 17*w*itemsize + 18*w + 17*itemsize + 18.
+Counter-example for 17*w*itemsize + 18*w + 17*itemsize + 17 is at the point 0
+
+Least value of coeff 1 is -3.
+The formula that goes through is 17*w*itemsize + 18*w + -3*itemsize + 18.
+Counter-example for 17*w*itemsize + 18*w + -4*itemsize + 18 is at the point 20
+
+Least value of coeff 2 is 13.
+The formula that goes through is 17*w*itemsize + 13*w + 17*itemsize + 18.
+Counter-example for 17*w*itemsize + 12*w + 17*itemsize + 18 is at the point 10
+
+Least value of coeff 3 is 17.
+The formula that goes through is 17*w*itemsize + 18*w + 17*itemsize + 18.
+Counter-example for 16*w*itemsize + 18*w + 17*itemsize + 18 is at the point 30
+
+Minimization report ends here
+

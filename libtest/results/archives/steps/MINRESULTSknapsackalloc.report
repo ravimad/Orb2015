@@ -1,0 +1,20 @@
+Orb infereed formula: 2*w*itemsize + 2*w + 2*itemsize + 3
+
+Least value of coeff 0 is 2.
+The formula that goes through is 2*w*itemsize + 2*w + 2*itemsize + 2.
+Counter-example for 2*w*itemsize + 2*w + 2*itemsize + 1 is at the point 0
+
+Least value of coeff 1 is -21.
+The formula that goes through is 2*w*itemsize + 2*w + -21*itemsize + 3.
+Counter-example for 2*w*itemsize + 2*w + -22*itemsize + 3 is at the point 10
+
+Least value of coeff 2 is -21.
+The formula that goes through is 2*w*itemsize + -21*w + 2*itemsize + 3.
+Counter-example for 2*w*itemsize + -22*w + 2*itemsize + 3 is at the point 10
+
+Least value of coeff 3 is 0.
+The formula that goes through is 0*w*itemsize + 2*w + 2*itemsize + 3.
+Counter-example for -1*w*itemsize + 2*w + 2*itemsize + 3 is at the point 10
+
+Minimization report ends here
+

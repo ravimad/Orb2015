@@ -1,0 +1,12 @@
+Orb infereed formula: 8*n + 0
+
+Least value of coeff 0 is 0.
+The formula that goes through is 8*n + 0.
+Counter-example for 8*n + -1 is at the point 0
+
+Least value of coeff 1 is 8.
+The formula that goes through is 8*n + 0.
+Counter-example for 7*n + 0 is at the point 1000
+
+Minimization report ends here
+

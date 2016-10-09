@@ -1,0 +1,12 @@
+Orb infereed formula: 4*l.size + 0
+
+Least value of coeff 0 is -10.
+The formula that goes through is 4*l.size + -10.
+Counter-example for 4*l.size + -11 is at the point 10
+
+Least value of coeff 1 is 3.
+The formula that goes through is 3*l.size + 0.
+Counter-example for 2*l.size + 0 is at the point 10
+
+Minimization report ends here
+
