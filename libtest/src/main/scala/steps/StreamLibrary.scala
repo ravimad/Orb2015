@@ -10,37 +10,35 @@ import leon.higherorder._
 import leon.collection._
 import leon.invariant._
 import leon.runtimeDriver._
-import scala.collection.mutable.{ListBuffer => scalaList}
+import scala.collection.mutable.{ ListBuffer => scalaList }
 
 object StreamLibrary {
-  
-  abstract class LList2
-  
-  
-  case class SCons1(x327 : BigInt, tailFun2 : () => (LList2, BigInt)) extends LList2
-  
-  val zerostream: LList2 = SCons1(BigInt(0), ()=>(zerostream, 1))
 
-  
+  abstract class LList2
+
+  case class SCons1(x327: BigInt, tailFun2: () => (LList2, BigInt)) extends LList2
+
+  val zerostream: LList2 = SCons1(BigInt(0), () => (zerostream, 1))
+
   case class SNil1() extends LList2
-  
-  def natsFromntime(n : BigInt): (LList2, BigInt) = (SCons1(n, () => {
+
+  def natsFromntime(n: BigInt): (LList2, BigInt) = (SCons1(n, () => {
     val e49 = genNextNatFromtime(n)
     (e49._1, BigInt(1) + e49._2)
   }), BigInt(2))
-  
-  def genNextNatFromtime(n : BigInt): (LList2, BigInt) = {
+
+  def genNextNatFromtime(n: BigInt): (LList2, BigInt) = {
     val ir13 = BigInt(1) + n
     (SCons1(ir13, () => {
       val e164 = genNextNatFromtime(ir13)
       (e164._1, BigInt(1) + e164._2)
     }), BigInt(3))
   }
-  
+
   @extern
-  def constFun1time(n : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
-  def maptime(f : (BigInt) => (BigInt, BigInt), s : LList2): (LList2, BigInt) = {
+  def constFun1time(n: BigInt): (BigInt, BigInt) = ((0, 1): (BigInt, BigInt))
+
+  def maptime(f: (BigInt) => (BigInt, BigInt), s: LList2): (LList2, BigInt) = {
     val bd26 = s match {
       case SNil1() =>
         (SNil1(), BigInt(3))
@@ -53,14 +51,14 @@ object StreamLibrary {
     }
     (bd26._1, bd26._2)
   }
-  
-  def mapSusptime(f : (BigInt) => (BigInt, BigInt), s : LList2): (LList2, BigInt) = {
+
+  def mapSusptime(f: (BigInt) => (BigInt, BigInt), s: LList2): (LList2, BigInt) = {
     val e57 = LList.tailOrNiltime(s)
     val e59 = maptime(f, e57._1)
     (e59._1, (BigInt(2) + e59._2) + e57._2)
   }
-  
-  def appendListtime(l : List[BigInt], s : LList2): (LList2, BigInt) = {
+
+  def appendListtime(l: List[BigInt], s: LList2): (LList2, BigInt) = {
     val bd37 = l match {
       case Nil() =>
         (s, BigInt(2))
@@ -72,13 +70,13 @@ object StreamLibrary {
     }
     (bd37._1, bd37._2)
   }
-  
-  def repeattime(n : BigInt): (LList2, BigInt) = (SCons1(n, () => {
+
+  def repeattime(n: BigInt): (LList2, BigInt) = (SCons1(n, () => {
     val e53 = repeattime(n)
     (e53._1, BigInt(1) + e53._2)
   }), BigInt(2))
-  
-  def cycletime(l : List[BigInt]): (LList2, BigInt) = {
+
+  def cycletime(l: List[BigInt]): (LList2, BigInt) = {
     val bd40 = l match {
       case Nil() =>
         (SNil1(), BigInt(3))
@@ -91,11 +89,11 @@ object StreamLibrary {
     }
     (bd40._1, bd40._2)
   }
-  
+
   @extern
-  def constFun2time(n : BigInt): (Boolean, BigInt) = ((true, 1) : (Boolean, BigInt))
-  
-  def takeWhiletime(p : (BigInt) => (Boolean, BigInt), s : LList2): (LList2, BigInt) = {
+  def constFun2time(n: BigInt): (Boolean, BigInt) = ((true, 1): (Boolean, BigInt))
+
+  def takeWhiletime(p: (BigInt) => (Boolean, BigInt), s: LList2): (LList2, BigInt) = {
     val bd28 = s match {
       case SNil1() =>
         (SNil1(), BigInt(3))
@@ -114,17 +112,17 @@ object StreamLibrary {
     }
     (bd28._1, bd28._2)
   }
-  
-  def takeWhileSusptime(p : (BigInt) => (Boolean, BigInt), s : LList2): (LList2, BigInt) = {
+
+  def takeWhileSusptime(p: (BigInt) => (Boolean, BigInt), s: LList2): (LList2, BigInt) = {
     val e195 = LList.tailOrNiltime(s)
     val e197 = takeWhiletime(p, e195._1)
     (e197._1, (BigInt(2) + e197._2) + e195._2)
   }
-  
+
   @extern
-  def constFun3time(n : BigInt, m : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
-  def scantime(f : (BigInt, BigInt) => (BigInt, BigInt), z : BigInt, s : LList2): (LList2, BigInt) = {
+  def constFun3time(n: BigInt, m: BigInt): (BigInt, BigInt) = ((0, 1): (BigInt, BigInt))
+
+  def scantime(f: (BigInt, BigInt) => (BigInt, BigInt), z: BigInt, s: LList2): (LList2, BigInt) = {
     val bd17 = s match {
       case SNil1() =>
         (SNil1(), BigInt(3))
@@ -138,17 +136,17 @@ object StreamLibrary {
     }
     (bd17._1, bd17._2)
   }
-  
-  def scanSusptime(f : (BigInt, BigInt) => (BigInt, BigInt), z : BigInt, s : LList2): (LList2, BigInt) = {
+
+  def scanSusptime(f: (BigInt, BigInt) => (BigInt, BigInt), z: BigInt, s: LList2): (LList2, BigInt) = {
     val e141 = LList.tailOrNiltime(s)
     val e143 = scantime(f, z, e141._1)
     (e143._1, (BigInt(2) + e143._2) + e141._2)
   }
-  
+
   @extern
-  def constFun4time(n : BigInt): ((BigInt, BigInt), BigInt) = (((0, 0), 1) : ((BigInt, BigInt), BigInt))
-  
-  def unfoldtime(f : (BigInt) => ((BigInt, BigInt), BigInt), c : BigInt): (LList2, BigInt) = {
+  def constFun4time(n: BigInt): ((BigInt, BigInt), BigInt) = (((0, 0), 1): ((BigInt, BigInt), BigInt))
+
+  def unfoldtime(f: (BigInt) => ((BigInt, BigInt), BigInt), c: BigInt): (LList2, BigInt) = {
     val e221 = f(c)
     val ir2 = {
       val (x, d) = e221._1
@@ -161,8 +159,8 @@ object StreamLibrary {
       (e229._1, BigInt(1) + e229._2)
     }), BigInt(4) + ir2._2)
   }
-  
-  def isPrefixOftime(l : List[BigInt], s : LList2): (Boolean, BigInt) = {
+
+  def isPrefixOftime(l: List[BigInt], s: LList2): (Boolean, BigInt) = {
     val bd33 = s match {
       case SNil1() =>
         val mc23 = l match {
@@ -190,8 +188,8 @@ object StreamLibrary {
     }
     (bd33._1, bd33._2)
   }
-  
-  def zipWithtime(f : (BigInt, BigInt) => (BigInt, BigInt), a : LList2, b : LList2): (LList2, BigInt) = {
+
+  def zipWithtime(f: (BigInt, BigInt) => (BigInt, BigInt), a: LList2, b: LList2): (LList2, BigInt) = {
     val bd3 = a match {
       case SNil1() =>
         (SNil1(), BigInt(3))
@@ -210,38 +208,37 @@ object StreamLibrary {
     }
     (bd3._1, bd3._2)
   }
-  
-  def zipWithSusptime(f : (BigInt, BigInt) => (BigInt, BigInt), a : LList2, b : LList2): (LList2, BigInt) = {
+
+  def zipWithSusptime(f: (BigInt, BigInt) => (BigInt, BigInt), a: LList2, b: LList2): (LList2, BigInt) = {
     val e83 = LList.tailOrNiltime(a)
     val e86 = LList.tailOrNiltime(b)
     val e88 = zipWithtime(f, e83._1, e86._1)
     (e88._1, ((BigInt(3) + e88._2) + e86._2) + e83._2)
   }
-  
 
-//  def main(args: Array[String]): Unit = {
-//    import scala.util.Random
-//    val rand = Random
-//
-//    val points = (0 to 20 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-//    val size = points.map(x => BigInt(x)).to[scalaList]
-//    
-//    var ops = List[BigInt]()
-//    points.foreach {  i =>
-//      val input = {
-//        (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-//          Cons(BigInt(0), f)  
-//        }
-//      }
-//      ops :+= {
-//          leon.mem.clearMemo()
-//          isPrefixOftime(input, zerostream)._2
-//      }
-//    }
-//
-//    minresults(ops, scalaList(6, 25), List("constant", "l.size"), List(size), size, "isPrefixOftime")
-//  }  
-  
+  //  def main(args: Array[String]): Unit = {
+  //    import scala.util.Random
+  //    val rand = Random
+  //
+  //    val points = (0 to 20 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //    val size = points.map(x => BigInt(x)).to[scalaList]
+  //    
+  //    var ops = List[BigInt]()
+  //    points.foreach {  i =>
+  //      val input = {
+  //        (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+  //          Cons(BigInt(0), f)  
+  //        }
+  //      }
+  //      ops :+= {
+  //          leon.mem.clearMemo()
+  //          isPrefixOftime(input, zerostream)._2
+  //      }
+  //    }
+  //
+  //    minresults(ops, scalaList(6, 25), List("constant", "l.size"), List(size), size, "isPrefixOftime")
+  //  }  
+
   /**
    * Benchmark specific parameters
    */
@@ -261,40 +258,40 @@ object StreamLibrary {
   val filePrefix = "slib" // the abbrevation used in the paper
   val points = (0 to 20 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
   val concreteInstFun = (input: List[BigInt]) => isPrefixOftime(input, zerostream)._2
-  
+
   /**
    * Benchmark agnostic helper functions
    */
   def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
-    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
-  }          
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+    coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
   def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
     template(coeffs, terms)
-  } 
-  
-   def main(args: Array[String]): Unit = {    
+  }
+
+  def main(args: Array[String]): Unit = {
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
-    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
     points.foreach { i =>
-      println("Processing input: "+i)
-       val input = inputFromPoint(i)    
-       leon.mem.clearMemo()
-       ops += concreteOps(input)
-       // compute the static bound
-       val terms = getTermsForPoint(i)
-       orb += boundForInput(terms)  
-       terms.zipWithIndex.foreach { 
-        case (term, i) => termsforInp(i) += term 
-      }        
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
+      }
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>       
+      points.map { i =>
         computeTemplate(l, getTermsForPoint(i))
       }.to[scalaList]
     }
@@ -304,11 +301,11 @@ object StreamLibrary {
       dumpdirdata(size2, ops, minresults(i), filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
-  }  
+  }
 }
 
 object LList {
-  def tailtime(thiss : StreamLibrary.LList2): (StreamLibrary.LList2, BigInt) = {
+  def tailtime(thiss: StreamLibrary.LList2): (StreamLibrary.LList2, BigInt) = {
     val bd32 = {
       val StreamLibrary.SCons1(_, tailFun3) = thiss
       val e176 = tailFun3()
@@ -316,8 +313,8 @@ object LList {
     }
     (bd32._1, bd32._2)
   }
-  
-  def tailOrNiltime(thiss : StreamLibrary.LList2): (StreamLibrary.LList2, BigInt) = {
+
+  def tailOrNiltime(thiss: StreamLibrary.LList2): (StreamLibrary.LList2, BigInt) = {
     val bd21 = thiss match {
       case StreamLibrary.SNil1() =>
         (thiss, BigInt(2))
@@ -333,6 +330,5 @@ object LList {
     }
     (bd21._1, bd21._2)
   }
-
 
 }

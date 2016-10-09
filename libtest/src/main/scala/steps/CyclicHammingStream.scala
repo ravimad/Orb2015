@@ -265,9 +265,6 @@ object CyclicHammingStream {
       terms.zipWithIndex.foreach {
         case (term, i) => termsforInp(i) += term
       }
-      //inputfori += //{BigInt(i*i)}
-      // We should not clear the cache to measure this
-      // orb2 :+= {15*i - 18}     
       leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
