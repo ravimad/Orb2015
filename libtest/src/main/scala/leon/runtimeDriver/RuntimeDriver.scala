@@ -202,6 +202,20 @@ plot \\
 		opsout.close()
 	}
 
+	def dumpdirdata(testSize: scalaList[Int], ops: List[BigInt], orb: List[BigInt], function: String, orbOrInst: String, dirname: String) {
+
+	new java.io.File(s"results/${dirname}/").mkdirs
+
+	val orbstream = new FileWriter(s"results/${dirname}/${orbOrInst}${function}.data")
+    val orbout = new BufferedWriter(orbstream)
+		var j = 0
+		for(i <- testSize) {
+		  orbout.write(s"${i} ${orb(j)} ${ops(j)}\n")
+		  j = j + 1
+		}
+    orbout.close()
+	}
+
 	def prettyprint(model: scalaListBuffer[BigInt], id: List[String]): String = {
 		var j = 0
 		var s = ""
@@ -262,6 +276,28 @@ plot \\
 		require((model.size == points.size + 1) && (model.size == id.size))
 		var j = 0
 		val restream = new FileWriter(s"results/MINRESULTS${filename}.report")
+    	val resout = new BufferedWriter(restream)
+		resout.write(s"Orb infereed formula: ${prettyprint(model, id)}\n\n")
+		while(j != model.size) {
+			var (x, y) = minreport(ops, model, subsval, points, j)
+			var newmodel = x.clone()
+			newmodel(j) = newmodel(j) + 1
+			
+			print(s"x is $x")
+			print(s"newmodel is $newmodel")
+
+			resout.write(s"Least value of coeff ${j} is ${newmodel(j)}.\nThe formula that goes through is ${prettyprint(newmodel, id)}.\n")
+			resout.write(s"Counter-example for ${prettyprint(x, id)} is at the point ${y}\n\n")
+			j = j + 1
+		}
+		resout.write(s"Minimization report ends here\n\n")
+		resout.close()
+	}
+
+	def mindirresults(ops: List[BigInt], model: scalaListBuffer[BigInt], id: List[String], subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], filename: String, dirname: String) {
+		require((model.size == points.size + 1) && (model.size == id.size))
+		var j = 0
+		val restream = new FileWriter(s"results/${dirname}/MINRESULTS${filename}.report")
     	val resout = new BufferedWriter(restream)
 		resout.write(s"Orb infereed formula: ${prettyprint(model, id)}\n\n")
 		while(j != model.size) {

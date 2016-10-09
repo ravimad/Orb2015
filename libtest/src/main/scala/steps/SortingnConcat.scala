@@ -127,8 +127,8 @@ object SortingnConcat {
     }
 
     // 15 * (k * l..size) + 8 * k + 13 
-    dumpdata(size2, ops, orb, "sortingnconcat", "orb")
-    minresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat")
+    dumpdirdata(size2, ops, orb, "sortingnconcat", "orb", "SortingnConcat")
+    mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat", "SortingnConcat")
 
   }
   
