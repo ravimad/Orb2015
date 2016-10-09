@@ -1,4 +1,4 @@
-package LazyNumericalRep
+package stepsAnalysis
 
 import leon.collection._
 import leon._
