@@ -261,9 +261,9 @@ plot \\
 		while(!flag) {
 			val gt = goesThrough(ops, tempmodel, subsval)
 			if(gt._1) {
-				print(s"tempmodel before update $tempmodel\n")
+				// print(s"tempmodel before update $tempmodel\n")
 				tempmodel(here) = tempmodel(here) - 1 
-				print(s"tempmodel after update $tempmodel\n")
+				// print(s"tempmodel after update $tempmodel\n")
 			} else {
 				res = (tempmodel, points(gt._2))
 				flag = true
@@ -294,9 +294,12 @@ plot \\
 		resout.close()
 	}
 
-	def mindirresults(ops: List[BigInt], model: scalaListBuffer[BigInt], id: List[String], subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], filename: String, dirname: String) {
+	def mindirresults(ops: List[BigInt], model: scalaListBuffer[BigInt], id: List[String], 
+		subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], filename: String, 
+		dirname: String):scalaList[scalaListBuffer[BigInt]] =  {
 		require((model.size == points.size + 1) && (model.size == id.size))
 		var j = 0
+		var minlist = scalaList[scalaListBuffer[BigInt]]()
 		val restream = new FileWriter(s"results/${dirname}/MINRESULTS${filename}.report")
     	val resout = new BufferedWriter(restream)
 		resout.write(s"Orb infereed formula: ${prettyprint(model, id)}\n\n")
@@ -304,9 +307,12 @@ plot \\
 			var (x, y) = minreport(ops, model, subsval, points, j)
 			var newmodel = x.clone()
 			newmodel(j) = newmodel(j) + 1
-			
-			print(s"x is $x")
-			print(s"newmodel is $newmodel")
+			minlist :+= {newmodel}
+			print("new model\n")
+			print(s"$newmodel\n")
+			print(s"$minlist\n")
+			// print(s"x is $x")
+			// print(s"newmodel is $newmodel")
 
 			resout.write(s"Least value of coeff ${j} is ${newmodel(j)}.\nThe formula that goes through is ${prettyprint(newmodel, id)}.\n")
 			resout.write(s"Counter-example for ${prettyprint(x, id)} is at the point ${y}\n\n")
@@ -314,6 +320,7 @@ plot \\
 		}
 		resout.write(s"Minimization report ends here\n\n")
 		resout.close()
+		minlist
 	}
 
 }

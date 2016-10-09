@@ -110,7 +110,12 @@ object SortingnConcat {
     var ops = List[BigInt]()
     var orb = List[BigInt]()
     var valueofi = scalaList[BigInt]()
-    
+
+    val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat", "SortingnConcat")
+    var minresults = scala    List[List[BigInt]]()
+    minlist.foreach{_ => minresults :+= {List[BigInt]()}}
+  
+    var i = 0
     points.foreach { length =>
       val tinput = {
         (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
@@ -123,12 +128,24 @@ object SortingnConcat {
       }
       ops :+= {kthMintime(input, 3)._2}
       orb :+= {15*3*length + 37}
+      i = 0
+      minlist.foreach { l =>
+        minresults(i) :+= {l(1)*3*length + l(0)}
+        i = i + 1
+      }
       valueofi :+= {BigInt(3*length)}
     }
 
     // 15 * (k * l..size) + 8 * k + 13 
     dumpdirdata(size2, ops, orb, "sortingnconcat", "orb", "SortingnConcat")
-    mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat", "SortingnConcat")
+    i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, ops, minresults(i), "sortingnconcat", s"min$i", "SortingnConcat")
+      i = i + 1
+    }
+    // val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat", "SortingnConcat")
+    // print("yooooo")
+    // print(minlist)
 
   }
   
