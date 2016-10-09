@@ -173,7 +173,7 @@ object RealTimeQueue {
     dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
     var i = 0
     minlist.foreach { l =>
-      dumpdirdata(size2, ops, minresults(i), filePrefix, s"pareto$i", dirname)
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
   }
