@@ -1,4 +1,4 @@
-package LazyNumericalRep
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -131,24 +131,98 @@ object LazyNumericalRep {
     (Number2(ir13, e22._1), (BigInt(4) + e22._2) + ir._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
-
-    val points = (3 to 20)
-    val size = points.map(x => ((1 << x) - 1)).toList
-    val size2 = points.map(x => BigInt((1 << x) - 1)).to[scalaList]
-
-    var ops = List[BigInt]()
-    size.foreach { length =>
+//  def main(args: Array[String]): Unit = {
+//    import scala.util.Random
+//    val rand = Random
+//
+//    val points = (3 to 20)
+//    val size = points.map(x => ((1 << x) - 1)).toList
+//    val size2 = points.map(x => BigInt((1 << x) - 1)).to[scalaList]
+//
+//    var ops = List[BigInt]()
+//    size.foreach { length =>
+//      var lazynum = emptyNum
+//      for (i <- 0 until length) {
+//        lazynum = incAndPaytime(lazynum)._1
+//      }
+//      ops :+= {incAndPaytime(lazynum)._2}
+//    }
+//    minresults(ops, scalaList(106), List("constant"), List(), size2, "lrpincAndPay")
+//
+//  }
+  /**
+   * Benchmark specific parameters
+   */
+  abstract class RunContext {
+    def coeffs: scalaList[BigInt] //from lower to higher-order terms
+    def coeffNames = List("constant") // names of the coefficients
+    val termsSize = 0 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(i: BigInt): scalaList[BigInt] = scalaList()
+    def inputFromPoint(i: Int) = {
+      val len = ((1 << i) - 1)
       var lazynum = emptyNum
-      for (i <- 0 until length) {
+      for (i <- 0 until len) {
         lazynum = incAndPaytime(lazynum)._1
       }
-      ops :+= {incAndPaytime(lazynum)._2}
+      lazynum
     }
-    minresults(ops, scalaList(106), List("constant"), List(), size2, "lrpincAndPay")
+    val dirname = "steps/LazyNumericalRep"
+    val filePrefix: String
+    val points = (3 to 18)
+    val concreteInstFun: Number2 => BigInt
+  }
+  object MainContext extends RunContext {
+    override def coeffs = scalaList[BigInt](106)
+    override val filePrefix = "num" // the abbrevation used in the paper  
+    override val concreteInstFun = (lazynum: Number2) => incAndPaytime(lazynum)._2
+  }
+  val ctxts: scalaList[RunContext] = scalaList(MainContext)
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def benchmark(ctx: RunContext) {
+    import ctx._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
+      }
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
 
+  def main(args: Array[String]): Unit = {
+    ctxts.foreach(benchmark)
   }
 }
 

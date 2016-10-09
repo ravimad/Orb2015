@@ -1,4 +1,4 @@
-package StreamClient
+package stepsAnalysis
 
 import leon.collection._
 import leon._

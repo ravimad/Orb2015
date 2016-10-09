@@ -1,4 +1,4 @@
-package PackratParsing
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -254,33 +254,98 @@ object PackratParsing {
     return res
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+//  def main(args: Array[String]): Unit = {
+//    import scala.util.Random
+//    val rand = Random
+//
+//    val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000) 
+//    val size = points.map(x => BigInt(x)).to[scalaList]
+//    val size2 = points.map(x => (x)).toList
+//    
+//    var ops = List[BigInt]()
+//    var orb = List[BigInt]()
+//    var valueFori = List[BigInt]()
+//    points.foreach { i =>
+//      val input = i
+//      ops :+= {
+//          47*i + 70
+//          // 73*i + 43
+//          
+//          // leon.mem.clearMemo()
+//          // istring = Array.fill[Terminal](i + 1)(Digit())
+//          // parsetime(i)._2
+//      }
+//      orb :+= {73*i + 70}
+//      valueFori :+= {i}
+//    }
+//    // println(pAdd)
+//    dumpdata(size2, ops, orb, "packrat", "orb")
+//    // minresults(ops, scalaList(70, 73), List("constant", "i"), List(size), size, "packrat")
+//
+//  }
+  /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](70, 73) //from lower to higher-order terms
+  def coeffNames = List("constant", "i") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(i: BigInt) = {    
+    scalaList(i) 
+  }
+  def inputFromPoint(i: Int) = {
+    // fill the input string with digits
+    istring = Array.fill[Terminal](i + 1)(Digit())
+    i
+  }
+  val dirname = "steps/PackratParsing"
+  val filePrefix = "pp"
+  val points =  (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)  
+  val concreteInstFun = (input: BigInt) => parsetime(input)._2
+  
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  } 
 
-    val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000) 
+  def main(args: Array[String]): Unit = {    
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
-    
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    var valueFori = List[BigInt]()
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
     points.foreach { i =>
-      val input = i
-      ops :+= {
-          47*i + 70
-          // 73*i + 43
-          
-          // leon.mem.clearMemo()
-          // istring = Array.fill[Terminal](i + 1)(Digit())
-          // parsetime(i)._2
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
       }
-      orb :+= {73*i + 70}
-      valueFori :+= {i}
+       //inputfori += //{BigInt(i*i)}
+       // We should not clear the cache to measure this
+       // orb2 :+= {15*i - 18}     
+       leon.mem.clearMemo()
     }
-    // println(pAdd)
-    dumpdata(size2, ops, orb, "packrat", "orb")
-    // minresults(ops, scalaList(70, 73), List("constant", "i"), List(size), size, "packrat")
-
-  }  
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>        
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
 }

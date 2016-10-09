@@ -1,0 +1,12 @@
+Statically inferred formula: 129*n + 4
+
+Reducing coeff 0 starting from 4
+Lowest possible value for the coefficient is 4
+Pareto optimal template: 129*n + 4
+First counter-example for 129*n + 3 is at the point 0
+
+Reducing coeff 1 starting from 129
+Lowest possible value for the coefficient is 124
+Pareto optimal template: 124*n + 4
+First counter-example for 123*n + 4 is at the point 8000
+

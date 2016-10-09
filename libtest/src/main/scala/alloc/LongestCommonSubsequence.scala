@@ -1,4 +1,4 @@
-package LongestCommonSubsequencealloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -109,33 +109,97 @@ object LongestCommonSubsequence {
     (e94._1, e94._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (1 to 30 by 1) ++ (100 to 1000 by 50)  //++ (1000 to 10000 by 50)
-    val size = points.map(x => (x)).toList
+  //   val points = (1 to 30 by 1) ++ (100 to 1000 by 50)  //++ (1000 to 10000 by 50)
+  //   val size = points.map(x => (x)).toList
     
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    var valuefori2 = scalaList[BigInt]()
-    var valuefori = scalaList[BigInt]()
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   var valuefori2 = scalaList[BigInt]()
+  //   var valuefori = scalaList[BigInt]()
     
-    points.foreach { i =>
-      val input = i
-      xstring = Array.fill(i + 1){0}
-      ystring = Array.fill(i + 1){0}
-      ops :+= {
-          leon.mem.clearMemo()
-          lcsSolsalloc(i, i)._2
-      }
-      orb :+= {2*i*i + 2*i + 2*i + 3}
-      valuefori :+= {BigInt(i)}
-      valuefori2 :+= {BigInt(i*i)}
+  //   points.foreach { i =>
+  //     val input = i
+  //     xstring = Array.fill(i + 1){0}
+  //     ystring = Array.fill(i + 1){0}
+  //     ops :+= {
+  //         leon.mem.clearMemo()
+  //         lcsSolsalloc(i, i)._2
+  //     }
+  //     orb :+= {2*i*i + 2*i + 2*i + 3}
+  //     valuefori :+= {BigInt(i)}
+  //     valuefori2 :+= {BigInt(i*i)}
       
-    }
-    // minresults(ops, scalaList(3, 2, 2, 2), List("constant", "i", "i", "i**2"), List(valuefori, valuefori, valuefori2), size, "lcs")
-    dumpdata(size, ops, orb, "lcs", "orb")
-  }  
+  //   }
+  //   // minresults(ops, scalaList(3, 2, 2, 2), List("constant", "i", "i", "i**2"), List(valuefori, valuefori, valuefori2), size, "lcs")
+  //   dumpdata(size, ops, orb, "lcs", "orb")
+  // }  
   
+    /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](3, 2, 2, 2) //from lower to higher-order terms
+  def coeffNames = List("constant", "i", "i", "i**2") // names of the coefficients
+  val termsSize = 3 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(n: BigInt) = scalaList(n, n, n * n) // terms depend only on n here, but may in general depend on many variables
+  def inputFromPoint(i: Int) = {
+    // initialize the mutable array
+    xstring = Array.fill(i + 1){0}
+    ystring = Array.fill(i + 1){0}
+    i
+  }
+  val dirname = "alloc/LCS"
+  val filePrefix = "lcs"
+  val points = (0 to 30 by 1) ++ (100 to 1000 by 50)  
+  val concreteInstFun = (n: BigInt) => lcsSolsalloc(n, n)._2
+  
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  } 
+
+  def main(args: Array[String]): Unit = {    
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
+      }
+       //inputfori += //{BigInt(i*i)}
+       // We should not clear the cache to measure this
+       // orb2 :+= {15*i - 18}     
+       leon.mem.clearMemo()
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>        
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }  
 }

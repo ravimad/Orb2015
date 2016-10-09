@@ -1,4 +1,4 @@
-package CyclicFibStream
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -10,22 +10,19 @@ import leon.higherorder._
 import leon.collection._
 import leon.invariant._
 import leon.runtimeDriver._
-import scala.collection.mutable.{ListBuffer => scalaList}
+import scala.collection.mutable.{ ListBuffer => scalaList }
 
-object ZipWithAndFibStream {
-  
-  case class SCons2(x320 : BigInt, tailFun1 : ValOrSusp2)
-  
-  
+object CyclicFibStream {
+
+  case class SCons2(x320: BigInt, tailFun1: ValOrSusp2)
+
   abstract class ValOrSusp2
-  
-  
-  case class Val1(x319 : SCons2) extends ValOrSusp2
-  
-  
-  case class Susp1(fun1 : () => (SCons2, BigInt)) extends ValOrSusp2
-  
-  def zipWithFuntime(f : (BigInt, BigInt) => (BigInt, BigInt), xs : SCons2, ys : SCons2): (SCons2, BigInt) = {
+
+  case class Val1(x319: SCons2) extends ValOrSusp2
+
+  case class Susp1(fun1: () => (SCons2, BigInt)) extends ValOrSusp2
+
+  def zipWithFuntime(f: (BigInt, BigInt) => (BigInt, BigInt), xs: SCons2, ys: SCons2): (SCons2, BigInt) = {
     val bd7 = {
       val (SCons2(x, _), SCons2(y, _)) = (xs, ys)
       val e65 = f(x, y)
@@ -36,8 +33,8 @@ object ZipWithAndFibStream {
     }
     (bd7._1, bd7._2)
   }
-  
-  def zipWithSusptime(f : (BigInt, BigInt) => (BigInt, BigInt), xs : SCons2, ys : SCons2): (SCons2, BigInt) = {
+
+  def zipWithSusptime(f: (BigInt, BigInt) => (BigInt, BigInt), xs: SCons2, ys: SCons2): (SCons2, BigInt) = {
     val e21 = xs.tailFun1 match {
       case s80 @ Susp1(f128) =>
         val lr1 = lookup[SCons2](List(4900, s80))
@@ -67,9 +64,9 @@ object ZipWithAndFibStream {
     val e26 = zipWithFuntime(f, e21._1, e25._1)
     (e26._1, ((BigInt(1) + e26._2) + e25._2) + e21._2)
   }
-  
+
   @invisibleBody
-  def nexttime(f : SCons2, s : SCons2, t : SCons2): (SCons2, BigInt) = {
+  def nexttime(f: SCons2, s: SCons2, t: SCons2): (SCons2, BigInt) = {
     val bd = t.tailFun1 match {
       case s79 @ Susp1(f127) =>
         val lr = lookup[SCons2](List(4900, s79))
@@ -85,9 +82,9 @@ object ZipWithAndFibStream {
     }
     (bd._1, bd._2)
   }
-  
+
   @invisibleBody
-  def nthElemAfterThirdtime(n : BigInt, f : SCons2, s : SCons2, t : SCons2): (BigInt, BigInt) = {
+  def nthElemAfterThirdtime(n: BigInt, f: SCons2, s: SCons2, t: SCons2): (BigInt, BigInt) = {
     val e83 = nexttime(f, s, t)
     val bd10 = {
       val fourth1 @ SCons2(x, _) = e83._1
@@ -101,12 +98,12 @@ object ZipWithAndFibStream {
     }
     (bd10._1, bd10._2)
   }
-  
-  val fibstreamtime : (SCons2, BigInt) = (SCons2(BigInt(0), Val1(SCons2(BigInt(1), Susp1(() => {
+
+  val fibstreamtime: (SCons2, BigInt) = (SCons2(BigInt(0), Val1(SCons2(BigInt(1), Susp1(() => {
     val e75 = genNexttime
     (e75._1, BigInt(1) + e75._2)
   })))), BigInt(5))
-  
+
   @invisibleBody
   def genNexttime(): (SCons2, BigInt) = {
     val e121 = fibstreamtime._1
@@ -123,11 +120,11 @@ object ZipWithAndFibStream {
       case Val1(x325) =>
         (x325, BigInt(5))
     }
-    val e38 = zipWithFuntime((x$3 : BigInt, x$4 : BigInt) => (x$3 + x$4, BigInt(1)), e121, e37._1)
+    val e38 = zipWithFuntime((x$3: BigInt, x$4: BigInt) => (x$3 + x$4, BigInt(1)), e121, e37._1)
     (e38._1, (BigInt(3) + e38._2) + e37._2)
   }
-  
-  def nthFibtime(n : BigInt): (BigInt, BigInt) = {
+
+  def nthFibtime(n: BigInt): (BigInt, BigInt) = {
     val e111 = fibstreamtime._1
     val r161 = if (n == BigInt(0)) {
       (e111.x320, BigInt(3))
@@ -175,38 +172,96 @@ object ZipWithAndFibStream {
     (r161._1, BigInt(1) + r161._2)
   }
 
+  //  def main(args: Array[String]): Unit = {
+  //    import scala.util.Random
+  //    val rand = Random
+  //
+  //    val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //    val size = points.map(x => BigInt(x)).to[scalaList]
+  //    
+  //    var ops = scalaList[BigInt]()
+  //    points.foreach { i =>
+  //      val input = i
+  //      ops :+= {
+  //          leon.mem.clearMemo()
+  //          nthFibtime(input)._2
+  //      }
+  //    }
+  //
+  //    minresults(ops, scalaList(4, 45), List("constant", "n"), List(size), size, "fibcyc")
+  //  }  
+  /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](4, 45) //from lower to higher-order terms
+  def coeffNames = List("constant", "n") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(i: BigInt) = scalaList(i)
+  def inputFromPoint(i: Int) = i 
+  val dirname = "steps/CyclicFibonacciStream"
+  val filePrefix = "fibs" // the abbrevation used in the paper
+  val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  val concreteInstFun = (input: BigInt) => nthFibtime(input)._2
+
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  }
+
   def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
-
-    val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
     val size = points.map(x => BigInt(x)).to[scalaList]
-    
-    var ops = List[BigInt]()
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
     points.foreach { i =>
-      val input = i
-      ops :+= {
-          leon.mem.clearMemo()
-          nthFibtime(input)._2
+      println("Processing input: " + i)
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
+      //inputfori += //{BigInt(i*i)}
+      // We should not clear the cache to measure this
+      // orb2 :+= {15*i - 18}     
+      leon.mem.clearMemo()
     }
-
-    minresults(ops, scalaList(4, 45), List("constant", "n"), List(size), size, "fibcyc")
-  }  
-  
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
 }
 
 object SCons {
-  
+
 }
 
 object ValOrSusp {
-  def fvaltime(thiss : ZipWithAndFibStream.ValOrSusp2): (ZipWithAndFibStream.SCons2, BigInt) = {
+  def fvaltime(thiss: CyclicFibStream.ValOrSusp2): (CyclicFibStream.SCons2, BigInt) = {
     val bd2 = thiss match {
-      case ZipWithAndFibStream.Susp1(f130) =>
+      case CyclicFibStream.Susp1(f130) =>
         val e28 = f130()
         (e28._1, BigInt(4) + e28._2)
-      case ZipWithAndFibStream.Val1(x324) =>
+      case CyclicFibStream.Val1(x324) =>
         (x324, BigInt(4))
     }
     (bd2._1, bd2._2)

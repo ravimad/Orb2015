@@ -1,0 +1,22 @@
+Statically inferred formula: 2*T*K + 2*K + 4*T + 5
+
+Reducing coeff 0 starting from 5
+Lowest possible value for the coefficient is 5
+Pareto optimal template: 2*T*K + 2*K + 4*T + 5
+First counter-example for 2*T*K + 2*K + 4*T + 4 is at the point 0
+
+Reducing coeff 1 starting from 4
+Lowest possible value for the coefficient is 4
+Pareto optimal template: 2*T*K + 2*K + 4*T + 5
+First counter-example for 2*T*K + 2*K + 3*T + 5 is at the point 5
+
+Reducing coeff 2 starting from 2
+Lowest possible value for the coefficient is 2
+Pareto optimal template: 2*T*K + 2*K + 4*T + 5
+First counter-example for 2*T*K + 1*K + 4*T + 5 is at the point 5
+
+Reducing coeff 3 starting from 2
+Lowest possible value for the coefficient is 2
+Pareto optimal template: 2*T*K + 2*K + 4*T + 5
+First counter-example for 1*T*K + 2*K + 4*T + 5 is at the point 5
+

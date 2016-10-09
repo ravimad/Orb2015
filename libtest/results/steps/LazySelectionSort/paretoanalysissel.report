@@ -1,0 +1,12 @@
+Statically inferred formula: 15*3*length + 37
+
+Reducing coeff 0 starting from 37
+Lowest possible value for the coefficient is -35
+Pareto optimal template: 15*3*length + -35
+First counter-example for 15*3*length + -36 is at the point 10
+
+Reducing coeff 1 starting from 15
+Lowest possible value for the coefficient is 15
+Pareto optimal template: 15*3*length + 37
+First counter-example for 14*3*length + 37 is at the point 30
+

@@ -1,4 +1,4 @@
-package HammingMemoizedalloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -10,7 +10,7 @@ import leon.invariant._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-object Hamming {
+object HammingMemoized {
   abstract class IList
   
   case class Cons(x : BigInt, tail : IList) extends IList
@@ -174,24 +174,88 @@ object Hamming {
     (bd2._1, bd2._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (0 to 20 by 1) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-    val size = points.map(x => (x)).toList
+  //   val points = (0 to 20 by 1) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //   val size = points.map(x => (x)).toList
     
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    points.foreach { i =>
-      val input = i
-      ops :+= {
-          leon.mem.clearMemo()
-          hammingListalloc(input)._2
-      }
-      orb :+= {3*i + 4}
-    }
-    dumpdata(size, ops, orb, "hammem", "orb")
-    // minresults(ops, scalaList(4, 3), List("constant", "n"), List(size), size, "hammem")
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   points.foreach { i =>
+  //     val input = i
+  //     ops :+= {
+  //         leon.mem.clearMemo()
+  //         hammingListalloc(input)._2
+  //     }
+  //     orb :+= {3*i + 4}
+  //   }
+  //   dumpdata(size, ops, orb, "hammem", "orb")
+  //   // minresults(ops, scalaList(4, 3), List("constant", "n"), List(size), size, "hammem")
+  // } 
+
+  /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](4, 3) //from lower to higher-order terms
+  def coeffNames = List("constant", "n") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(i: BigInt) = {    
+    scalaList(i) 
+  }
+  def inputFromPoint(i: Int) = {
+    i
+  }
+  val dirname = "alloc/HammingMemoized"
+  val filePrefix = "hm"
+  val points =  (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)  
+  val concreteInstFun = (input: BigInt) => hammingListalloc(input)._2
+  
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
   } 
+
+  def main(args: Array[String]): Unit = {    
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
+      }
+       //inputfori += //{BigInt(i*i)}
+       // We should not clear the cache to measure this
+       // orb2 :+= {15*i - 18}     
+       leon.mem.clearMemo()
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>        
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
 }

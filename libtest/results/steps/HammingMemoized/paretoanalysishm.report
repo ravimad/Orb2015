@@ -1,0 +1,12 @@
+Statically inferred formula: 71*n + 70
+
+Reducing coeff 0 starting from 70
+Lowest possible value for the coefficient is 12
+Pareto optimal template: 71*n + 12
+First counter-example for 71*n + 11 is at the point 0
+
+Reducing coeff 1 starting from 71
+Lowest possible value for the coefficient is 62
+Pareto optimal template: 62*n + 70
+First counter-example for 61*n + 70 is at the point 20
+

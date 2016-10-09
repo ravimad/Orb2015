@@ -1,4 +1,4 @@
-package Deque
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -13,7 +13,7 @@ import leon.invariant._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-object RealTimeDeque {
+object Deque {
   
   abstract class Stream2[T]
   
@@ -337,75 +337,149 @@ object RealTimeDeque {
     reversetime(constime(x, reversetime(q)._1)._1)._1
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
-
-    var points = (1 to 20).toList
-    points = points.map(x => 3*(1 << (x - 1)))
-    // var size = points.map(x => BigInt(x)).to[scalaList]
-    var size = points.map(x => (x)).toList
-
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    // points.foreach { length =>
-    //   var rtd = emptytime[BigInt]()._1
-    //   for (i <- 0 until length) {
-    //     rtd = snoc[BigInt](BigInt(0), rtd)
-    //   }
-    //   ops :+= {reversetime[BigInt](rtd)._2}
-    // }
-    // minresults(ops, scalaList(7), List("constant"), List(), size, "dequereverse")
-
-    // size = points.map(x => BigInt(x + 1)).to[scalaList]
-
-    ops = List[BigInt]()
-    orb = List[BigInt]()
-    points.foreach { length =>
+//  def main(args: Array[String]): Unit = {
+//    import scala.util.Random
+//    val rand = Random
+//
+//    var points = (1 to 20).toList
+//    points = points.map(x => 3*(1 << (x - 1)))
+//    // var size = points.map(x => BigInt(x)).to[scalaList]
+//    var size = points.map(x => (x)).toList
+//
+//    var ops = scalaList[BigInt]()
+//    var orb = scalaList[BigInt]()
+//    // points.foreach { length =>
+//    //   var rtd = emptytime[BigInt]()._1
+//    //   for (i <- 0 until length) {
+//    //     rtd = snoc[BigInt](BigInt(0), rtd)
+//    //   }
+//    //   ops :+= {reversetime[BigInt](rtd)._2}
+//    // }
+//    // minresults(ops, scalaList(7), List("constant"), List(), size, "dequereverse")
+//
+//    // size = points.map(x => BigInt(x + 1)).to[scalaList]
+//
+//    ops = scalaList[BigInt]()
+//    orb = scalaList[BigInt]()
+//    points.foreach { length =>
+//      var rtd = emptytime[BigInt]()._1
+//      for (i <- 0 until (length + 1)) {
+//        rtd = constime[BigInt](BigInt(0), rtd)._1
+//      }
+//      ops += {constime[BigInt](BigInt(0), rtd)._2}
+//      orb += {580}
+//    }
+//    dumpdata(size, ops, orb, "dequecons", "orb")
+//    // minresults(ops, scalaList(580), List("constant"), List(), size, "dequecons")
+//
+//    // ops = List[BigInt]()
+//    // orb = List[BigInt]()
+//    // points.foreach { length =>
+//    //   var rtd = emptytime[BigInt]()._1
+//    //   for (i <- 0 until (length + 1)) {
+//    //     rtd = constime[BigInt](BigInt(0), rtd)._1
+//    //   }
+//    //   rtd = reversetime[BigInt](rtd)._1
+//    //   ops :+= {tailtime[BigInt](rtd)._2}
+//    //   orb :+= {970}
+//    // }
+//    // dumpdata(size, ops, orb, "dequetail", "orb")
+//    // minresults(ops, scalaList(970), List("constant"), List(), size, "dequetail")
+//
+//  }
+  
+    /**
+   * Benchmark specific parameters
+   */
+  abstract class RunContext {
+    def coeffs: scalaList[BigInt] //from lower to higher-order terms
+    def coeffNames = List("constant") // names of the coefficients
+    val termsSize = 0 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(i: BigInt): scalaList[BigInt] = scalaList()
+    def inputFromPoint(i: Int) = {
+      val len = 3*(1 << (i - 1))
       var rtd = emptytime[BigInt]()._1
-      for (i <- 0 until (length + 1)) {
+      for (i <- 0 until (len + 1)) {
         rtd = constime[BigInt](BigInt(0), rtd)._1
       }
-      ops :+= {constime[BigInt](BigInt(0), rtd)._2}
-      orb :+= {580}
+      rtd
     }
-    dumpdata(size, ops, orb, "dequecons", "orb")
-    // minresults(ops, scalaList(580), List("constant"), List(), size, "dequecons")
+    val dirname = "steps/Deque"
+    val filePrefix: String
+    val points = (1 to 15)
+    val concreteInstFun: Queue2[BigInt] => BigInt
 
-    // ops = List[BigInt]()
-    // orb = List[BigInt]()
-    // points.foreach { length =>
-    //   var rtd = emptytime[BigInt]()._1
-    //   for (i <- 0 until (length + 1)) {
-    //     rtd = constime[BigInt](BigInt(0), rtd)._1
-    //   }
-    //   rtd = reversetime[BigInt](rtd)._1
-    //   ops :+= {tailtime[BigInt](rtd)._2}
-    //   orb :+= {970}
-    // }
-    // dumpdata(size, ops, orb, "dequetail", "orb")
-    // minresults(ops, scalaList(970), List("constant"), List(), size, "dequetail")
+  }
+  object ConsContext extends RunContext {
+    override def coeffs = scalaList[BigInt](580)
+    override val filePrefix = "deq-cons" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtq: Queue2[BigInt]) => constime[BigInt](BigInt(0), rtq)._2
+  }
 
+  object TailContext extends RunContext {
+    override def coeffs = scalaList[BigInt](970)
+    override val filePrefix = "deq-tail" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtd: Queue2[BigInt]) => tailtime[BigInt](rtd)._2
+  }
+  val ctxts: scalaList[RunContext] = scalaList(ConsContext, TailContext)
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def benchmark(ctx: RunContext) {
+    import ctx._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
+      }
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
+  
+  def main(args: Array[String]): Unit = {
+    ctxts.foreach(benchmark)
   }
 }
 
-object Stream {
-  
-}
-
 object ValOrFun {
-  def gettime[T](thiss : RealTimeDeque.ValOrFun2[T]): (RealTimeDeque.Stream2[T], BigInt) = {
+  def gettime[T](thiss : Deque.ValOrFun2[T]): (Deque.Stream2[T], BigInt) = {
     val bd4 = thiss match {
-      case RealTimeDeque.Fun3(f278) =>
+      case Deque.Fun3(f278) =>
         val e105 = f278()
         (e105._1, BigInt(4) + e105._2)
-      case RealTimeDeque.Val1(x502) =>
+      case Deque.Val1(x502) =>
         (x502, BigInt(4))
     }
     (bd4._1, bd4._2)
   }
-}
-
-object Queue {
-  
 }

@@ -1,4 +1,4 @@
-package PrimeStreamalloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -12,7 +12,7 @@ import leon.collection._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-object RunningExample {
+object PrimeStream {
   abstract class Bool
   
   case class True() extends Bool
@@ -113,37 +113,98 @@ object RunningExample {
     (bd9._1, bd9._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    val points = (2 to 100 by 5) ++ (100 to 300 by 100) ++ (1000 to 10000 by 1000)
+  // def main(args: Array[String]): Unit = {
+  //   val points = (2 to 100 by 5) ++ (100 to 300 by 100) ++ (1000 to 10000 by 1000)
+  //   val size = points.map(x => BigInt(x)).to[scalaList]
+  //   val size2 = points.map(x => (x)).toList
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   var valuefori = scalaList[BigInt]()
+  //   var valuefori2 = scalaList[BigInt]()
+  //   var valuefori3 = scalaList[BigInt]()
+    
+  //   points.foreach { i =>
+  //     val input = i
+  //     ops :+= {
+  //         leon.mem.clearMemo()
+  //         primesUntilNalloc(i)._2
+  //      }
+  //      orb :+= {6*i - 11}
+  //      valuefori :+= {BigInt(i)}
+  //   }
+
+  //   dumpdata(size2, ops, orb, "primestream", "orb")
+  //   minresults(ops, scalaList(-11, 6), List("constant", "i"), List(valuefori), size, "primestream")
+  // } 
+
+    /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](-11, 6) //from lower to higher-order terms
+  def coeffNames = List("constant", "n*n") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(n: BigInt) = scalaList(n * n) // terms depend only on n here, but may in general depend on many variables
+  def inputFromPoint(i: Int) = i
+  val dirname = "alloc/PrimeStream"
+  val filePrefix = "prims"
+  val points = (2 to 100 by 5) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  val concreteInstFun = (n: BigInt) => primesUntilNalloc(n)._2
+  
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  } 
+
+  def main(args: Array[String]): Unit = {    
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    var valuefori = scalaList[BigInt]()
-    var valuefori2 = scalaList[BigInt]()
-    var valuefori3 = scalaList[BigInt]()
-    
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
     points.foreach { i =>
-      val input = i
-      ops :+= {
-          leon.mem.clearMemo()
-          primesUntilNalloc(i)._2
-       }
-       orb :+= {6*i - 11}
-       valuefori :+= {BigInt(i)}
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
+      }
+       //inputfori += //{BigInt(i*i)}
+       // We should not clear the cache to measure this
+       // orb2 :+= {15*i - 18}     
+       leon.mem.clearMemo()
     }
-
-    dumpdata(size2, ops, orb, "primestream", "orb")
-    minresults(ops, scalaList(-11, 6), List("constant", "i"), List(valuefori), size, "primestream")
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>        
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
   } 
-}
 
-object Stream {
-  def tailalloc(thiss : RunningExample.Stream2): (RunningExample.Stream2, BigInt) = {
+  object Stream {
+  def tailalloc(thiss : PrimeStream.Stream2): (PrimeStream.Stream2, BigInt) = {
     val e84 = {
-      assert(thiss.isInstanceOf[RunningExample.SCons1], "Cast error")
-      thiss.asInstanceOf[RunningExample.SCons1]
+      assert(thiss.isInstanceOf[PrimeStream.SCons1], "Cast error")
+      thiss.asInstanceOf[PrimeStream.SCons1]
     }.tailFun1()
     (e84._1, e84._2)
   }
 }
+}
+

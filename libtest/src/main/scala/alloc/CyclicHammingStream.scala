@@ -1,4 +1,4 @@
-package CyclicHammingStreamalloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -12,7 +12,7 @@ import leon.invariant._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-object MergeAndHammingNumbers {
+object CyclicHammingStream {
   
   case class SCons2(x321 : BigInt, tailFun1 : ValOrSusp2)
   
@@ -206,42 +206,95 @@ object MergeAndHammingNumbers {
     (r164._1, r164._2)
   }
   
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-    val size = points.map(x => (x)).toList
+  //   val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //   val size = points.map(x => (x)).toList
     
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   points.foreach { i =>
+  //     val input = i
+  //     ops :+= {
+  //         leon.mem.clearMemo()
+  //         nthHammingNumberalloc(input)._2
+  //     }
+  //     orb :+= {16*i}
+  //   }
+  //   // minresults(ops, scalaList(0, 16), List("constant", "n"), List(size), size, "hamcyc")
+  //   dumpdata(size, ops, orb, "hamcyc", "orb")
+  // } 
+
+  /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](0, 16) //from lower to higher-order terms
+  def coeffNames = List("constant", "n") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(i: BigInt) = scalaList(i)
+  def inputFromPoint(i: Int) = i
+  val dirname = "alloc/CyclicHammingStream"
+  val filePrefix = "hams" // the abbrevation used in the paper
+  val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  val concreteInstFun = (input: BigInt) => nthHammingNumberalloc(input)._2
+
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  }
+
+  def main(args: Array[String]): Unit = {
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
     points.foreach { i =>
-      val input = i
-      ops :+= {
-          leon.mem.clearMemo()
-          nthHammingNumberalloc(input)._2
+      println("Processing input: " + i)
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
-      orb :+= {16*i}
+      leon.mem.clearMemo()
     }
-    // minresults(ops, scalaList(0, 16), List("constant", "n"), List(size), size, "hamcyc")
-    dumpdata(size, ops, orb, "hamcyc", "orb")
-  } 
-
-}
-
-object SCons {
-  
-}
-
-object ValOrSusp {
-  def fvalalloc(thiss : MergeAndHammingNumbers.ValOrSusp2): (MergeAndHammingNumbers.SCons2, BigInt) = {
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb,  filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
+   object ValOrSusp {
+  def fvalalloc(thiss : CyclicHammingStream.ValOrSusp2): (CyclicHammingStream.SCons2, BigInt) = {
     val bd11 = thiss match {
-      case MergeAndHammingNumbers.Susp1(f130) =>
+      case CyclicHammingStream.Susp1(f130) =>
         val e96 = f130()
         (e96._1, e96._2)
-      case MergeAndHammingNumbers.Val1(x324) =>
+      case CyclicHammingStream.Val1(x324) =>
         (x324, BigInt(0))
     }
     (bd11._1, bd11._2)
   }
 }
+
+}
+

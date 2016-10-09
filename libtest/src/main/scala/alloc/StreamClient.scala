@@ -1,4 +1,4 @@
-package StreamClientalloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -9,7 +9,7 @@ import leon.mem._
 import leon.higherorder._
 import leon.collection._
 import leon.invariant._
-import StreamLibraryalloc._
+import StreamLibrary._
 
 object StreamClient {
   def mapClientalloc(n : BigInt): (BigInt, BigInt) = {

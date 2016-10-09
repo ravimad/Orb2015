@@ -1,4 +1,4 @@
-package StreamLibraryalloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -217,35 +217,97 @@ object StreamLibrary {
     (e46._1, (e46._2 + e44._2) + e41._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //   val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //   val size = points.map(x => BigInt(x)).to[scalaList]
+  //   val size2 = points.map(x => (x)).toList
+
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   points.foreach {  i =>
+  //     val input = {
+  //       (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+  //         Cons(i - n + 1, f)  
+  //       }
+  //     }
+  //     ops :+= {
+  //         leon.mem.clearMemo()
+  //         isPrefixOfalloc(input, natstream)._2
+  //     }
+  //     orb :+= {4*i}
+  //   }
+  //   dumpdata(size2, ops, orb, "isPrefixOf", "orb")
+  //   minresults(ops, scalaList(0, 4), List("constant", "l.size"), List(size), size, "isPrefixOf")
+  // }  
+
+    /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](0, 4) //from lower to higher-order terms
+  def coeffNames = List("constant", "l.size") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(i: BigInt) = scalaList(i)
+  def inputFromPoint(i: Int) = {
+    val input = {
+      (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+        Cons(BigInt(0), f)
+      }
+    }
+    input
+  }
+  val dirname = "alloc/StreamLibrary"
+  val filePrefix = "slib" // the abbrevation used in the paper
+  val points = (0 to 20 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  val concreteInstFun = (input: List[BigInt]) => isPrefixOfalloc(input, natstream)._2
+
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  }
+
+  def main(args: Array[String]): Unit = {
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
-
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    points.foreach {  i =>
-      val input = {
-        (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-          Cons(i - n + 1, f)  
-        }
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
-      ops :+= {
-          leon.mem.clearMemo()
-          isPrefixOfalloc(input, natstream)._2
-      }
-      orb :+= {4*i}
     }
-    dumpdata(size2, ops, orb, "isPrefixOf", "orb")
-    minresults(ops, scalaList(0, 4), List("constant", "l.size"), List(size), size, "isPrefixOf")
-  }  
-  
-}
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
 
-object LList {
+  object LList {
   def tailalloc(thiss : StreamLibrary.LList2): (StreamLibrary.LList2, BigInt) = {
     val bd18 = {
       val StreamLibrary.SCons1(_, tailFun3) = thiss
@@ -272,3 +334,7 @@ object LList {
     (bd2._1, bd2._2)
   }
 }
+
+  
+}
+

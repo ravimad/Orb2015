@@ -1,4 +1,4 @@
-package RealTimeQueuealloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -103,44 +103,125 @@ object RealTimeQueue {
     (bd5._1, bd5._2)
   }
   
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (0 to 18)
-    val size = points.map(x => BigInt((1 << x) - 1)).to[scalaList]
-    val size2 = points.map(x => ((1 << x) - 1)).toList
+  //   val points = (0 to 18)
+  //   val size = points.map(x => BigInt((1 << x) - 1)).to[scalaList]
+  //   val size2 = points.map(x => ((1 << x) - 1)).toList
 
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    size2.foreach { length =>
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   size2.foreach { length =>
+  //     var rtq = empty[BigInt]
+  //     for (i <- 0 until length) {
+  //       rtq = enqueuealloc[BigInt](BigInt(0), rtq)._1
+  //     }
+  //     ops :+= {7}
+  //     orb :+= {8}
+  //   }
+  //   dumpdata(size2, ops, orb, "rtqenqueue", "orb")
+  //   minresults(ops, scalaList(8), List("constant"), List(), size, "rtqenqueue")
+
+  //   // ops = List[() => BigInt]()
+  //   // orb = List[() => BigInt]()
+  //   // size2.foreach { length =>
+  //   //   var rtq = empty[BigInt]
+  //   //   for (i <- 0 until length) {
+  //   //     rtq = enqueuealloc[BigInt](BigInt(0), rtq)._1
+  //   //   }
+  //   //   ops :+= {6}
+  //   //   orb :+= {7}
+  //   // }
+  //   // dumpdata(size2, ops, orb, "rtqdequeue", "orb")
+  //   // minresults(ops, scalaList(7), List("constant"), List(), size, "rtqdequeue")
+  // }
+
+
+  /**
+   * Benchmark specific parameters
+   */
+  abstract class RunContext {
+    def coeffs: scalaList[BigInt] //from lower to higher-order terms
+    def coeffNames = List("constant") // names of the coefficients
+    val termsSize = 0 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(i: BigInt): scalaList[BigInt] = scalaList()
+    def inputFromPoint(i: Int) = {
+      val len = ((1 << i) - 1)
       var rtq = empty[BigInt]
-      for (i <- 0 until length) {
+      for (i <- 0 until len) {
         rtq = enqueuealloc[BigInt](BigInt(0), rtq)._1
       }
-      ops :+= {7}
-      orb :+= {8}
+      rtq
     }
-    dumpdata(size2, ops, orb, "rtqenqueue", "orb")
-    minresults(ops, scalaList(8), List("constant"), List(), size, "rtqenqueue")
+    val dirname = "alloc/RealallocQueue"
+    val filePrefix: String
+    val points = (5 to 15)
+    val concreteInstFun: Queue2[BigInt] => BigInt
 
-    // ops = List[() => BigInt]()
-    // orb = List[() => BigInt]()
-    // size2.foreach { length =>
-    //   var rtq = empty[BigInt]
-    //   for (i <- 0 until length) {
-    //     rtq = enqueuealloc[BigInt](BigInt(0), rtq)._1
-    //   }
-    //   ops :+= {6}
-    //   orb :+= {7}
-    // }
-    // dumpdata(size2, ops, orb, "rtqdequeue", "orb")
-    // minresults(ops, scalaList(7), List("constant"), List(), size, "rtqdequeue")
   }
-  
-}
+  object EnqueueContext extends RunContext {
+    override def coeffs = scalaList[BigInt](8)
+    override val filePrefix = "rtq-enqueue" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtq: Queue2[BigInt]) => enqueuealloc[BigInt](BigInt(0), rtq)._2
+  }
 
-object Stream {
+  object DequeueContext extends RunContext {
+    override def coeffs = scalaList[BigInt](7)
+    override val filePrefix = "rtq-dequeue" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtq: Queue2[BigInt]) => dequeuealloc[BigInt](rtq)._2
+  }
+  val ctxts: scalaList[RunContext] = scalaList(EnqueueContext, DequeueContext)
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def benchmark(ctx: RunContext) {
+    import ctx._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
+      }
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
+
+  def main(args: Array[String]): Unit = {
+    ctxts.foreach(benchmark)
+  }
+
+  object Stream {
   def tailalloc[T](thiss : RealTimeQueue.Stream2[T]): (RealTimeQueue.Stream2[T], BigInt) = {
     val bd6 = {
       val RealTimeQueue.SCons1(x, tailFun33) = thiss
@@ -150,6 +231,10 @@ object Stream {
     (bd6._1, bd6._2)
   }
 }
+  
+}
+
+
 
 object Queue {
   

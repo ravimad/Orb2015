@@ -1,4 +1,4 @@
-package Knapsackalloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -90,42 +90,108 @@ object Knapscak {
     (e44._1, e44._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (10 to 200 by 10) ++ (100 to 1000 by 50) //++ (1000 to 10000 by 1000)
-    val size = points.map(x => (x)).toList
-    val size2 = points.map(x => BigInt(x)).to[scalaList]
+  //   val points = (10 to 200 by 10) ++ (100 to 1000 by 50) //++ (1000 to 10000 by 1000)
+  //   val size = points.map(x => (x)).toList
+  //   val size2 = points.map(x => BigInt(x)).to[scalaList]
 
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    var valueForw = scalaList[BigInt]()
-    var valueForitemsize = scalaList[BigInt]()
-    var valueForwitemsize = scalaList[BigInt]()
-    points.foreach { i =>
-      val w = i
-      val itemsize = w/4
-      val input = {
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   var valueForw = scalaList[BigInt]()
+  //   var valueForitemsize = scalaList[BigInt]()
+  //   var valueForwitemsize = scalaList[BigInt]()
+  //   points.foreach { i =>
+  //     val w = i
+  //     val itemsize = w/4
+  //     val input = {
+  //       (1 to itemsize).foldLeft[IList](Nil()) { (f, n) =>
+  //         Cons((rand.nextInt(itemsize), rand.nextInt(itemsize)), f)  
+  //       }
+  //     }
+  //     ops :+= {
+  //         leon.mem.clearMemo()
+  //         knapSackSolalloc(w, input)._2
+  //     }
+  //     orb :+= {2*w + 3}
+  //     valueForw :+= {BigInt(w)}
+  //     valueForitemsize :+= {BigInt(itemsize)}
+  //     valueForwitemsize :+= {BigInt(w*itemsize)}
+  //   }
+  //   dumpdata(size, ops, orb, "knapsack", "orb")
+  //   // minresults(ops, scalaList(3, 2), List("constant", "w"), List(valueForw), size2, "knapsack")
+  //}  
+
+import scala.util.Random
+  val rand = Random
+    /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](3, 2) //from lower to higher-order terms
+  def coeffNames = List("constant", "w") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(w: BigInt) = {  
+    scalaList(w) 
+  }
+  def inputFromPoint(i: Int) = {
+    val itemsize = i / 4
+    // initialize the mutable array
+    val input = {
         (1 to itemsize).foldLeft[IList](Nil()) { (f, n) =>
           Cons((rand.nextInt(itemsize), rand.nextInt(itemsize)), f)  
         }
       }
-      ops :+= {
-          leon.mem.clearMemo()
-          knapSackSolalloc(w, input)._2
-      }
-      orb :+= {2*w + 3}
-      valueForw :+= {BigInt(w)}
-      valueForitemsize :+= {BigInt(itemsize)}
-      valueForwitemsize :+= {BigInt(w*itemsize)}
-    }
-    dumpdata(size, ops, orb, "knapsack", "orb")
-    // minresults(ops, scalaList(3, 2), List("constant", "w"), List(valueForw), size2, "knapsack")
-  }  
+    input
+  }
+  val dirname = "alloc/Knapsack"
+  val filePrefix = "ks"
+  val points = (0 to 200 by 10) ++ (100 to 1000 by 50)  
+  val concreteInstFun = (w: BigInt, input: IList) => knapSackSolalloc(w, input)._2
   
-}
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  } 
 
-object IList {
+  def main(args: Array[String]): Unit = {    
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(i, input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
+      }  
+       leon.mem.clearMemo()
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>        
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  } 
   
 }

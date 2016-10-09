@@ -1,4 +1,4 @@
-package RealTimeQueue
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -10,27 +10,25 @@ import leon.collection._
 import leon.instrumentation._
 import leon.invariant._
 import leon.runtimeDriver._
-import scala.collection.mutable.{ListBuffer => scalaList}
+import scala.collection.mutable.{ ListBuffer => scalaList }
 
 object RealTimeQueue {
-  
+
   abstract class Stream2[T]
-  
-  
-  case class SCons1[T](x345 : T, tailFun19 : () => (Stream2[T], BigInt)) extends Stream2[T]
+
+  case class SCons1[T](x345: T, tailFun19: () => (Stream2[T], BigInt)) extends Stream2[T]
   def empty[T] = {
     val a: Stream2[T] = SNil1()
     Queue2(a, Nil(), a)
   }
-  
+
   case class SNil1[T]() extends Stream2[T]
-  
-  
-  case class Queue2[T](f161 : Stream2[T], r196 : List[T], s106 : Stream2[T])
-  
+
+  case class Queue2[T](f161: Stream2[T], r196: List[T], s106: Stream2[T])
+
   @invisibleBody
   @invstate
-  def rotatetime[T](f : Stream2[T], r : List[T], a : Stream2[T]): (Stream2[T], BigInt) = {
+  def rotatetime[T](f: Stream2[T], r: List[T], a: Stream2[T]): (Stream2[T], BigInt) = {
     val bd4 = (f, r) match {
       case (SNil1(), Cons(y, _)) =>
         (SCons1[T](y, () => (a, BigInt(0))), BigInt(10))
@@ -50,8 +48,8 @@ object RealTimeQueue {
     }
     (bd4._1, bd4._2)
   }
-  
-  def enqueuetime[T](x : T, q : Queue2[T]): (Queue2[T], BigInt) = {
+
+  def enqueuetime[T](x: T, q: Queue2[T]): (Queue2[T], BigInt) = {
     val ir11 = q.f161
     val ir13 = Cons[T](x, q.r196)
     val r214 = q.s106 match {
@@ -71,8 +69,8 @@ object RealTimeQueue {
     }
     (r214._1, BigInt(3) + r214._2)
   }
-  
-  def dequeuetime[T](q : Queue2[T]): (Queue2[T], BigInt) = {
+
+  def dequeuetime[T](q: Queue2[T]): (Queue2[T], BigInt) = {
     val bd6 = {
       val c23 @ SCons1(x, _) = q.f161
       val lr2 = lookup[Stream2[T]](List(5273, c23))
@@ -102,49 +100,96 @@ object RealTimeQueue {
     (bd6._1, bd6._2)
   }
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
-
-    val nooftimes = (1 to 10000000)
-    val points = (5 to 15)
-    val length = points.map(x => ((1 << x) - 1))   
-
-    var ops = List[BigInt]()
-    // size2.foreach { length =>
-    //   var rtq = empty[BigInt]
-    //   for (i <- 0 until length) {
-    //     rtq = enqueuetime[BigInt](BigInt(0), rtq)._1
-    //   }
-    //   ops :+= {enqueuetime[BigInt](BigInt(0), rtq)._2}
-    // }
-    // minresults(ops, scalaList(37), List("constant"), List(), size, "rtqenqueue")
-
-    // ops = List[() => BigInt]()
-    // orb = List[() => BigInt]()
-    length.foreach { i =>
+  /**
+   * Benchmark specific parameters
+   */
+  abstract class RunContext {
+    def coeffs: scalaList[BigInt] //from lower to higher-order terms
+    def coeffNames = List("constant") // names of the coefficients
+    val termsSize = 0 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(i: BigInt): scalaList[BigInt] = scalaList()
+    def inputFromPoint(i: Int) = {
+      val len = ((1 << i) - 1)
       var rtq = empty[BigInt]
-      for (i <- 0 until i) {
+      for (i <- 0 until len) {
         rtq = enqueuetime[BigInt](BigInt(0), rtq)._1
       }
-      println(s"$i rtqenqueue ${dequeuetime[BigInt](rtq)._2}")
+      rtq
     }
-    
-  }
-  
-}
+    val dirname = "steps/RealTimeQueue"
+    val filePrefix: String
+    val points = (5 to 15)
+    val concreteInstFun: Queue2[BigInt] => BigInt
 
-object Stream {
-  def tailtime[T](thiss : RealTimeQueue.Stream2[T]): (RealTimeQueue.Stream2[T], BigInt) = {
-    val bd = {
-      val RealTimeQueue.SCons1(x, tailFun21) = thiss
-      val e15 = tailFun21()
-      (e15._1, BigInt(5) + e15._2)
+  }
+  object EnqueueContext extends RunContext {
+    override def coeffs = scalaList[BigInt](37)
+    override val filePrefix = "rtq-enqueue" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtq: Queue2[BigInt]) => enqueuetime[BigInt](BigInt(0), rtq)._2
+  }
+
+  object DequeueContext extends RunContext {
+    override def coeffs = scalaList[BigInt](40)
+    override val filePrefix = "rtq-dequeue" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtq: Queue2[BigInt]) => dequeuetime[BigInt](rtq)._2
+  }
+  val ctxts: scalaList[RunContext] = scalaList(EnqueueContext, DequeueContext)
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def benchmark(ctx: RunContext) {
+    import ctx._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
     }
-    (bd._1, bd._2)
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
+      }
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
   }
-}
 
-object Queue {
-  
+  def main(args: Array[String]): Unit = {
+    ctxts.foreach(benchmark)
+  }
+
+  object Stream {
+    def tailtime[T](thiss: RealTimeQueue.Stream2[T]): (RealTimeQueue.Stream2[T], BigInt) = {
+      val bd = {
+        val RealTimeQueue.SCons1(x, tailFun21) = thiss
+        val e15 = tailFun21()
+        (e15._1, BigInt(5) + e15._2)
+      }
+      (bd._1, bd._2)
+    }
+  }
 }

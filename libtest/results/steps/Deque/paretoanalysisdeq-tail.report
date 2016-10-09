@@ -1,0 +1,7 @@
+Statically inferred formula: 970
+
+Reducing coeff 0 starting from 970
+Lowest possible value for the coefficient is 373
+Pareto optimal template: 373
+First counter-example for 372 is at the point 6
+

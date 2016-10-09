@@ -1,4 +1,4 @@
-package Dequealloc
+package allocAnalysis
 
 import leon.collection._
 import leon._
@@ -13,7 +13,7 @@ import leon.invariant._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-object RealTimeDeque {
+object Deque {
   
   abstract class Stream2[T]
   
@@ -335,67 +335,148 @@ object RealTimeDeque {
     reversealloc(consalloc(x, reversealloc(q)._1)._1)._1
   }
   
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+  // def main(args: Array[String]): Unit = {
+  //   import scala.util.Random
+  //   val rand = Random
 
-    val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-    var size = points.map(x => BigInt(x)).to[scalaList]
-    var size2 = points.map(x => (x)).toList
+  //   val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  //   var size = points.map(x => BigInt(x)).to[scalaList]
+  //   var size2 = points.map(x => (x)).toList
 
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    points.foreach { length =>
+  //   var ops = List[BigInt]()
+  //   var orb = List[BigInt]()
+  //   points.foreach { length =>
+  //     var rtd = emptyalloc[BigInt]()._1
+  //     for (i <- 0 until length) {
+  //       rtd = snoc[BigInt](BigInt(0), rtd)
+  //     }
+  //     ops :+= {reversealloc[BigInt](rtd)._2}
+  //     orb :+= {1}
+  //   }
+  //   dumpdata(size2, ops, orb, "dequereverse", "orb")
+  //   minresults(ops, scalaList(1), List("constant"), List(), size, "dequereverse")
+
+  //   size = points.map(x => BigInt(x + 1)).to[scalaList]
+
+  //   ops = List[BigInt]()
+  //   orb = List[BigInt]()
+  //   points.foreach { length =>
+  //     var rtd = emptyalloc[BigInt]()._1
+  //     for (i <- 0 until (length + 1)) {
+  //       rtd = consalloc[BigInt](BigInt(0), rtd)._1
+  //     }
+  //     ops :+= {consalloc[BigInt](BigInt(0), rtd)._2}
+  //     orb :+= {50}
+  //   }
+  //   dumpdata(size2, ops, orb, "dequecons", "orb")
+  //   minresults(ops, scalaList(50), List("constant"), List(), size, "dequecons")
+
+  //   ops = List[BigInt]()
+  //   orb = List[BigInt]()
+  //   points.foreach { length =>
+  //     var rtd = emptyalloc[BigInt]()._1
+  //     for (i <- 0 until (length + 1)) {
+  //       rtd = consalloc[BigInt](BigInt(0), rtd)._1
+  //     }
+  //     rtd = reversealloc[BigInt](rtd)._1
+  //     ops :+= {tailalloc[BigInt](rtd)._2}
+  //     orb :+= {78}
+  //   }
+  //   dumpdata(size2, ops, orb, "dequetail", "orb")
+  //   minresults(ops, scalaList(78), List("constant"), List(), size, "dequetail")
+  // }
+
+    /**
+   * Benchmark specific parameters
+   */
+  abstract class RunContext {
+    def coeffs: scalaList[BigInt] //from lower to higher-order terms
+    def coeffNames = List("constant") // names of the coefficients
+    val termsSize = 0 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(i: BigInt): scalaList[BigInt] = scalaList()
+    def inputFromPoint(i: Int) = {
+      val len = 3*(1 << (i - 1))
       var rtd = emptyalloc[BigInt]()._1
-      for (i <- 0 until length) {
-        rtd = snoc[BigInt](BigInt(0), rtd)
-      }
-      ops :+= {reversealloc[BigInt](rtd)._2}
-      orb :+= {1}
-    }
-    dumpdata(size2, ops, orb, "dequereverse", "orb")
-    minresults(ops, scalaList(1), List("constant"), List(), size, "dequereverse")
-
-    size = points.map(x => BigInt(x + 1)).to[scalaList]
-
-    ops = List[BigInt]()
-    orb = List[BigInt]()
-    points.foreach { length =>
-      var rtd = emptyalloc[BigInt]()._1
-      for (i <- 0 until (length + 1)) {
+      for (i <- 0 until (len + 1)) {
         rtd = consalloc[BigInt](BigInt(0), rtd)._1
       }
-      ops :+= {consalloc[BigInt](BigInt(0), rtd)._2}
-      orb :+= {50}
+      rtd
     }
-    dumpdata(size2, ops, orb, "dequecons", "orb")
-    minresults(ops, scalaList(50), List("constant"), List(), size, "dequecons")
+    val dirname = "alloc/Deque"
+    val filePrefix: String
+    val points = (1 to 15)
+    val concreteInstFun: Queue2[BigInt] => BigInt
 
-    ops = List[BigInt]()
-    orb = List[BigInt]()
-    points.foreach { length =>
-      var rtd = emptyalloc[BigInt]()._1
-      for (i <- 0 until (length + 1)) {
-        rtd = consalloc[BigInt](BigInt(0), rtd)._1
-      }
-      rtd = reversealloc[BigInt](rtd)._1
-      ops :+= {tailalloc[BigInt](rtd)._2}
-      orb :+= {78}
-    }
-    dumpdata(size2, ops, orb, "dequetail", "orb")
-    minresults(ops, scalaList(78), List("constant"), List(), size, "dequetail")
+  }
+  object ConsContext extends RunContext {
+    override def coeffs = scalaList[BigInt](50)
+    override val filePrefix = "deq-cons" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtq: Queue2[BigInt]) => consalloc[BigInt](BigInt(0), rtq)._2
   }
 
+  object TailContext extends RunContext {
+    override def coeffs = scalaList[BigInt](78)
+    override val filePrefix = "deq-tail" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtd: Queue2[BigInt]) => tailalloc[BigInt](rtd)._2
+  }
+  val ctxts: scalaList[RunContext] = scalaList(ConsContext, TailContext)
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def benchmark(ctx: RunContext) {
+    import ctx._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: " + i)
+      leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
+      }
+    }
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
+  
+  def main(args: Array[String]): Unit = {
+    ctxts.foreach(benchmark)
+  }
 }
 
 
 object ValOrFun {
-  def getalloc[T](thiss : RealTimeDeque.ValOrFun2[T]): (RealTimeDeque.Stream2[T], BigInt) = {
+  def getalloc[T](thiss : Deque.ValOrFun2[T]): (Deque.Stream2[T], BigInt) = {
     val bd4 = thiss match {
-      case RealTimeDeque.Fun3(f249) =>
+      case Deque.Fun3(f249) =>
         val e105 = f249()
         (e105._1, e105._2)
-      case RealTimeDeque.Val1(x464) =>
+      case Deque.Val1(x464) =>
         (x464, BigInt(0))
     }
     (bd4._1, bd4._2)

@@ -1,4 +1,4 @@
-package WeightedScheduling
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -91,44 +91,117 @@ object WeightedSched {
   }
 
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random
-    val rand = Random
+//  def main(args: Array[String]): Unit = {
+//    import scala.util.Random
+//    val rand = Random
+//
+//    val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+//
+//    jobs = Array[(BigInt, BigInt, BigInt)]()
+//    jobs :+= {(BigInt(0), BigInt(0), BigInt(0))}
+//    (1 to 10001).foreach { n =>
+//      jobs :+= {(BigInt(n), BigInt(n + 2), BigInt(n))}
+//    }
+//
+//    p = Array[BigInt]()
+//    p :+= {BigInt(0)}
+//    p :+= {BigInt(0)}
+//    (2 to 10001).foreach { n =>
+//      p :+= {BigInt(n - 2)}
+//    }
+//
+//    val size = points.map(x => (x)).toList
+//    val size2 = points.map(x => BigInt(x)).to[scalaList]
+//    
+//    var orb = List[BigInt]()
+//    var ops = List[BigInt]()
+//    points.foreach { i =>
+//      val input = i
+//      ops :+= { 20*i+12
+//          // leon.mem.clearMemo()
+//          // schedBUtime(input)._2
+//      }
+//      orb :+= {20*i+ 19}
+//    }
+//    dumpdata(size, ops, orb, "wsched", "orb")
+//    minresults(ops, scalaList(19, 20), List("constant", "jobi"), List(size2), size2, "wsched")
+//  }  
+  // initialize the global input data
+  jobs = Array[(BigInt, BigInt, BigInt)]()
+  jobs :+= { (BigInt(0), BigInt(0), BigInt(0)) }
+  (1 to 10001).foreach { n =>
+    jobs :+= { (BigInt(n), BigInt(n + 2), BigInt(n)) }
+  }
 
-    val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  p = Array[BigInt]()
+  p :+= { BigInt(0) }
+  p :+= { BigInt(0) }
+  (2 to 10001).foreach { n =>
+    p :+= { BigInt(n - 2) }
+  }
+  
+    /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](19, 20) //from lower to higher-order terms
+  def coeffNames = List("constant", "jobi") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(i: BigInt) = {    
+    scalaList(i) 
+  }
+  
+  def inputFromPoint(i: Int) = {
+    i
+  }
+  val dirname = "steps/WeightedScheduling"
+  val filePrefix = "ws"
+  val points =  (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)  
+  val concreteInstFun = (input: BigInt) => schedBUtime(input)._2
+  
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  } 
 
-    jobs = Array[(BigInt, BigInt, BigInt)]()
-    jobs :+= {(BigInt(0), BigInt(0), BigInt(0))}
-    (1 to 10001).foreach { n =>
-      jobs :+= {(BigInt(n), BigInt(n + 2), BigInt(n))}
-    }
-
-    p = Array[BigInt]()
-    p :+= {BigInt(0)}
-    p :+= {BigInt(0)}
-    (2 to 10001).foreach { n =>
-      p :+= {BigInt(n - 2)}
-    }
-
-    val size = points.map(x => (x)).toList
-    val size2 = points.map(x => BigInt(x)).to[scalaList]
-    
-    var orb = List[BigInt]()
-    var ops = List[BigInt]()
+  def main(args: Array[String]): Unit = {    
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
     points.foreach { i =>
-      val input = i
-      ops :+= { 20*i+12
-          // leon.mem.clearMemo()
-          // schedBUtime(input)._2
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
       }
-      orb :+= {20*i+ 19}
+       //inputfori += //{BigInt(i*i)}
+       // We should not clear the cache to measure this
+       // orb2 :+= {15*i - 18}     
+       leon.mem.clearMemo()
     }
-    dumpdata(size, ops, orb, "wsched", "orb")
-    minresults(ops, scalaList(19, 20), List("constant", "jobi"), List(size2), size2, "wsched")
-  }  
-  
-}
-
-object IList {
-  
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>        
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+    var i = 0
+    minlist.foreach { l =>
+      dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
+      i = i + 1
+    }
+  }
 }
