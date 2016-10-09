@@ -1,0 +1,17 @@
+Statically inferred formula: 6*3*log (n-1) + 6*n + 3
+
+Reducing coeff 0 starting from 3
+Lowest possible value for the coefficient is -118
+Pareto optimal template: 6*3*log (n-1) + 6*n + -118
+First counter-example for 6*3*log (n-1) + 6*n + -119 is at the point 1000
+
+Reducing coeff 1 starting from 6
+Lowest possible value for the coefficient is 6
+Pareto optimal template: 6*3*log (n-1) + 6*n + 3
+First counter-example for 6*3*log (n-1) + 5*n + 3 is at the point 1000
+
+Reducing coeff 2 starting from 6
+Lowest possible value for the coefficient is 3
+Pareto optimal template: 3*3*log (n-1) + 6*n + 3
+First counter-example for 2*3*log (n-1) + 6*n + 3 is at the point 1000
+

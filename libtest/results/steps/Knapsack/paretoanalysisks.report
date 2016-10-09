@@ -1,0 +1,22 @@
+Statically inferred formula: 17*w*timesize + 18*w + 17*itemsize + 18
+
+Reducing coeff 0 starting from 18
+Lowest possible value for the coefficient is 12
+Pareto optimal template: 17*w*timesize + 18*w + 17*itemsize + 12
+First counter-example for 17*w*timesize + 18*w + 17*itemsize + 11 is at the point 0
+
+Reducing coeff 1 starting from 17
+Lowest possible value for the coefficient is -3
+Pareto optimal template: 17*w*timesize + 18*w + -3*itemsize + 18
+First counter-example for 17*w*timesize + 18*w + -4*itemsize + 18 is at the point 10
+
+Reducing coeff 2 starting from 18
+Lowest possible value for the coefficient is 14
+Pareto optimal template: 17*w*timesize + 14*w + 17*itemsize + 18
+First counter-example for 17*w*timesize + 13*w + 17*itemsize + 18 is at the point 10
+
+Reducing coeff 3 starting from 17
+Lowest possible value for the coefficient is 17
+Pareto optimal template: 17*w*timesize + 18*w + 17*itemsize + 18
+First counter-example for 16*w*timesize + 18*w + 17*itemsize + 18 is at the point 40
+
