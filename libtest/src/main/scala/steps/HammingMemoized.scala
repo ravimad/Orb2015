@@ -207,7 +207,7 @@ object HammingMemoized {
   def inputFromPoint(i: Int) = {
     i
   }
-  val dirname = "HammingMemoized"
+  val dirname = "steps/HammingMemoized"
   val filePrefix = "hm"
   val points =  (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)  
   val concreteInstFun = (input: BigInt) => hammingListtime(input)._2

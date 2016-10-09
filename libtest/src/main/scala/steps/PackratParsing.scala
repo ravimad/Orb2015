@@ -297,7 +297,7 @@ object PackratParsing {
     istring = Array.fill[Terminal](i + 1)(Digit())
     i
   }
-  val dirname = "PackratParsing"
+  val dirname = "steps/PackratParsing"
   val filePrefix = "pp"
   val points =  (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)  
   val concreteInstFun = (input: BigInt) => parsetime(input)._2

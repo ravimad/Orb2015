@@ -116,7 +116,7 @@ object RealTimeQueue {
       }
       rtq
     }
-    val dirname = "RealTimeQueue"
+    val dirname = "steps/RealTimeQueue"
     val filePrefix: String
     val points = (5 to 15)
     val concreteInstFun: Queue2[BigInt] => BigInt

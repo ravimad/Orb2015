@@ -148,7 +148,7 @@ object Knapscak {
       }
     input
   }
-  val dirname = "Knapsack"
+  val dirname = "steps/Knapsack"
   val filePrefix = "ks"
   val points = (0 to 200 by 10) ++ (100 to 1000 by 50)  
   val concreteInstFun = (w: BigInt, input: IList) => knapSackSoltime(w, input)._2

@@ -198,7 +198,7 @@ object CyclicFibStream {
   val termsSize = 1 // number of terms (i.e monomials) in the template
   def getTermsForPoint(i: BigInt) = scalaList(i)
   def inputFromPoint(i: Int) = i 
-  val dirname = "CyclicFibonacciStream"
+  val dirname = "steps/CyclicFibonacciStream"
   val filePrefix = "fibs" // the abbrevation used in the paper
   val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
   val concreteInstFun = (input: BigInt) => nthFibtime(input)._2

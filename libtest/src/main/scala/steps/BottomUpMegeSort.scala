@@ -198,7 +198,7 @@ object BottomUpMergeSort {
     }
     input
   }
-  val dirname = "BottomUpMergeSort"
+  val dirname = "steps/BottomUpMergeSort"
   val filePrefix = "msort" // the abbrevation used in the paper
   val points = (1000 to 10000 by 1000)
   val concreteInstFun = (input: List[BigInt]) => kthMintime(input, 3)._2

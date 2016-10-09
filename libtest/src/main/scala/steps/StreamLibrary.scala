@@ -1,3 +1,4 @@
+
 package stepsAnalysis
 
 import leon.collection._
@@ -254,7 +255,7 @@ object StreamLibrary {
     }
     input
   }
-  val dirname = "StreamLibrary"
+  val dirname = "steps/StreamLibrary"
   val filePrefix = "slib" // the abbrevation used in the paper
   val points = (0 to 20 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
   val concreteInstFun = (input: List[BigInt]) => isPrefixOftime(input, zerostream)._2

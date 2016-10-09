@@ -154,7 +154,7 @@ object Viterbi {
   def inputFromPoint(i: Int) = {
     i
   }
-  val dirname = "Viterbi"
+  val dirname = "steps/Viterbi"
   val filePrefix = "vit"
   val points =  (0 to 100 by 5)   
   val concreteInstFun = (i: BigInt) => viterbiSolstime(i, i)._2

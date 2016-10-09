@@ -162,7 +162,7 @@ object LevenshteinDistance {
     ystring = Array.fill(i + 1){0}
     i
   }
-  val dirname = "Levenshtein"
+  val dirname = "steps/Levenshtein"
   val filePrefix = "levd"
   val points = (0 to 30 by 1) ++ (100 to 1000 by 50)  
   val concreteInstFun = (n: BigInt) => levDistSolstime(n, n)._2

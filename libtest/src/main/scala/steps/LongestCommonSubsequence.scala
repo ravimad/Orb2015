@@ -153,7 +153,7 @@ object LongestCommonSubsequence {
     ystring = Array.fill(i + 1){0}
     i
   }
-  val dirname = "LCS"
+  val dirname = "steps/LCS"
   val filePrefix = "lcs"
   val points = (0 to 30 by 1) ++ (100 to 1000 by 50)  
   val concreteInstFun = (n: BigInt) => lcsSolstime(n, n)._2

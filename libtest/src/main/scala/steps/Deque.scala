@@ -404,7 +404,7 @@ object Deque {
       }
       rtd
     }
-    val dirname = "Deque"
+    val dirname = "steps/Deque"
     val filePrefix: String
     val points = (1 to 15)
     val concreteInstFun: Queue2[BigInt] => BigInt
