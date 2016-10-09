@@ -98,46 +98,121 @@ object LazySelectionSort {
     }
     (bd3._1, bd3._2)
   }
+  
+  /**
+   * Benchmark specific parameters
+   */
+  def coeffs = scalaList[BigInt](37, 15) //from lower to higher-order terms
+  def coeffNames = List("constant", "3*length") // names of the coefficients
+  val termsSize = 1 // number of terms (i.e monomials) in the template
+  def getTermsForPoint(length: BigInt) = scalaList(3 * length) 
+  def inputFromPoint(length: Int) = {
+    val tinput = {
+      (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+        Cons(n, f)
+      }
+    }
+    val input = sorttime(tinput)._1 match {
+      case SCons1(_, t) => t
+      case SNil1()      => Stream2(() => (SNil1(), 0))
+    }
+    input
+  }
+  val dirname = "LazySelectionSort"
+  val filePrefix = "sel" // the abbrevation used in the paper
+  val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  val concreteInstFun = (input: Stream2) => kthMintime(input, 3)._2
+  
+  /**
+   * Benchmark agnostic helper functions
+   */
+  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
+  }          
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+    template(coeffs, terms)
+  } 
 
-  def main(args: Array[String]): Unit = {
-    import scala.util.Random    
-    val dirname = "LazySelectionSort"
-    val filePrefix = "sel"
-    val rand = Random
-
-    val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+//  def main(args: Array[String]): Unit = {    
+//    val dirname = "LazySelectionSort"
+//    val filePrefix = "sel"
+//
+//    val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+//    val size = points.map(x => BigInt(x)).to[scalaList]
+//    val size2 = points.map(x => (x)).toList
+//    var ops = scalaList[BigInt]()
+//    var orb = scalaList[BigInt]()
+//    var valueofi = scalaList[BigInt]()  
+//    var i = 0
+//    /*
+//     * Note: the cache need not be cleared between the runs 
+//     * because the memoized functions take a stream as a parameter 
+//     * which (sort of) uses reference equality. 
+//     * In every iteration a new stream is created, so there is not sharing
+//     */
+//    points.foreach { length =>
+//      println("Processing length: "+length)
+//      val tinput = {
+//        (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+//          Cons(n, f)  
+//        }
+//      }
+//      val input = sorttime(tinput)._1 match {
+//        case SCons1(_, t) => t
+//        case SNil1() => Stream2(()=>(SNil1(), 0))
+//      }
+//      ops += {kthMintime(input, 3)._2}
+//      orb += {15*3*length + 37}
+//      i = 0
+//      valueofi += {BigInt(3*length)}
+//    }
+//    val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, filePrefix, dirname)
+//    val minresults = minlist.map { l => points.map { length => l(1)*3*length + l(0) }.to[scalaList] }
+//    // 15 * (k * l..size) + 8 * k + 13 
+//    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
+//    i = 0
+//    minlist.foreach { l =>
+//      dumpdirdata(size2, ops, minresults(i), filePrefix, s"pareto$i", dirname)
+//      i = i + 1
+//    }
+//  }
+  
+  def main(args: Array[String]): Unit = {    
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
-    var valueofi = scalaList[BigInt]()  
-    var i = 0
-    points.foreach { length =>
-      println("Processing length: "+length)
-      val tinput = {
-        (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-          Cons(n, f)  
-        }
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    val concreteOps = concreteInstFun
+    points.foreach { i =>
+      println("Processing input: "+i)
+       val input = inputFromPoint(i)            
+       ops += concreteOps(input)
+       // compute the static bound
+       val terms = getTermsForPoint(i)
+       orb += boundForInput(terms)  
+       terms.zipWithIndex.foreach { 
+        case (term, i) => termsforInp(i) += term 
       }
-      val input = sorttime(tinput)._1 match {
-        case SCons1(_, t) => t
-        case SNil1() => Stream2(()=>(SNil1(), 0))
-      }
-      ops += {kthMintime(input, 3)._2}
-      orb += {15*3*length + 37}
-      i = 0
-      valueofi += {BigInt(3*length)}
+       //inputfori += //{BigInt(i*i)}
+       // We should not clear the cache to measure this
+       // orb2 :+= {15*i - 18}     
+       leon.mem.clearMemo()
     }
-    val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, filePrefix, dirname)
-    val minresults = minlist.map { l => points.map { length => l(1)*3*length + l(0) }.to[scalaList] }
-    // 15 * (k * l..size) + 8 * k + 13 
+    val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
+    val minresults = minlist.map { l =>
+      points.map { i =>       
+        computeTemplate(l, getTermsForPoint(i))
+      }.to[scalaList]
+    }
     dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
-    i = 0
+    var i = 0
     minlist.foreach { l =>
       dumpdirdata(size2, ops, minresults(i), filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
-  }
+  }  
   
   object Stream {
   def listtime(thiss : LazySelectionSort.Stream2): (LazySelectionSort.LList2, BigInt) = {
