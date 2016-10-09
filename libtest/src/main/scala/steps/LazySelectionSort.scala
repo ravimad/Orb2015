@@ -1,4 +1,4 @@
-package SortingnConcat
+package stepsAnalysis
 
 import leon.collection._
 import leon._
@@ -12,7 +12,7 @@ import leon.collection._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-object SortingnConcat {
+object LazySelectionSort {
   
   abstract class LList2
   
@@ -100,23 +100,20 @@ object SortingnConcat {
   }
 
   def main(args: Array[String]): Unit = {
-    import scala.util.Random
+    import scala.util.Random    
+    val dirname = "LazySelectionSort"
+    val filePrefix = "sel"
     val rand = Random
 
     val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-    var size = points.map(x => BigInt(x)).to[scalaList]
-    var size2 = points.map(x => (x)).toList
-
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
-    var valueofi = scalaList[BigInt]()
-
-    val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat", "SortingnConcat")
-    var minresults = scala    List[List[BigInt]]()
-    minlist.foreach{_ => minresults :+= {List[BigInt]()}}
-  
+    val size = points.map(x => BigInt(x)).to[scalaList]
+    val size2 = points.map(x => (x)).toList
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
+    var valueofi = scalaList[BigInt]()  
     var i = 0
     points.foreach { length =>
+      println("Processing length: "+length)
       val tinput = {
         (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
           Cons(n, f)  
@@ -126,38 +123,28 @@ object SortingnConcat {
         case SCons1(_, t) => t
         case SNil1() => Stream2(()=>(SNil1(), 0))
       }
-      ops :+= {kthMintime(input, 3)._2}
-      orb :+= {15*3*length + 37}
+      ops += {kthMintime(input, 3)._2}
+      orb += {15*3*length + 37}
       i = 0
-      minlist.foreach { l =>
-        minresults(i) :+= {l(1)*3*length + l(0)}
-        i = i + 1
-      }
-      valueofi :+= {BigInt(3*length)}
+      valueofi += {BigInt(3*length)}
     }
-
+    val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, filePrefix, dirname)
+    val minresults = minlist.map { l => points.map { length => l(1)*3*length + l(0) }.to[scalaList] }
     // 15 * (k * l..size) + 8 * k + 13 
-    dumpdirdata(size2, ops, orb, "sortingnconcat", "orb", "SortingnConcat")
+    dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
     i = 0
     minlist.foreach { l =>
-      dumpdirdata(size2, ops, minresults(i), "sortingnconcat", s"min$i", "SortingnConcat")
+      dumpdirdata(size2, ops, minresults(i), filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
-    // val minlist = mindirresults(ops, scalaList(37, 15), List("constant", "3*length"), List(valueofi), size, "sortingnconcat", "SortingnConcat")
-    // print("yooooo")
-    // print(minlist)
-
   }
   
-}
-
-object LList {
-  
-}
-
-object Stream {
-  def listtime(thiss : SortingnConcat.Stream2): (SortingnConcat.LList2, BigInt) = {
+  object Stream {
+  def listtime(thiss : LazySelectionSort.Stream2): (LazySelectionSort.LList2, BigInt) = {
     val e23 = thiss.lfun1()
     (e23._1, BigInt(2) + e23._2)
   }
+}
+
+  
 }

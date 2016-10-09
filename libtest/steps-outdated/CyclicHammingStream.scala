@@ -216,7 +216,7 @@ object MergeAndHammingNumbers {
     val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
     val size = points.map(x => BigInt(x)).to[scalaList]
     
-    var ops = List[BigInt]()
+    var ops = scalaList[BigInt]()
     points.foreach { i =>
       val input = i
       ops :+= {

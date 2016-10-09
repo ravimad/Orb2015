@@ -13,6 +13,7 @@ import scala.math._
 import java.io.File
 import java.io.FileWriter
 import java.io.BufferedWriter
+import java.io.PrintWriter
 
 package object runtimeDriver {
 	def generatePlotFile(function: String, orbOrInst: String):String = {
@@ -181,7 +182,7 @@ plot \\
 		opsout.close()
 	}
 
-	def dumpdata(testSize: scalaList[Int], ops: List[BigInt], orb: List[BigInt], function: String, orbOrInst: String) {
+	def dumpdata(testSize: scalaList[Int], ops: scalaListBuffer[BigInt], orb: scalaListBuffer[BigInt], function: String, orbOrInst: String) {
 
 	val orbstream = new FileWriter(s"results/${orbOrInst}${function}.data")
     val orbout = new BufferedWriter(orbstream)
@@ -202,7 +203,7 @@ plot \\
 		opsout.close()
 	}
 
-	def dumpdirdata(testSize: scalaList[Int], ops: List[BigInt], orb: List[BigInt], function: String, orbOrInst: String, dirname: String) {
+	def dumpdirdata(testSize: scalaList[Int], ops: scalaListBuffer[BigInt], orb: scalaListBuffer[BigInt], function: String, orbOrInst: String, dirname: String) {
 
 	new java.io.File(s"results/${dirname}/").mkdirs
 
@@ -236,7 +237,7 @@ plot \\
 		}
 	}
 
-	def goesThrough(ops: List[BigInt], model: scalaListBuffer[BigInt], subsval: List[scalaListBuffer[BigInt]]): (Boolean, Int)  = {
+	def goesThrough(ops: scalaListBuffer[BigInt], model: scalaListBuffer[BigInt], subsval: List[scalaListBuffer[BigInt]]): (Boolean, Int)  = {
 		var j = 0
 		while(j != ops.size) {
 			var x = ops(j)
@@ -253,7 +254,7 @@ plot \\
 		return (true, 0)
 	}
 
-	def minreport(ops: List[BigInt], model: scalaListBuffer[BigInt], subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], here: Int): (scalaListBuffer[BigInt], BigInt) = {
+	def minreport(ops: scalaListBuffer[BigInt], model: scalaListBuffer[BigInt], subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], here: Int): (scalaListBuffer[BigInt], BigInt) = {
 		var tempmodel = model.clone()
 		tempmodel(here) = tempmodel(here) - 1 
 		var res = (model, points(0))
@@ -272,7 +273,7 @@ plot \\
 		return res
 	}
 
-	def minresults(ops: List[BigInt], model: scalaListBuffer[BigInt], id: List[String], subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], filename: String) {
+	def minresults(ops: scalaListBuffer[BigInt], model: scalaListBuffer[BigInt], id: List[String], subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], filename: String) {
 		require((model.size == points.size + 1) && (model.size == id.size))
 		var j = 0
 		val restream = new FileWriter(s"results/MINRESULTS${filename}.report")
@@ -294,31 +295,30 @@ plot \\
 		resout.close()
 	}
 
-	def mindirresults(ops: List[BigInt], model: scalaListBuffer[BigInt], id: List[String], 
+	def mindirresults(ops: scalaListBuffer[BigInt], model: scalaListBuffer[BigInt], id: List[String], 
 		subsval: List[scalaListBuffer[BigInt]], points: scalaListBuffer[BigInt], filename: String, 
 		dirname: String):scalaList[scalaListBuffer[BigInt]] =  {
-		require((model.size == points.size + 1) && (model.size == id.size))
 		var j = 0
 		var minlist = scalaList[scalaListBuffer[BigInt]]()
-		val restream = new FileWriter(s"results/${dirname}/MINRESULTS${filename}.report")
-    	val resout = new BufferedWriter(restream)
-		resout.write(s"Orb infereed formula: ${prettyprint(model, id)}\n\n")
+		val restream = new FileWriter(s"results/${dirname}/paretoanalysis${filename}.report")
+    val resout = new PrintWriter(restream)
+		resout.write(s"Statically inferred formula: ${prettyprint(model, id)}\n\n")
 		while(j != model.size) {
 			var (x, y) = minreport(ops, model, subsval, points, j)
 			var newmodel = x.clone()
 			newmodel(j) = newmodel(j) + 1
 			minlist :+= {newmodel}
-			print("new model\n")
-			print(s"$newmodel\n")
-			print(s"$minlist\n")
+			println("new model")
+			println(s"$newmodel")
+			println(s"$minlist")  
 			// print(s"x is $x")
 			// print(s"newmodel is $newmodel")
-
-			resout.write(s"Least value of coeff ${j} is ${newmodel(j)}.\nThe formula that goes through is ${prettyprint(newmodel, id)}.\n")
-			resout.write(s"Counter-example for ${prettyprint(x, id)} is at the point ${y}\n\n")
+			resout.println(s"Reducing coeff ${j} starting from ${model(j)}")
+			resout.println(s"Lowest possible value for the coefficient is ${newmodel(j)}")
+			resout.println(s"Pareto optimal template: ${prettyprint(newmodel, id)}")
+			resout.println(s"First counter-example for ${prettyprint(x, id)} is at the point ${y}\n")
 			j = j + 1
 		}
-		resout.write(s"Minimization report ends here\n\n")
 		resout.close()
 		minlist
 	}

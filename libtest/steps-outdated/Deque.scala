@@ -346,8 +346,8 @@ object RealTimeDeque {
     // var size = points.map(x => BigInt(x)).to[scalaList]
     var size = points.map(x => (x)).toList
 
-    var ops = List[BigInt]()
-    var orb = List[BigInt]()
+    var ops = scalaList[BigInt]()
+    var orb = scalaList[BigInt]()
     // points.foreach { length =>
     //   var rtd = emptytime[BigInt]()._1
     //   for (i <- 0 until length) {
@@ -359,15 +359,15 @@ object RealTimeDeque {
 
     // size = points.map(x => BigInt(x + 1)).to[scalaList]
 
-    ops = List[BigInt]()
-    orb = List[BigInt]()
+    ops = scalaList[BigInt]()
+    orb = scalaList[BigInt]()
     points.foreach { length =>
       var rtd = emptytime[BigInt]()._1
       for (i <- 0 until (length + 1)) {
         rtd = constime[BigInt](BigInt(0), rtd)._1
       }
-      ops :+= {constime[BigInt](BigInt(0), rtd)._2}
-      orb :+= {580}
+      ops += {constime[BigInt](BigInt(0), rtd)._2}
+      orb += {580}
     }
     dumpdata(size, ops, orb, "dequecons", "orb")
     // minresults(ops, scalaList(580), List("constant"), List(), size, "dequecons")
