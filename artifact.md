@@ -46,7 +46,7 @@ To reproduce the results use the following scripts:
 For alloc results replace `steps` by `alloc` in the above commands. The script will take about 30min to run all benchmarks.
 Below we describe the results of the tool with an illustration.
 
-## Interpreting the Results of Tool (Reading *-stats.txt file)
+## Interpreting the Results of the Tool (Reading *-stats.txt file)
 
 The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `StreamLibrary` and `Conqueue` have many other top-level functions that may be interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
 
@@ -70,26 +70,12 @@ The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  fil
 16. PackratParsing - `parse`
 17. Viterbi - `viterbiSols`
 
-At the end of each stats filem the inferred bounds for every function are presented as a table titled **Resource Verification**. The section **State Verification** shows the results of verifying the invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization.
+### Descrption of the Stats file
 
-### Descrption
-We only describe the important entries of the file. 
+At the end of each stats file the inferred bounds for every function are presented as a table titled **Resource Verification**. This table is the most important table and contains the bounds presented in Figure 9.
+Prior to this there would be table titled **State Verification**. This shows the result of verifying the (correctness) invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization. All invariants in all the benchmarks will be verified by the tool and would be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in verifying the generated verification conditions. 
 
-* _\#EBNF-rules_ : number of productions in the input grammar. (Note that the input grammar is allowed to be in EBNF form).
-* _\#rules_ and _\#nonterminals_ : number of productions and non-terminals in the grammar after conversion to BNF form.
-* _WordGenCalls_ : number of words enumerated. When sampling words, this field denotes the number of samples generated.
-* _EquivCExs_ : number of counter-examples that were discovered 
-* _TimeWithoutGC_ : the wall clock time taken by the tool from the start to the end, excluding the time spent in garbage collection.
-* _GCTime_ : time spent in garbage collection. 
-* _PeakMemUsageInMB_ : Peak virtual memory usage in mega bytes.
-* _AntlrParseCalls_ : number of times the Antlr v4 parser was invoked.
-* _AntlrEquivCExs_ : number of counter-examples for equivalence discovered when Antlr parser was used to parse the enumerated words. 
-* _CYKParseCalls_ : number of times the CYK parser was invoked. In experiments that compare programming language grammars, the CYK parser is invoked once at the end to verify the output of the Antlr parser. (Specifically, to verify whether the string rejected by the Antlr parser is not parsable.)
-* _Avg.CYKParseTime_ and _Max.CYKParseTime_ : average and maximum time taken to parse a word using the CYK parser.
-* _Avg.AntlrParseTime_ and _Max.AntlrParseTime_ : average and maximum time taken to parse a word using the Antlr parser.
-* _Avg.time-per-call_ and _Max.time-per-call_ : average and maximum time taken to generate one word using the enumerators. When the enumerators are used in sampling mode, this field corresponds to the average and maximum time taken to generate a sample.
-
-This will take about 300 seconds to complete. For every pair of grammars that are compared two files will be generated (in the same directory): a ".log" file and a ".stats" file. The log file will list all the counter-examples that were found, and the stats file is a dump of all the statistics that were collected. Two important statistics are "EquivCExs" which denotes the total number of counter-examples found, and "TimeWithoutGC" that denotes the time taken by the tool excluding the garbage collection time. (TimeWithoutGC should be ~1min for this experiment). See below for a brief explanation of all the fields of the statistics file.
+Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant of them are "Total-Time" (Column AT of Figure 9), "State-Verification-Time" and "Resource-Verification-Time". 
 
 ### Reproducing the Results of Figure 15
 
