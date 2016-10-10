@@ -1,5 +1,19 @@
-Below we provide instructions for setting up and running the system the locally. The tutoring interface is also accessible at 
-[grammar.epfl.ch](http://grammar.epfl.ch).
+## Artifact for the POPL 2016 paper "Contract-based Resource Verification for Higher-order Functions with Memoization"
+
+Virtual disk image containing the artifact: [popl-paper-184-artifact.tar.gz](http://lara.epfl.ch/~kandhada/popl-artifact/popl-paper-184-artifact.tar.gz)
+
+The above vdi image is pre-installed with the following artifacts:
+
+1. The sources and executables of the resource verification system (Leon/Orb) described in the paper.
+2. Sources of all benchmarks used in the evaluation.
+3. All results and data used in the evaluation and presented in Figures 9 and 10 of the paper.
+
+Below we provide instructions for running our resource verification system on the benchmarks, and 
+for reproducing the results of the paper. Our tool can also be tried online on **selected benchmarks** 
+at [leondev.epfl.ch](http://leondev.epfl.ch) (Memresource section). 
+To know more about our tool and for getting started on writing and verifying new programs with Leon/Orb
+please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html, which also
+have links to related publications (including the POPL paper).
 
 ## Getting Started Guide
 
