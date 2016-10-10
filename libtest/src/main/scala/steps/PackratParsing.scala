@@ -286,7 +286,7 @@ object PackratParsing {
   /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](70, 73) //from lower to higher-order terms
+  def coeffs = scalaList[BigInt](58, 61) //from lower to higher-order terms
   def coeffNames = List("constant", "i") // names of the coefficients
   val termsSize = 1 // number of terms (i.e monomials) in the template
   def getTermsForPoint(i: BigInt) = {    

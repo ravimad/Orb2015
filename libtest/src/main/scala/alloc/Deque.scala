@@ -413,13 +413,19 @@ object Deque {
     override val filePrefix = "deq-cons" // the abbrevation used in the paper  
     override val concreteInstFun = (rtq: Queue2[BigInt]) => consalloc[BigInt](BigInt(0), rtq)._2
   }
+  
+  object ReverseContext extends RunContext {
+    override def coeffs = scalaList[BigInt](1)
+    override val filePrefix = "deq-reverse" // the abbrevation used in the paper  
+    override val concreteInstFun = (rtd: Queue2[BigInt]) => reversealloc[BigInt](rtd)._2
+  }
 
   object TailContext extends RunContext {
     override def coeffs = scalaList[BigInt](78)
     override val filePrefix = "deq-tail" // the abbrevation used in the paper  
     override val concreteInstFun = (rtd: Queue2[BigInt]) => tailalloc[BigInt](rtd)._2
   }
-  val ctxts: scalaList[RunContext] = scalaList(ConsContext, TailContext)
+  val ctxts: scalaList[RunContext] = scalaList(ConsContext, ReverseContext, TailContext)
   /**
    * Benchmark agnostic helper functions
    */

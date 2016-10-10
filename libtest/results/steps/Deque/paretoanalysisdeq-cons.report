@@ -1,6 +1,6 @@
-Statically inferred formula: 580
+Statically inferred formula: 535
 
-Reducing coeff 0 starting from 580
+Reducing coeff 0 starting from 535
 Lowest possible value for the coefficient is 188
 Pareto optimal template: 188
 First counter-example for 187 is at the point 6
