@@ -88,7 +88,7 @@ The content of these files are described shortly.
 
 To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed as 1), which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
 
-## Output of the Instrumented Benchmark
+## Outputs of the Instrumented Benchmark
 
 Running each of the instrumented benchmark produces the following files:
 *  `dynamic<benchmark-abbrv>.data`
