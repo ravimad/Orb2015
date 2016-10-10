@@ -33,11 +33,11 @@ To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the follo
     $ mkdir steps; cd steps
     $ ../../scripts/steps.sh
 
-To infer the `alloc` bounds of the benchmarks, replace `steps` by `alloc` in the above commands. The script will take about half-an-hour (depending on the VM configuration) to verify all benchmarks. 
+To infer the `alloc` bounds of the benchmarks, replace `steps` by `alloc` in the above commands. The script may take few tens of minutes (depending on the VM configuration) to verify all benchmarks. 
 
 #### Understanding the output of the tool 
 
-Running the script produces two files: `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file provides several statistics in the form of "key : value" pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource). Below we list the functions in each benchmark whose bounds were presented in Figure 9. Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
+Running the script produces two files: `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `*-stats` file provides several statistics in the form of "key : value" pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas `*-stats` displays every bound inferred for the benchmark.  Below we list the functions in each benchmark whose bounds were presented in Figure 9. Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
 
 #### Key functions for each benchmark
 
