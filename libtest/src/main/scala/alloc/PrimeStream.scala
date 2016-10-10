@@ -141,9 +141,9 @@ object PrimeStream {
    * Benchmark specific parameters
    */
   def coeffs = scalaList[BigInt](-11, 6) //from lower to higher-order terms
-  def coeffNames = List("constant", "n*n") // names of the coefficients
+  def coeffNames = List("constant", "n") // names of the coefficients
   val termsSize = 1 // number of terms (i.e monomials) in the template
-  def getTermsForPoint(n: BigInt) = scalaList(n * n) // terms depend only on n here, but may in general depend on many variables
+  def getTermsForPoint(n: BigInt) = scalaList(n) // terms depend only on n here, but may in general depend on many variables
   def inputFromPoint(i: Int) = i
   val dirname = "alloc/PrimeStream"
   val filePrefix = "prims"
