@@ -62,7 +62,7 @@ Running the script produces two files: `<benchmarkname>-stats.txt` and `<benchma
 #### Descrption of the Stats file
 
 At the end of each stats file there are two tables: **Resource Verification** and **State Verification**.
-The former table shows the inferred bounds for every function (presented in Figure 9), and the latter table  shows the result of verifying the (correctness) invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization. All invariants in all the benchmarks will be verified by the tool and would/should be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in verifying the generated verification conditions. 
+The former table shows the inferred bounds for every function (including those presented in Figure 9), and the latter table  shows the result of verifying the correctness invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization. All invariants in all the benchmarks will be verified by the tool and would be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in verifying the generated verification conditions. 
 
 Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant entries among these are _Total-Time_ (The column AT of Figure 9), _State-Verification-Time_ and _Resource-Verification-Time_.
 
@@ -72,7 +72,9 @@ Even though the tool tries its best effort to enforce determinism, minor varianc
 
 ## Measuring the accuracy of the inferred bounds - Reproducing the results of Figure 10
 
-To run the experiments whose results are shown in Figure 10, the benchmarks need to be instrumented to track the resources, and have to be run with inputs that execise the worst-case behavior. Our tool can be used to output instrumented programs using the `--instrument` option.  All such instrumented benchmarks (having an executable `main` function) can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (or alloc).  The `main` function of each benchmark runs the benchmark on many inputs, compute the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we describe the procedure for reproducing the results of Figure 10.
+To run the experiments whose results are shown in Figure 10, we instrument the benchmark to track the resources (using `./leon --instrument` option), and add drivers to run the benchmarks with inputs that execise the worst-case behavior. 
+All such instrumented benchmarks (having an executable `main` function) can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (or alloc).  
+The `main` function of each benchmark runs the benchmark on many inputs, computes the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we describe the procedure for reproducing the results of Figure 10.
 
     $ cd ~/leon/RuntimeEvaluation/
     $ sbt                            ## invokes the scala build tool
@@ -82,8 +84,11 @@ Once inside the `sbt` prompt, use the following comands
     > run
     
 The `run` command will list all the avaiable benchmarks that can be executed. Choose the benchmark to run by typing its number in the listing. Runing each benchmark will produce a set of `.data` and `.report` files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/` (replace `steps` by `alloc` when appropriate). 
-To compute the summary statistics run the `StatsCollector` benchmark (listed as 1), which present the results of Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. We first describe the outputs of running each benchmark, and later the contents of the `Figure-10-data` file.
+We shortly describe the content of these files.
 
+To compute the summary statistics run the `StatsCollector` program (listed as 1), which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
+
+## 
     
 
 
