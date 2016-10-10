@@ -68,7 +68,7 @@ Most of the key-value pairs in the stats file present details on the internals o
 
 #### Minor Variances from Figure 9 Results
 
-Even though the tool tries its best effort to enforce determinism, minor variances across different runs (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. Therefore, the constants inferred by the tool may slightly vary compared to Figure 9 rarely. We observed a deviance greater than +/- 1 on an inferred constant on the two benchmarks: _PackratParsing_ and _Deque_ (for  the `steps` resource). In both cases the tool computed a more precise bound than the one presented in Figure 9.
+Even though the tool tries its best effort to enforce determinism, minor variances across different runs (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. This means that occasionally the constants inferred by the tool may slightly vary compared to Figure 9. We observed a deviance greater than +/- 1 on an inferred constant on the two benchmarks: _PackratParsing_ and _Deque_ (for  the `steps` resource). In both cases the tool computed a more precise bound than the one presented in Figure 9.
 
 ## Measuring the accuracy of the inferred bounds - Reproducing the results of Figure 10
 
