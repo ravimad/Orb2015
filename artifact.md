@@ -72,9 +72,9 @@ Even though the tool tries its best effort to enforce determinism, minor varianc
 
 ## Measuring the accuracy of the inferred bounds - Reproducing the results of Figure 10
 
-To run the experiments whose results are shown in Figure 10, we instrument the benchmark to track the resources (using `./leon --instrument` option), and add drivers to run the benchmarks with inputs that execise the worst-case behavior. 
+To carry out the experiment whose results are shown in Figure 10, we instrument the benchmark to track the resources (using `./leon --instrument` option), and add drivers to run the benchmarks with inputs that execise the worst-case behavior. 
 All such instrumented benchmarks (having an executable `main` function) can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (or alloc).  
-The `main` function of each benchmark runs the benchmark on many inputs, computes the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we describe the procedure for reproducing the results of Figure 10.
+The `main` function of each benchmark runs the benchmark on many inputs, computes the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Use the following commands to execute the instrumented benchmarks.
 
     $ cd ~/leon/RuntimeEvaluation/
     $ sbt                            ## invokes the scala build tool
@@ -84,9 +84,9 @@ Once inside the `sbt` prompt, use the following comands
     > run
     
 The `run` command will list all the avaiable benchmarks that can be executed. Choose the benchmark to run by typing its number in the listing. Runing each benchmark will produce a set of `.data` and `.report` files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/` (replace `steps` by `alloc` when appropriate). 
-We shortly describe the content of these files.
+The content of these files are described shortly.
 
-To compute the summary statistics run the `StatsCollector` program (listed as 1), which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
+To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed as 1), which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
 
 ## 
     
