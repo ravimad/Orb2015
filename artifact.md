@@ -79,18 +79,18 @@ The `main` function of each benchmark runs the benchmark on many inputs, compute
     $ cd ~/leon/RuntimeEvaluation/
     $ sbt                            
     
-Once inside the `sbt` (scala build tool) prompt, use the following command
+Once inside the `sbt` (Scala build tool) console, use the following command
 
     > run
     
 The `run` command will list all the available benchmarks that can be executed. Choose the benchmark to run by entering its index. Running each benchmark will produce a set of `.data` and `.report` files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/` (`steps` can be replaced by `alloc`). 
 The content of these files are described shortly.
 
-To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed first), which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
+To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed first) from the `sbt` console, which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
 
 ## Outputs of the Instrumented Benchmark
 
-Running each of the instrumented benchmark produces the following files:
+Running an instrumented benchmark outputs the following files:
 *  `dynamic<benchmark-abbrv>.data`
 * `paretoanalysis<benchmark-abbrv>.report`
 *  One or more `pareto<index><benchmark-abbrv>.data`
