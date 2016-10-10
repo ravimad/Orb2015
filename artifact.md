@@ -27,11 +27,17 @@ The following command can be used to run individual source files. However, to re
 
     /home/popl/leon/leon --mem --benchmark --timeout=<secs> path-to-file
 
-For a short description of the above and other command line options use `leon --help`
+The tool prints log messages and inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a file \<Classname\>-stats.txt in the directory from where the tool was run.
+For a short description of the above and other command line options use `leon --help`.
     
 ## Running the Tool on all Benchmarks (Results of Figure 9)
 
-There 
+As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one having a `steps` bound, which denotes the number evaluation steps, and the `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
+the versions with alloc bounds can be found in `~/leon/testcases/benchmark/alloc`. 
+The results of running the tool on these benchmarks are available in 
+To run the tool on each of these benchmarks use the following scripts:
+
+1. cd results    
 
 ### Reproducing Experiments on Programming Language Grammars
 
