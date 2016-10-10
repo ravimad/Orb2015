@@ -66,7 +66,7 @@ The former table shows the inferred bounds for every function (including those p
 
 Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant entries among these are _Total-Time_ (The column AT of Figure 9), _State-Verification-Time_ and _Resource-Verification-Time_.
 
-#### Minor Variances from Figure 9 Results
+#### Minor variances from Figure 9 results
 
 Even though the tool tries its best effort to enforce determinism, minor variances across different runs (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. This means that occasionally the constants inferred by the tool may slightly vary compared to Figure 9. We observed a deviance greater than +/- 1 on an inferred constant on the two benchmarks: _PackratParsing_ and _Deque_ (for  the `steps` resource). In both cases the tool computed a more precise bound than the one presented in Figure 9.
 
@@ -88,7 +88,7 @@ The content of these files are described shortly.
 
 To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed first) from the `sbt` console, which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
 
-## Outputs of the Instrumented Benchmark
+## Outputs of the instrumented benchmark
 
 Running an instrumented benchmark outputs the following files:
 *  `dynamic<benchmark-abbrv>.data`
@@ -134,7 +134,7 @@ The files `pareto0hams.data` and `pareto1hams.data` displays the statically infe
 
 Using these data for each benchmark, the program `StatsCollector` computes the metric _optimal/static * 100_ (for each benchmark and resource) and outputs it to the file `~/RuntimeEvaluation/Figure-10-data`.
 
-#### Minor Variances from Figure 10 Results
+#### Minor bariances from Figure 10 results
 
 Even though the most of the percentages in the `Figure-10-data` file are identical to the Figure 10, in a few benchmarks there is a slight deviance (approximately 1 to 2 percentage points) from the data of Figure 10. This is because the results of Figure 10 are slightly more exhausitive and includes more resource bounds. For instance, in the case of  _BottomUpMergeSort_ benchmark, the instrumented programs created above fixes the value of `k` , and only varies the size of the `input` for ease of evaluation (see Figure 9 for the bound of `kthMin`). However, in the results shown in Figure 10, `k` is also varied and thus is slightly worse than the results produced by the above experiment.
 
