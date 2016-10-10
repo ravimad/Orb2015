@@ -48,7 +48,7 @@ Below we describe the results of the tool with an illustration.
 
 ## Interpreting the Results of Tool (Reading *-stats.txt file)
 
-The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs. The file also has all the  bounds inferred for the functions in the benchmark.Figure 9 shows only a couple of templates for each benchmark (for each resource). For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and hence are listed in Figure 9.
+The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs. The file also has all the  bounds inferred for the functions in the benchmark. Figure 9 shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and are some of the top-level functions in a benchmark. (Though some benchmarks like `StreamLibrary` and `Conqueue` have many other top-level functions.) Reviewers may restrict their attention to these functions in all of the following results.
 
 ### Key functions for each benchmark
 
@@ -56,10 +56,19 @@ The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  fil
 2. PrimeStream - `PrimesUntilN`
 3. Fibonacci Stream - `nthFib`
 4. Hamming Stream - `nthHammingNumber`
-5. 
-4. Bottom-up merge-sort - `kthMin`
-5. Conqueue - `pushLeftAndPay` and `concatNonEmpty`
-6. 
+5. StreamLibrary - `isPrefixOf`
+6. RealTimeQueue - `enqueue`, `dequeue`
+7. Bottom-up merge-sort - `kthMin`
+8. Deque- `cons`, `tail` and `reverse`
+9. LazyNumericalRep - `incAndPay`
+10. Conqueue - `pushLeftAndPay` and `concatNonEmpty`
+11. LongestCommonSubsequence (LCS) - `lcsSols`
+12. LevenshteinDistance - `levDistSols`
+13. HammingMemoized - `hammingList`
+14. WeightedScheduling - `schedBU`
+15. Knapsack - `knapsack`
+16. PackratParsing - `parse`
+17. Viterbi - `viterbiSols`
 
 We only describe the important entries of the file. 
 
