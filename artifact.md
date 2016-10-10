@@ -48,7 +48,7 @@ Below we describe the results of the tool with an illustration.
 
 ## Interpreting the Results of Tool (Reading *-stats.txt file)
 
-The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs. The file also has all the  bounds inferred for the functions in the benchmark. Figure 9 shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and are some of the top-level functions in a benchmark. (Though some benchmarks like `StreamLibrary` and `Conqueue` have many other top-level functions.) Reviewers may restrict their attention to these functions in all of the following results.
+The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `StreamLibrary` and `Conqueue` have many other top-level functions that may be interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
 
 ### Key functions for each benchmark
 
@@ -70,6 +70,9 @@ The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  fil
 16. PackratParsing - `parse`
 17. Viterbi - `viterbiSols`
 
+At the end of each stats filem the inferred bounds for every function are presented as a table titled **Resource Verification**. The section **State Verification** shows the results of verifying the invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization.
+
+### Descrption
 We only describe the important entries of the file. 
 
 * _\#EBNF-rules_ : number of productions in the input grammar. (Note that the input grammar is allowed to be in EBNF form).
