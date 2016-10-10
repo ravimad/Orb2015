@@ -46,7 +46,7 @@ To reproduce the results use the following scripts:
 For alloc results replace `steps` by `alloc` in the above commands. The script will take about 30min to run all benchmarks.
 Below we describe the results of the tool with an illustration.
 
-## Interpreting the Results of the Tool (Reading *-stats.txt file)
+## Understanding the Output of the Tool 
 
 The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `StreamLibrary` and `Conqueue` have many other top-level functions that may be interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
 
@@ -72,10 +72,13 @@ The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  fil
 
 ### Descrption of the Stats file
 
-At the end of each stats file the inferred bounds for every function are presented as a table titled **Resource Verification**. This table is the most important table and contains the bounds presented in Figure 9.
-Prior to this there would be table titled **State Verification**. This shows the result of verifying the (correctness) invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization. All invariants in all the benchmarks will be verified by the tool and would be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in verifying the generated verification conditions. 
+At the end of each stats file the inferred bounds for every function are presented as a table titled **Resource Verification**. This table contains the bounds presented in Figure 9. At the top of this table there would be another table titled **State Verification**. This shows the result of verifying the (correctness) invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization. All invariants in all the benchmarks will be verified by the tool and would/should be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in verifying the generated verification conditions. 
 
-Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant of them are "Total-Time" (Column AT of Figure 9), "State-Verification-Time" and "Resource-Verification-Time". 
+Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant entries among these are _Total-Time_ (The column AT of Figure 9), _State-Verification-Time_ and _Resource-Verification-Time_. The stats files in `~/leon/results/server-results` have more accurate data on analysis time.
+
+### Minor Variances from Figure 9 Results
+
+Most of the constants in the bounds inferred by the tool will be identical to those presented in Figure 9 (for the key functions described above). Even though the tool tries its best effort to enforce determinism, minor variance across different runs of the program (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. We observed such variance on two benchmarks PackratParsing and Deque for  the `steps` resource. In both cases the tool computed a more precise bound than in Figure 9.
 
 ### Reproducing the Results of Figure 15
 
@@ -97,15 +100,3 @@ For comparison purposes, Fig. 15 also presents the results of the using a differ
 The .stats file that are generated during comparison of grammars have the following fields each of which represents a unique metric (described below). 
 
 * _\#EBNF-rules_ : number of productions in the input grammar. (Note that the input grammar is allowed to be in EBNF form).
-* _\#rules_ and _\#nonterminals_ : number of productions and non-terminals in the grammar after conversion to BNF form.
-* _WordGenCalls_ : number of words enumerated. When sampling words, this field denotes the number of samples generated.
-* _EquivCExs_ : number of counter-examples that were discovered 
-* _TimeWithoutGC_ : the wall clock time taken by the tool from the start to the end, excluding the time spent in garbage collection.
-* _GCTime_ : time spent in garbage collection. 
-* _PeakMemUsageInMB_ : Peak virtual memory usage in mega bytes.
-* _AntlrParseCalls_ : number of times the Antlr v4 parser was invoked.
-* _AntlrEquivCExs_ : number of counter-examples for equivalence discovered when Antlr parser was used to parse the enumerated words. 
-* _CYKParseCalls_ : number of times the CYK parser was invoked. In experiments that compare programming language grammars, the CYK parser is invoked once at the end to verify the output of the Antlr parser. (Specifically, to verify whether the string rejected by the Antlr parser is not parsable.)
-* _Avg.CYKParseTime_ and _Max.CYKParseTime_ : average and maximum time taken to parse a word using the CYK parser.
-* _Avg.AntlrParseTime_ and _Max.AntlrParseTime_ : average and maximum time taken to parse a word using the Antlr parser.
-* _Avg.time-per-call_ and _Max.time-per-call_ : average and maximum time taken to generate one word using the enumerators. When the enumerators are used in sampling mode, this field corresponds to the average and maximum time taken to generate a sample.
