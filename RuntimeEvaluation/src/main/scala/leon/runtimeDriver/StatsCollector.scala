@@ -10,11 +10,11 @@ object StatsCollector {
   val resultsDir = "./results/"
   val stepsdir = resultsDir + "steps/"
   val allocdir = resultsDir + "alloc/"
-  val benchNames = List( "LazySelectionSort", "PrimeStream",  
+  val benchNames = List( "LazySelectionSort", "PrimeStream",
     "CyclicFibonacciStream", "CyclicHammingStream", "StreamLibrary",
-     "RealTimeQueue", "BottomUpMergeSort", "Deque", "LazyNumericalRep",
+     "RealTimeQueue", "BottomUpMergeSort", "Deque", "LazyNumericalRep", "Conqueue",
         "LCS", "Levenshtein", "HammingMemoized", "WeightedScheduling",
-        "Knapsack", "PackratParsing", "Viterbi" 
+        "Knapsack", "PackratParsing", "Viterbi"
     )
   def main(args: Array[String]): Unit = {
     benchNames.foreach { bn =>
@@ -31,7 +31,7 @@ object StatsCollector {
     val benchdir = new File(benchdirName)
     // (a) compute static Vs dynamic
     val dynamic = benchdir.listFiles().filter(fl => fl.getName().startsWith("dynamic"))
-    //println("All dynamic files: "+dynamic.mkString(","))    
+    //println("All dynamic files: "+dynamic.mkString(","))
     val dynVstatic = meanRatio(dynamic)
     println("dynamic / static * 100: " + dynVstatic.round)
     // (b) compute pareto optimal stats
@@ -39,7 +39,7 @@ object StatsCollector {
       val name = fl.getName()
       name.startsWith("pareto") && name.endsWith(".data")
     }
-    //println("All pareto data files: "+paretoData.mkString(","))    
+    //println("All pareto data files: "+paretoData.mkString(","))
     val paretoVsStatic = meanRatio(paretoData)
     println("optimal / static * 100: " + paretoVsStatic.round)
   }

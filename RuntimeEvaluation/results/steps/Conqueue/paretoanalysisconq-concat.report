@@ -1,0 +1,12 @@
+Statically inferred formula: 29*abs(xs.lvl-ys.lvl) + 8
+
+Reducing coeff 0 starting from 8
+Lowest possible value for the coefficient is 8
+Pareto optimal template: 29*abs(xs.lvl-ys.lvl) + 8
+First counter-example for 29*abs(xs.lvl-ys.lvl) + 7 is at the point 0
+
+Reducing coeff 1 starting from 29
+Lowest possible value for the coefficient is 19
+Pareto optimal template: 19*abs(xs.lvl-ys.lvl) + 8
+First counter-example for 18*abs(xs.lvl-ys.lvl) + 8 is at the point 20
+
