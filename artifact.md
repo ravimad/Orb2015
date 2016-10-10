@@ -62,7 +62,7 @@ Running the script produces two files: `<benchmarkname>-stats.txt` and `<benchma
 #### Descrption of the Stats file
 
 At the end of each stats file there are two tables: **Resource Verification** and **State Verification**.
-The former table shows the inferred bounds for every function (including those presented in Figure 9), and the latter table  shows the result of verifying the correctness invariants needed for proving the resource bounds, which may possibly depend on the state of the memoization. All invariants in all the benchmarks will be verified by the tool and would be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in verifying the generated verification conditions. 
+The former table shows the inferred bounds for every function (including those presented in Figure 9), and the latter table  shows the result of verifying the correctness invariants needed for proving the resource bounds, which may possibly depend on the state of memoization. All invariants in all the benchmarks will be verified by the tool and would be marked as **valid**. The table also shows the SMT solver (one of CVC4 or Z3) that first succeeded in deciding the generated verification conditions. 
 
 Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant entries among these are _Total-Time_ (The column AT of Figure 9), _State-Verification-Time_ and _Resource-Verification-Time_.
 
