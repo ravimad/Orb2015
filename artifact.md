@@ -30,7 +30,7 @@ The following command can be used to run individual source files. However, to re
 The tool prints log messages and inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a file \<Classname\>-stats.txt in the directory from where the tool was run.
 For a short description of the above and other command line options use `leon --help`.
     
-## Running the Tool on all Benchmarks (Results of Figure 9)
+## Running the Tool on all Benchmarks and Reproducing Results of Figure 9
 
 As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and other with a `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
 the versions with alloc bounds can be found in `~/leon/testcases/benchmark/alloc`. 
@@ -80,23 +80,5 @@ Most of the key-value pairs in the stats file present details on the internals o
 
 Most of the constants in the bounds inferred by the tool will be identical to those presented in Figure 9 (for the key functions described above). Even though the tool tries its best effort to enforce determinism, minor variance across different runs of the program (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. We observed such variance on two benchmarks PackratParsing and Deque for  the `steps` resource. In both cases the tool computed a more precise bound than in Figure 9.
 
-### Reproducing the Results of Figure 15
+### Measuring Accuracy of the Inferred Bounds - Reproducing the Results of Figure 10
 
-As described in the paper, for this experiment we automatically generate benchmarks by injecting 3 types of errors. The benchmarks used in this experiment are available in the directory "~/grammar-web/benchmarks". (There are about 300 grammars.) Each benchmark is named as follows "grammarname-[error-type]-[num].gram", where [error-type] is a number between 1 to 3 that indicates the type of the error injected, and [num] is a number between 1 and 10. Each benchmark is compared against their original versions whose names
-do not have the [error-type] and [num] fields.
-
-To run the complete experiment execute the script: **regr.sh** from the directory "~/grammar-web". 
-
-The script file consists of a sequence of *sbt* commands, one for each benchmark that is compared.
-As before, this will produce a log and a stats file for each comparison. 
-Note that this experiment will take several hours to complete. 
-
-To test a few sample benchmarks, open the script file regr.sh and comment out the sbt commands that use the benchmarks that have to be excluded.
-
-For comparison purposes, Fig. 15 also presents the results of the using a different tool CFGAnalyzer on the same set of benchmarks. To generate these results, run the script **cfga-regr.sh** from the directory "~/grammar-web". But, since CFGAnalyzer times out on most of the benchmarks, it may take many hours (much longer than our tool) to complete. As before, it is possible to run only a few experiments by commenting out the lines of the script that use the benchmarks that have to be excluded. The output of each comparison is dumped to a file "[benchmark-name].cfga-out.txt".
-
-### Fields of the Statistics Files
-
-The .stats file that are generated during comparison of grammars have the following fields each of which represents a unique metric (described below). 
-
-* _\#EBNF-rules_ : number of productions in the input grammar. (Note that the input grammar is allowed to be in EBNF form).
