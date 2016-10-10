@@ -136,3 +136,5 @@ Using these data for each benchmark, the program `StatsCollector` computes the m
 
 #### Minor Variances from Figure 10 Results
 
+Even though the most of the percentages in the `Figure-10-data` file are identical to the Figure 10, in a few benchmarks there is a slight deviance (approximately 1 to 2 percentage points) from the data of Figure 10. This is because the results of Figure 10 are slightly more exhausitive and includes more resource bounds. For instance, in the case of  _BottomUpMergeSort_ benchmark, the instrumented programs created above fixes the value of `k` , and only varies the size of the `input` for ease of evaluation (see Figure 9 for the bound of `kthMin`). However, in the results shown in Figure 10, `k` is also varied and thus is slightly worse than the results produced by the above experiment.
+
