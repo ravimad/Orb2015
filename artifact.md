@@ -16,12 +16,10 @@ please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html
 
 ### Booting the Virtual Disk Image
 
-A bootable virtual disk image with our system pre-installed is available as a part of the artifact archive.  Use the following steps to boot from the image:
-
 1. Install [Oracle Virtual Box](https://www.virtualbox.org/wiki/Downloads). 
 2. Extract the .vdi file from the archive
-3. Create a new virtual machine with the downloaded .vdi file as the hard disk. We recommend at least 4GB of RAM for the virtual machine. 
-4. Start the virtual machine. It will boot Ubuntu 15.04 operating system and will automatically log into the account : *paper191* (password: *oopsla*)
+3. Create a new virtual machine with the downloaded .vdi file as the hard disk. Our benchmarks are compute intensive. **We recommend at least 4GB of RAM and 2 Processing Cores for the virtual machine.** (Some benchmarks could timeout on lower configurations.)
+4. When started, the virtual machine should boot Xubuntu 16.04 Linux operating system and will automatically log into the account : *popl* (password: *popl*)
 
 ### Running the Grammar Tutoring System
 
