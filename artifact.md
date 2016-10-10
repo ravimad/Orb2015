@@ -25,7 +25,7 @@ please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html
 
 The following command can be used to run individual source files. However, to reproduce the results we recommend using the scripts decribed in the subsequent sections.
 
-    /home/popl/leon/leon --mem --benchmark --timeout=<secs> path-to-file
+    $ /home/popl/leon/leon --mem --benchmark --timeout=<secs> path-to-file
 
 The tool prints log messages and inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a file \<Classname\>-stats.txt in the directory from where the tool was run.
 For a short description of the above and other command line options use `leon --help`.
@@ -39,9 +39,9 @@ The results of running the tool on these benchmarks are available in the folders
 
 To reproduce the results use the following scripts:
 
-    `cd ~/leon/results` 
-    `mkdir steps; cd steps`
-    `../../scripts/steps.sh`
+    $ cd ~/leon/results
+    $ mkdir steps; cd steps
+    $ ../../scripts/steps.sh
 
 For alloc results replace `steps` by `alloc` in the above commands. The script will take about half-an-hour (depending on the VM configuration) to verify all benchmarks. Below we describe the results of the tool with an illustration.
 
@@ -81,6 +81,16 @@ Most of the constants in the bounds inferred by the tool will be identical to th
 
 ## Measuring the accuracy of the inferred bounds - Reproducing the results of Figure 10
 
-To run the experiments whose results are shown in Figure 10, the benchmarks need to be instrumented to track the resources, and have to run with inputs that execise the worst-case behavior. Our tool can be used to output instrumented programs using the `--instrument` option. However, the instrumented benchmarks need to be linked to the Leon library, and have to be provided with a main function. All such instrumented benchmarks with an executable `main` function can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (similar for `alloc`).  The `main` function run the benchmark on many inputs, compute the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we elucidate the procedure for running the benchamrks and computing the averages described in Figure 10.
+To run the experiments whose results are shown in Figure 10, the benchmarks need to be instrumented to track the resources, and have to be run with inputs that execise the worst-case behavior. Our tool can be used to output instrumented programs using the `--instrument` option.  All such instrumented benchmarks with an executable `main` function can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (similar for `alloc`).  The `main` function of each benchmark runs the benchmark on many inputs, compute the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we describe the procedure for reproducing the results of Figure 10.
+
+    $ cd ~/leon/RuntimeEvaluation/
+    $ sbt                            ## invokes the scala build tool
+    
+Once inside the `sbt` prompt, use the following comands
+
+    > run
+    
+
+
 
 
