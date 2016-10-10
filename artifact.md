@@ -32,12 +32,21 @@ For a short description of the above and other command line options use `leon --
     
 ## Running the Tool on all Benchmarks (Results of Figure 9)
 
-As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one having a `steps` bound, which denotes the number evaluation steps, and the `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
+As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and other with a `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
 the versions with alloc bounds can be found in `~/leon/testcases/benchmark/alloc`. 
-The results of running the tool on these benchmarks are available in 
-To run the tool on each of these benchmarks use the following scripts:
+The results of running the tool on these benchmarks are available in the folders inside the `~/leon/results/` directory, organized by date. The folder `~/leon/results/server-results` has the results of running the benchmarks on a machine with the configurations presented in the paper, and provides more accurate information regarding the time taken by verification/inference.
 
-1. cd results    
+To reproduce the results use the following scripts:
+
+1. cd `~/leon/results` 
+2. mkdir steps; cd steps
+3. ../../scripts/steps.sh
+
+For alloc results replace `steps` by `alloc` in the above commands. The script will take about 30min to run all benchmarks.
+Below we describe the results of the tool with an illustration.
+
+## Interpreting the Results of Tool (Reading *-stats.txt file)
+
 
 ### Reproducing Experiments on Programming Language Grammars
 
