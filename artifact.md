@@ -81,7 +81,7 @@ Most of the constants in the bounds inferred by the tool will be identical to th
 
 ## Measuring the accuracy of the inferred bounds - Reproducing the results of Figure 10
 
-To run the experiments whose results are shown in Figure 10, the benchmarks need to be instrumented to track the resources, and have to be run with inputs that execise the worst-case behavior. Our tool can be used to output instrumented programs using the `--instrument` option.  All such instrumented benchmarks with an executable `main` function can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (similar for `alloc`).  The `main` function of each benchmark runs the benchmark on many inputs, compute the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we describe the procedure for reproducing the results of Figure 10.
+To run the experiments whose results are shown in Figure 10, the benchmarks need to be instrumented to track the resources, and have to be run with inputs that execise the worst-case behavior. Our tool can be used to output instrumented programs using the `--instrument` option.  All such instrumented benchmarks with an executable `main` function can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (or alloc).  The `main` function of each benchmark runs the benchmark on many inputs, compute the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we describe the procedure for reproducing the results of Figure 10.
 
     $ cd ~/leon/RuntimeEvaluation/
     $ sbt                            ## invokes the scala build tool
@@ -89,6 +89,10 @@ To run the experiments whose results are shown in Figure 10, the benchmarks need
 Once inside the `sbt` prompt, use the following comands
 
     > run
+    
+Run will list all the avaiable benchmarks that can be executed. Choose the benchmark to run by typing its number in the listing. Runing each benchmark will produce a set of `.data` and `.report` files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/` (replace `steps` by `alloc` when appropriate). 
+To compute the summary statistics run the `StatsCollector` benchmark (listed as 1), which present the results of Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. We first describe the outputs of running each benchmark, and later the contents of the `Figure-10-data` file.
+
     
 
 
