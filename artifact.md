@@ -30,7 +30,7 @@ The following command can be used to run individual source files. However, to re
 The tool prints log messages and inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a file \<Classname\>-stats.txt in the directory from where the tool was run.
 For a short description of the above and other command line options use `leon --help`.
     
-## Running the tool on all benchmarks and reproducing results of Figure 9
+## Running the tool on all benchmarks - Reproducing results of Figure 9
 
 As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and other with a `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
 the versions with alloc bounds can be found in `~/leon/testcases/benchmark/alloc`. 
@@ -43,12 +43,11 @@ To reproduce the results use the following scripts:
     `mkdir steps; cd steps`
     `../../scripts/steps.sh`
 
-For alloc results replace `steps` by `alloc` in the above commands. The script will take about 30min to run all benchmarks.
-Below we describe the results of the tool with an illustration.
+For alloc results replace `steps` by `alloc` in the above commands. The script will take about half-an-hour (depending on the VM configuration) to verify all benchmarks. Below we describe the results of the tool with an illustration.
 
 #### Understanding the output of the tool 
 
-The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `StreamLibrary` and `Conqueue` have many other top-level functions that may be interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
+The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `Conqueue` and `StreamLibrary` have many other top-level functions that are interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
 
 #### Key functions for each benchmark
 
@@ -78,7 +77,10 @@ Most of the key-value pairs in the stats file present details on the internals o
 
 #### Minor Variances from Figure 9 Results
 
-Most of the constants in the bounds inferred by the tool will be identical to those presented in Figure 9 (for the key functions described above). Even though the tool tries its best effort to enforce determinism, minor variances across different runs of the program (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. We observed a deviance greater than +/- 1 (on an inferred constant) on two benchmarks: _PackratParsing_ and _Deque_ for  the `steps` resource. In both cases the tool computed a more precise bound than in Figure 9.
+Most of the constants in the bounds inferred by the tool will be identical to those presented in Figure 9 (for the key functions described above). Even though the tool tries its best effort to enforce determinism, minor variances across different runs of the program (although rare) is possible, especially for highly nonlinear bounds. This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, and the non-determinism in SMT solvers. We observed a deviance greater than +/- 1 on an inferred constant on two benchmarks: _PackratParsing_ and _Deque_ for  the `steps` resource. In both cases the tool computed a more precise bound than the one presented in Figure 9.
 
-## Measuring the accuracy of the inferred bounds - reproducing the results of Figure 10
+## Measuring the accuracy of the inferred bounds - Reproducing the results of Figure 10
+
+To run the experiments whose results are shown in Figure 10, the benchmarks need to be instrumented to track the resources, and have to run with inputs that execise the worst-case behavior. Our tool can be used to output instrumented programs using the `--instrument` option. However, the instrumented benchmarks need to be linked to the Leon library, and have to be provided with a main function. All such instrumented benchmarks with an executable `main` function can found in the folder: `~/leon/RuntimeEvaluation/src/main/scala/steps` (similar for `alloc`).  The `main` function run the benchmark on many inputs, compute the dynamic resource usage, and compares it against the statically inferred bounds as described in the section 5 of the paper. Below we elucidate the procedure for running the benchamrks and computing the averages described in Figure 10.
+
 
