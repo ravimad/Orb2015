@@ -20,15 +20,6 @@ please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html
 2. Extract the .vdi file from the archive
 3. Create a new virtual machine with the downloaded .vdi file as the hard disk. Our benchmarks are compute intensive. **We recommend at least 4GB of RAM and 2 Processing Cores for the virtual machine.** (Some benchmarks could timeout on lower configurations.)
 4. When started, the virtual machine should boot Xubuntu 16.04 Linux operating system and will automatically log into the account : *popl* (password: *popl*)
-
-## Running the tool on individual source files
-
-The following command can be used to run individual source files. However, to reproduce the results presented in the paper we recommend using the scripts described in the subsequent sections.
-
-    $ /home/popl/leon/leon --mem --benchmark --timeout=<secs> path-to-file
-
-The tool prints log messages and inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a file \<Classname\>-stats.txt in the directory from where the tool was run.
-For a short description of the above and other command line options use `leon --help`.
     
 ## Running the tool on all benchmarks - Reproducing results of Figure 9
 
