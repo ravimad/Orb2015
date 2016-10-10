@@ -23,7 +23,7 @@ please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html
 
 ## Running the tool on individual source files
 
-The following command can be used to run individual source files. However, to reproduce the results we recommend using the scripts decribed in the subsequent sections.
+The following command can be used to run individual source files. However, to reproduce the results presented in the paper we recommend using the scripts described in the subsequent sections.
 
     $ /home/popl/leon/leon --mem --benchmark --timeout=<secs> path-to-file
 
@@ -32,22 +32,22 @@ For a short description of the above and other command line options use `leon --
     
 ## Running the tool on all benchmarks - Reproducing results of Figure 9
 
-As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and other with a `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
-the versions with alloc bounds can be found in `~/leon/testcases/benchmark/alloc`. 
-Each benchmark has in its header a breif description and references to the algorithm that is implemented.
-The results of running the tool on these benchmarks are available in the folders inside the `~/leon/results/` directory, organized by date. The folder `~/leon/results/server-results` has the results of running the benchmarks on a machine with the configurations presented in the paper, and provides more accurate information regarding the time taken by verification/inference.
+As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and another with a `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with `steps` bound can be found in `~/leon/testcases/benchmark/steps` and
+the ones with `alloc` bounds can be found in `~/leon/testcases/benchmark/alloc`. 
+Each benchmark has in its header a brief description (or pointers) to the algorithm that is implemented.
+The results of running the tool on these benchmarks are available in the folders inside the `~/leon/results/` directory, organized by date. The folder `~/leon/results/server-results` has the results of running the benchmarks on a machine with the configurations presented in the paper, and provides more accurate data for the time taken by tool on a benchmark.
 
-To reproduce the results use the following scripts:
+To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the following scripts:
 
     $ cd ~/leon/results
     $ mkdir steps; cd steps
     $ ../../scripts/steps.sh
 
-For alloc results replace `steps` by `alloc` in the above commands. The script will take about half-an-hour (depending on the VM configuration) to verify all benchmarks. Below we describe the results of the tool with an illustration.
+To infer the `alloc` bounds of the benchmarks, replace `steps` by `alloc` in the above commands. The script will take about half-an-hour (depending on the VM configuration) to verify all benchmarks. 
 
 #### Understanding the output of the tool 
 
-The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `Conqueue` and `StreamLibrary` have many other top-level functions that are interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
+Running the script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs, and has all the  bounds inferred for every function (that has a template) in the benchmark. Note that Figure 9 of the paper shows only the bounds inferred for a couple of functions in each benchmark (for each resource), whereas the `-stats` file has an entry for every function. For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and constitute the top-level bounds. (Nonetheless, benchmarks like `Conqueue` and `StreamLibrary` have many other top-level functions that are interesting.) Reviewers may restrict their attention to these functions in all of the evaluations/results that follow.
 
 #### Key functions for each benchmark
 
