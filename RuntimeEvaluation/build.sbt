@@ -1,4 +1,4 @@
-name := “RuntimeEvaluation”
+name := "RuntimeEvaluation"
 
 version := "1.0"
 
@@ -17,5 +17,3 @@ scalaSource in Compile := baseDirectory.value / "src"
 //scalacOptions ++= Seq("-optimise")
 
 //libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.11.5"
-
-//excludeFilter in scalaSource := HiddenFileFilter || "*backup*" || "*alloc*"  || "*outdated*"
