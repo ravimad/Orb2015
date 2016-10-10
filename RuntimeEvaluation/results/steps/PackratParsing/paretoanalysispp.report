@@ -1,0 +1,12 @@
+Statically inferred formula: 61*i + 58
+
+Reducing coeff 0 starting from 58
+Lowest possible value for the coefficient is -97
+Pareto optimal template: 61*i + -97
+First counter-example for 61*i + -98 is at the point 10
+
+Reducing coeff 1 starting from 61
+Lowest possible value for the coefficient is 47
+Pareto optimal template: 47*i + 58
+First counter-example for 46*i + 58 is at the point 20
+

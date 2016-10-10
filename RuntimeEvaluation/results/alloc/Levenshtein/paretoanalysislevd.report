@@ -1,0 +1,22 @@
+Statically inferred formula: 2*i**2 + 2*i + 2*i + 3
+
+Reducing coeff 0 starting from 3
+Lowest possible value for the coefficient is 3
+Pareto optimal template: 2*i**2 + 2*i + 2*i + 3
+First counter-example for 2*i**2 + 2*i + 2*i + 2 is at the point 0
+
+Reducing coeff 1 starting from 2
+Lowest possible value for the coefficient is 2
+Pareto optimal template: 2*i**2 + 2*i + 2*i + 3
+First counter-example for 2*i**2 + 2*i + 1*i + 3 is at the point 1
+
+Reducing coeff 2 starting from 2
+Lowest possible value for the coefficient is 2
+Pareto optimal template: 2*i**2 + 2*i + 2*i + 3
+First counter-example for 2*i**2 + 1*i + 2*i + 3 is at the point 1
+
+Reducing coeff 3 starting from 2
+Lowest possible value for the coefficient is 2
+Pareto optimal template: 2*i**2 + 2*i + 2*i + 3
+First counter-example for 1*i**2 + 2*i + 2*i + 3 is at the point 1
+

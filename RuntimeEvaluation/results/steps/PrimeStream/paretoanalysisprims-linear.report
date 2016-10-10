@@ -1,0 +1,12 @@
+Statically inferred formula: 15*n + -18
+
+Reducing coeff 0 starting from -18
+Lowest possible value for the coefficient is -18
+Pareto optimal template: 15*n + -18
+First counter-example for 15*n + -19 is at the point 2
+
+Reducing coeff 1 starting from 15
+Lowest possible value for the coefficient is 15
+Pareto optimal template: 15*n + -18
+First counter-example for 14*n + -18 is at the point 2
+

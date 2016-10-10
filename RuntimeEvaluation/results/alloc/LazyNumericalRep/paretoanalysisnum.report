@@ -1,0 +1,7 @@
+Statically inferred formula: 15
+
+Reducing coeff 0 starting from 15
+Lowest possible value for the coefficient is 15
+Pareto optimal template: 15
+First counter-example for 14 is at the point 3
+

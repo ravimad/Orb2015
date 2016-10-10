@@ -1,0 +1,7 @@
+Statically inferred formula: 78
+
+Reducing coeff 0 starting from 78
+Lowest possible value for the coefficient is 35
+Pareto optimal template: 35
+First counter-example for 34 is at the point 6
+

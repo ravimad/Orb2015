@@ -1,0 +1,12 @@
+Statically inferred formula: 6*n + -11
+
+Reducing coeff 0 starting from -11
+Lowest possible value for the coefficient is -11
+Pareto optimal template: 6*n + -11
+First counter-example for 6*n + -12 is at the point 2
+
+Reducing coeff 1 starting from 6
+Lowest possible value for the coefficient is 6
+Pareto optimal template: 6*n + -11
+First counter-example for 5*n + -11 is at the point 2
+

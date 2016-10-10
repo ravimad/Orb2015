@@ -1,0 +1,12 @@
+Statically inferred formula: 10*i + 10
+
+Reducing coeff 0 starting from 10
+Lowest possible value for the coefficient is -23
+Pareto optimal template: 10*i + -23
+First counter-example for 10*i + -24 is at the point 10
+
+Reducing coeff 1 starting from 10
+Lowest possible value for the coefficient is 7
+Pareto optimal template: 7*i + 10
+First counter-example for 6*i + 10 is at the point 10
+
