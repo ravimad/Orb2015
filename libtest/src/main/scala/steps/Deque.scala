@@ -397,7 +397,7 @@ object Deque {
     val termsSize = 0 // number of terms (i.e monomials) in the template
     def getTermsForPoint(i: BigInt): scalaList[BigInt] = scalaList()
     def inputFromPoint(i: Int) = {
-      val len = 3*(1 << (i - 1))
+      val len = 3*(1 << i)
       var rtd = emptytime[BigInt]()._1
       for (i <- 0 until (len + 1)) {
         rtd = constime[BigInt](BigInt(0), rtd)._1
@@ -408,7 +408,6 @@ object Deque {
     val filePrefix: String
     val points = (1 to 15)
     val concreteInstFun: Queue2[BigInt] => BigInt
-
   }
   object ConsContext extends RunContext {
     override def coeffs = scalaList[BigInt](535)

@@ -116,52 +116,71 @@ object PrimeStream {
   /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](28, 16) //from lower to higher-order terms
-  def coeffNames = List("constant", "n*n") // names of the coefficients
-  val termsSize = 1 // number of terms (i.e monomials) in the template
-  def getTermsForPoint(n: BigInt) = scalaList(n * n) // terms depend only on n here, but may in general depend on many variables
-  def inputFromPoint(i: Int) = i
-  val dirname = "steps/PrimeStream"
-  val filePrefix = "prims"
-  val points = (2 to 100 by 5) ++ (100 to 1000 by 100) //++ (1000 to 10000 by 1000)
-  val concreteInstFun = (n: BigInt) => primesUntilNtime(n)._2
-  
+  abstract class RunContext {
+    def coeffs: scalaList[BigInt] //from lower to higher-order terms
+    def coeffNames: List[String] 
+    val termsSize = 1 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(n: BigInt): scalaList[BigInt] 
+    def inputFromPoint(i: Int) = i
+    val dirname = "steps/PrimeStream"
+    val filePrefix: String
+    val points = (2 to 100 by 5) ++ (100 to 1000 by 100)
+    val concreteInstFun = (n: BigInt) => primesUntilNtime(n)._2
+    val clearCache: Boolean
+  }
+  object QuadContext extends RunContext {
+    override def coeffs = scalaList[BigInt](28, 16)
+    override def coeffNames = List("constant", "n*n") // names of the coefficients
+    override def getTermsForPoint(n: BigInt): scalaList[BigInt] = scalaList(n * n)
+    override val filePrefix = "prims-quad"
+    override val clearCache: Boolean = true
+  }
+
+  /**
+   * Here, the primes is continually queried without clearing the cache.
+   */
+  object LinContext extends RunContext {
+    override def coeffs = scalaList[BigInt](-18, 15)
+    override def coeffNames = List("constant", "n") // names of the coefficients
+    override def getTermsForPoint(n: BigInt): scalaList[BigInt] = scalaList(n)
+    override val filePrefix = "prims-linear"
+    override val clearCache: Boolean = false
+  }
+  val ctxts: scalaList[RunContext] = scalaList(QuadContext, LinContext)
   /**
    * Benchmark agnostic helper functions
    */
-  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
-    coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
-  }          
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
-  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
-    template(coeffs, terms)
-  } 
-
-  def main(args: Array[String]): Unit = {    
+  def benchmark(ctx: RunContext) {
+    import ctx._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
-    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
     points.foreach { i =>
-      println("Processing input: "+i)
-       val input = inputFromPoint(i)            
-       ops += concreteOps(input)
-       // compute the static bound
-       val terms = getTermsForPoint(i)
-       orb += boundForInput(terms)  
-       terms.zipWithIndex.foreach { 
-        case (term, i) => termsforInp(i) += term 
+      println("Processing input: " + i)
+      if(clearCache)
+        leon.mem.clearMemo()
+      val input = inputFromPoint(i)
+      ops += concreteOps(input)
+      // compute the static bound
+      val terms = getTermsForPoint(i)
+      orb += boundForInput(terms)
+      terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
-       //inputfori += //{BigInt(i*i)}
-       // We should not clear the cache to measure this
-       // orb2 :+= {15*i - 18}     
-       leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>        
+      points.map { i =>
         computeTemplate(l, getTermsForPoint(i))
       }.to[scalaList]
     }
@@ -171,7 +190,11 @@ object PrimeStream {
       dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
-  }  
+  }
+
+  def main(args: Array[String]): Unit = {
+    ctxts.foreach(benchmark)
+  }
 }
 
 object Stream {
