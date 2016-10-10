@@ -39,9 +39,9 @@ The results of running the tool on these benchmarks are available in the folders
 
 To reproduce the results use the following scripts:
 
-1. cd `~/leon/results` 
-2. mkdir steps; cd steps
-3. ../../scripts/steps.sh
+    `cd ~/leon/results` 
+    `mkdir steps; cd steps`
+    `../../scripts/steps.sh`
 
 For alloc results replace `steps` by `alloc` in the above commands. The script will take about 30min to run all benchmarks.
 Below we describe the results of the tool with an illustration.
