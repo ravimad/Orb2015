@@ -83,7 +83,7 @@ Once inside the `sbt` prompt, use the following comands
 
     > run
     
-The `run` command will list all the avaiable benchmarks that can be executed. Choose the benchmark to run by typing its number in the listing. Runing each benchmark will produce a set of `.data` and `.report` files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/` (replace `steps` by `alloc` when appropriate). 
+The `run` command will list all the avaiable benchmarks that can be executed. Choose the benchmark to run by entering its index. Running each benchmark will produce a set of `.data` and `.report` files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/` (`steps` can be replaced by `alloc`). 
 The content of these files are described shortly.
 
 To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed as 1), which outputs the averages shown in Figure 10 to a file `~/RuntimeEvaluation/Figure-10-data`. 
