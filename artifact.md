@@ -25,7 +25,6 @@ please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html
 
 As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and another with a `alloc` resource bound, which denotes the number of heap-allocated objects. The version with `steps` bound can be found in `~/leon/testcases/benchmark/steps` and
 the ones with `alloc` bounds can be found in `~/leon/testcases/benchmark/alloc`. 
-Each benchmark has in its header a brief description (or pointers) to the algorithm that is implemented.
 The results of running the tool on these benchmarks are available in the folders inside the `~/leon/results/` directory. The folder `~/leon/results/server-results` has the results of running the benchmarks on a machine with the configurations presented in the paper, and provides more accurate data for the time taken by tool on a benchmark.
 
 To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the following scripts:
