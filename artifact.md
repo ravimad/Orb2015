@@ -34,6 +34,7 @@ For a short description of the above and other command line options use `leon --
 
 As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions one with a `steps` bound, which denotes the number evaluation steps, and other with a `alloc` resource bound, which denotes the number of heap-allocated objects. The versions with steps bound can be found in `~/leon/testcases/benchmark/steps` and
 the versions with alloc bounds can be found in `~/leon/testcases/benchmark/alloc`. 
+Each benchmark has in its header a breif description and references to the algorithm that is implemented.
 The results of running the tool on these benchmarks are available in the folders inside the `~/leon/results/` directory, organized by date. The folder `~/leon/results/server-results` has the results of running the benchmarks on a machine with the configurations presented in the paper, and provides more accurate information regarding the time taken by verification/inference.
 
 To reproduce the results use the following scripts:
@@ -47,13 +48,34 @@ Below we describe the results of the tool with an illustration.
 
 ## Interpreting the Results of Tool (Reading *-stats.txt file)
 
+The script produces a `<benchmarkname>-stats.txt` and `<benchmarkname>.out`  file for each benchmark. The `-stats` file has several statistics in the form of key, value pairs. The file also has all the  bounds inferred for the functions in the benchmark.Figure 9 shows only a couple of templates for each benchmark (for each resource). For the benefit of the reviewers, below we list the functions of the benchmarks whose bounds were presented in Figure 9. The bounds inferred for these functions are most relevant and hence are listed in Figure 9.
 
-### Reproducing Experiments on Programming Language Grammars
+### Key functions for each benchmark
 
-The following are the instructions for reproducing the results presented in Figures 14 and 15. As described in the paper, Fig. 14 reports the number of counter-examples for equivalence that were discovered by the tool in one minute on two different grammars for the same language. To generate these results, start a new shell and enter the following commands:
+1. LazySelectionSort - `kthMin` 
+2. PrimeStream - `PrimesUntilN`
+3. Fibonacci Stream - `nthFib`
+4. Hamming Stream - `nthHammingNumber`
+5. 
+4. Bottom-up merge-sort - `kthMin`
+5. Conqueue - `pushLeftAndPay` and `concatNonEmpty`
+6. 
 
-1. cd /home/paper191/grammar-web
-2. sbt "runMain engine.Main -equivExpts ./benchmarks"
+We only describe the important entries of the file. 
+
+* _\#EBNF-rules_ : number of productions in the input grammar. (Note that the input grammar is allowed to be in EBNF form).
+* _\#rules_ and _\#nonterminals_ : number of productions and non-terminals in the grammar after conversion to BNF form.
+* _WordGenCalls_ : number of words enumerated. When sampling words, this field denotes the number of samples generated.
+* _EquivCExs_ : number of counter-examples that were discovered 
+* _TimeWithoutGC_ : the wall clock time taken by the tool from the start to the end, excluding the time spent in garbage collection.
+* _GCTime_ : time spent in garbage collection. 
+* _PeakMemUsageInMB_ : Peak virtual memory usage in mega bytes.
+* _AntlrParseCalls_ : number of times the Antlr v4 parser was invoked.
+* _AntlrEquivCExs_ : number of counter-examples for equivalence discovered when Antlr parser was used to parse the enumerated words. 
+* _CYKParseCalls_ : number of times the CYK parser was invoked. In experiments that compare programming language grammars, the CYK parser is invoked once at the end to verify the output of the Antlr parser. (Specifically, to verify whether the string rejected by the Antlr parser is not parsable.)
+* _Avg.CYKParseTime_ and _Max.CYKParseTime_ : average and maximum time taken to parse a word using the CYK parser.
+* _Avg.AntlrParseTime_ and _Max.AntlrParseTime_ : average and maximum time taken to parse a word using the Antlr parser.
+* _Avg.time-per-call_ and _Max.time-per-call_ : average and maximum time taken to generate one word using the enumerators. When the enumerators are used in sampling mode, this field corresponds to the average and maximum time taken to generate a sample.
 
 This will take about 300 seconds to complete. For every pair of grammars that are compared two files will be generated (in the same directory): a ".log" file and a ".stats" file. The log file will list all the counter-examples that were found, and the stats file is a dump of all the statistics that were collected. Two important statistics are "EquivCExs" which denotes the total number of counter-examples found, and "TimeWithoutGC" that denotes the time taken by the tool excluding the garbage collection time. (TimeWithoutGC should be ~1min for this experiment). See below for a brief explanation of all the fields of the statistics file.
 
