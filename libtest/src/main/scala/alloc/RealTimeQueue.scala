@@ -155,7 +155,7 @@ object RealTimeQueue {
       }
       rtq
     }
-    val dirname = "alloc/RealallocQueue"
+    val dirname = "alloc/RealTimeQueue"
     val filePrefix: String
     val points = (5 to 15)
     val concreteInstFun: Queue2[BigInt] => BigInt

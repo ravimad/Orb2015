@@ -123,7 +123,7 @@ object PrimeStream {
   def inputFromPoint(i: Int) = i
   val dirname = "steps/PrimeStream"
   val filePrefix = "prims"
-  val points = (2 to 100 by 5) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+  val points = (2 to 100 by 5) ++ (100 to 1000 by 100) //++ (1000 to 10000 by 1000)
   val concreteInstFun = (n: BigInt) => primesUntilNtime(n)._2
   
   /**

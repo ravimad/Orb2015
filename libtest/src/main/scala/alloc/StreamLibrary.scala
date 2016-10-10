@@ -252,10 +252,10 @@ object StreamLibrary {
   def getTermsForPoint(i: BigInt) = scalaList(i)
   def inputFromPoint(i: Int) = {
     val input = {
-      (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-        Cons(BigInt(0), f)
-      }
-    }
+         (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+           Cons(i - n + 1, f)  
+         }
+       }
     input
   }
   val dirname = "alloc/StreamLibrary"
