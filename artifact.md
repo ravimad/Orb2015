@@ -27,7 +27,7 @@ As shown in Figure 9 of the paper, a total of 17 benchmarks are used in the eval
 the ones with `alloc` bounds can be found in `~/leon/testcases/benchmark/alloc`. 
 The results of running the tool on these benchmarks are available in the folders inside the `~/leon/results/` directory. The folder `~/leon/results/server-results` has the results of running the benchmarks on a machine with the configurations presented in the paper, and provides more accurate data for the time taken by tool on a benchmark.
 
-To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the following scripts:
+To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the following commands:
 
     $ cd ~/leon/results
     $ mkdir steps; cd steps
