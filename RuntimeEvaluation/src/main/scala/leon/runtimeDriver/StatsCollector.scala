@@ -16,14 +16,19 @@ object StatsCollector {
         "LCS", "Levenshtein", "HammingMemoized", "WeightedScheduling",
         "Knapsack", "PackratParsing", "Viterbi"
     )
+  val pw = new PrintWriter(new File("Figure-10-data"))
   def main(args: Array[String]): Unit = {
     benchNames.foreach { bn =>
       println("Stats for benchmark: " + bn)
+      pw.println("Stats for benchmark: " + bn)
       println("Steps: ")
+      pw.println("Steps: ")
       resourceStats(stepsdir + bn)
       println("Alloc: ")
+      pw.println("Alloc: ")
       resourceStats(allocdir + bn)
     }
+    pw.close()
   }
 
   def resourceStats(benchdirName: String) = {
@@ -34,6 +39,7 @@ object StatsCollector {
     //println("All dynamic files: "+dynamic.mkString(","))
     val dynVstatic = meanRatio(dynamic)
     println("dynamic / static * 100: " + dynVstatic.round)
+    pw.println("dynamic / static * 100: " + dynVstatic.round)
     // (b) compute pareto optimal stats
     val paretoData = benchdir.listFiles().filter { fl =>
       val name = fl.getName()
@@ -42,6 +48,7 @@ object StatsCollector {
     //println("All pareto data files: "+paretoData.mkString(","))
     val paretoVsStatic = meanRatio(paretoData)
     println("optimal / static * 100: " + paretoVsStatic.round)
+    pw.println("optimal / static * 100: " + paretoVsStatic.round)
   }
 
   def meanRatio(files: Array[File]) = {
