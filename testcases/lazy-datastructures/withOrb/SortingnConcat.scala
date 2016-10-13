@@ -65,7 +65,7 @@ object SortingnConcatBuggy {
       case _ =>
         SNil()
     }
-  } ensuring (res => res.size == l.size && steps <= ? * l.size + ?)
+  } ensuring (res => res.size == l.size && steps <= 15 * l.size + 9)
 
   def concat(l1: List[BigInt], l2: LList): LList = {
     l1 match {

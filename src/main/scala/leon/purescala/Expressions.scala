@@ -145,7 +145,7 @@ object Expressions {
     */
   case class Let(binder: Identifier, value: Expr, body: Expr) extends Expr {
     val getType = {
-      // We can't demand anything sticter here, because some binders are
+      // We can't demand anything stricter here, because some binders are
       // typed context-wise
       if (typesCompatible(value.getType, binder.getType))
         body.getType
@@ -191,6 +191,42 @@ object Expressions {
       }
       instantiateType(fdret, extraMap)
     }
+  }
+
+  case class ArrayForall(array: Expr, from: Expr, to: Expr, body: Expr) extends Expr {
+    require(body.getType match {
+      case FunctionType(_, BooleanType) => true
+      case _ => false
+    })
+    val getType = BooleanType
+  }
+  case class ArrayExists(array: Expr, from: Expr, to: Expr, body: Expr) extends Expr {
+    require(body.getType match {
+      case FunctionType(_, BooleanType) => true
+      case _ => false
+    })
+    val getType = BooleanType
+  }
+
+  case class BoundedForall(from: Expr, to: Expr, body: Expr) extends Expr {
+    val intType = from.getType
+    require((intType == IntegerType || intType == Int32Type) && from.getType == to.getType)
+    require(body.getType match {
+      case FunctionType(Seq(IntegerType), BooleanType) => intType == IntegerType
+      case FunctionType(Seq(Int32Type), BooleanType) => intType == Int32Type
+      case _ => false
+    })
+    val getType = BooleanType
+  }
+  case class BoundedExists(from: Expr, to: Expr, body: Expr) extends Expr {
+    val intType = from.getType
+    require((intType == IntegerType || intType == Int32Type) && from.getType == to.getType)
+    require(body.getType match {
+      case FunctionType(Seq(IntegerType), BooleanType) => intType == IntegerType
+      case FunctionType(Seq(Int32Type), BooleanType) => intType == Int32Type
+      case _ => false
+    })
+    val getType = BooleanType
   }
 
   /** $encodingof the '''this''' keyword

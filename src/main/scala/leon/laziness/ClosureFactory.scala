@@ -247,7 +247,6 @@ class ClosureFactory(p: Program, funsManager: FunctionsManager) {
    * Given a closure computes a lambda for the closure by invoking the target function
    */
   val caseClassToOp = opToCaseClass map { case (k, v) => v -> k }
-
   def lambdaOfClosure(cl: CaseClassDef) = caseClassToOp.get(cl).map(_.l)
   def targetOfClosure(cl: CaseClassDef) = caseClassToOp.get(cl) match {
     case Some(canonl) =>
@@ -258,6 +257,9 @@ class ClosureFactory(p: Program, funsManager: FunctionsManager) {
 
   def lambdaOfClosureByName(clname: String): Option[Lambda] =
     caseClassToOp.find(_._1.id.name == clname).map(_._2.l)
+
+  /*def lambdaOfClosureByName(clname: String): Option[Lambda] =
+    caseClassToOp.find(_._1.id.name == clname).map(_._2.l)*/
 
   /**
    * Computes a closure for a lambda application

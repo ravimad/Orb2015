@@ -20,9 +20,9 @@ import leon.utils._
 
 import cats.data.Xor
 
-import edu.tum.cs.isabelle._
-import edu.tum.cs.isabelle.api._
-import edu.tum.cs.isabelle.setup._
+import info.hupel.isabelle._
+import info.hupel.isabelle.api._
+import info.hupel.isabelle.setup._
 
 object IsabelleEnvironment {
 
@@ -60,8 +60,12 @@ object IsabelleEnvironment {
       case Xor.Right(setup) => setup
     }
 
+    val resources = Resources.dumpIsabelleResources() match {
+      case Xor.Left(reason) => context.reporter.fatalError(s"Resource dump failed: ${reason.explain}")
+      case Xor.Right(resources) => resources
+    }
+
     val system = setup.flatMap { setup =>
-      val resources = Resources.dumpIsabelleResources()
       val config = resources.makeConfiguration(Nil, "Leon")
 
       setup.makeEnvironment.flatMap { env =>
@@ -114,27 +118,31 @@ object IsabelleEnvironment {
       yield
         new Functions(context, program, t, funs, s)
 
-    functions.flatMap(_.data).foreach { _ =>
-      if (dump.isEmpty)
-        system.foreach { sys =>
-          sys.invoke(Report)(()).assertSuccess(context).foreach { report =>
+    val output =
+      for {
+        s <- system
+        f <- functions
+        d <- f.data
+      }
+      yield {
+        if (dump.isEmpty)
+          s.invoke(Report)(()).assertSuccess(context).map { report =>
             context.reporter.debug(s"Report for $theory ...")
             report.foreach { case (key, value) =>
-              context.reporter.debug(s"$key: ${canonicalizeOutput(sys, value)}")
+              context.reporter.debug(s"$key: ${canonicalizeOutput(s, value)}")
             }
           }
-        }
-      else
-        system.flatMap(_.invoke(Dump)(())).assertSuccess(context).foreach { output =>
-          context.reporter.debug(s"Dumping theory sources to $dump ...")
-          val path = Files.createDirectories(Paths.get(dump))
-          output.foreach { case (name, content) =>
-            val writer = new FileWriter(path.resolve(s"$name.thy").toFile())
-            writer.write(content)
-            writer.close()
+        else
+          s.invoke(Dump)(()).assertSuccess(context).map { output =>
+            context.reporter.debug(s"Dumping theory sources to $dump ...")
+            val path = Files.createDirectories(Paths.get(dump))
+            output.foreach { case (name, content) =>
+              val writer = new FileWriter(path.resolve(s"$name.thy").toFile())
+              writer.write(content)
+              writer.close()
+            }
           }
-        }
-    }
+      }
 
     for {
       s <- system
@@ -142,6 +150,7 @@ object IsabelleEnvironment {
       f <- functions
       _ <- t.data
       _ <- f.data
+      _ <- output
     }
     yield new IsabelleEnvironment(context, program, t, f, s, funs)
   }

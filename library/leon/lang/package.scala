@@ -8,6 +8,8 @@ import scala.language.implicitConversions
 package object lang {
   import leon.proof._
 
+  @isabelle.typ(name = "Leon_Types.boolean_decorations")
+  @isabelle.constructor(name = "Leon_Types.boolean_decorations.Boolean_Decorations")
   implicit class BooleanDecorations(val underlying: Boolean) {
     @inline
     def holds : Boolean = {
@@ -75,6 +77,8 @@ package object lang {
   @library
   def decreases(rankFun: (BigInt, BigInt, BigInt, BigInt, BigInt)): Unit = { }
 
+  @isabelle.typ(name = "Leon_Types.specs_decorations")
+  @isabelle.constructor(name = "Leon_Types.specs_decorations.Specs_Decorations")
   implicit class SpecsDecorations[A](val underlying: A) {
     @ignore
     def computes(target: A) = {
@@ -91,6 +95,8 @@ package object lang {
     }
   }
 
+  @isabelle.typ(name = "Leon_Types.string_decorations")
+  @isabelle.constructor(name = "Leon_Types.string_decorations.String_Decorations")
   implicit class StringDecorations(val underlying: String) {
     @ignore @inline
     def bigLength() = BigInt(underlying.length)
@@ -119,12 +125,25 @@ package object lang {
     f(t._1) + mid + g(t._2)
   }
 
-  @extern @library
-  def print(x: String): Unit = {
-    scala.Predef.print(x)
-  }
-
   case class Mutable[T]()
   implicit def mutable[T] = new Mutable[T]
+
+  @ignore
+  def arrayForall[A](array: Array[A], pred: A => Boolean): Boolean = ???
+  @ignore
+  def arrayForall[A](array: Array[A], from: Int, to: Int, pred: A => Boolean): Boolean = ???
+  @ignore
+  def arrayExists[A](array: Array[A], pred: A => Boolean): Boolean = ???
+  @ignore
+  def arrayExists[A](array: Array[A], from: Int, to: Int, pred: A => Boolean): Boolean = ???
+
+  @ignore
+  def boundedForall(from: BigInt, to: BigInt, pred: BigInt => Boolean): Boolean = ???
+  @ignore
+  def boundedForall(from: Int, to: Int, pred: Int => Boolean): Boolean = ???
+  @ignore
+  def boundedExists(from: BigInt, to: BigInt, pred: BigInt => Boolean): Boolean = ???
+  @ignore
+  def boundedExists(from: Int, to: Int, pred: Int => Boolean): Boolean = ???
 
 }

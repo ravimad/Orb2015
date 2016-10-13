@@ -4,31 +4,31 @@ Resource Verification
 =====================
 
 Not only does Leon allow verification of correctness properties, it also supports establishing
-bounds on resources, such as time or memory usage, consumed by programs. 
+bounds on resources such as time or memory usage consumed by programs. 
 The sub-system of Leon that performs verification of resource bounds is called: *Orb*.
-It complements the Leon verifier by allowing users to specify and verify 
+It complements correctness verification by allowing users to specify and verify 
 upper bounds on resources consumed by programs. 
 
 
 Why Verify Resource Bounds?
 ---------------------------
 
-Statically proving bounds on resources such as time, and space consumed by softwares is considered too difficult 
-a task to accomplish due to the complexities of the hardware, and operating environments that 
-the modern day softwares are deployed on.
-This is true to an extent only if one wants to precisely estimate the resource usage in terms of the actual
-physical units such as wall-clock time or bytes.
-However, as shown by decades of research in theoretically computer science, it is possible to asses
-resource usage of programs using more abstract, algorithmic metrics that are fairly independent of the runtime
-infrastructure.
-These metrics often characterize the asymptotic behavior of the programs.
-What Leon provides you is a way to establish bounds on such algorithmic metrics. 
+Statically establishing bounds on resources such as time and space consumed by softwares
+is an important problem. 
+While it is desirable to compute resource usage in terms of physical units such as wall-clock time
+or bytes, this task is often dependent on the underlying hardware and operating environments.
+For these reasons, resource usage of programs are often assessed using more abstract, 
+algorithmic metrics that are fairly independent of the runtime infrastructure.
+These metrics helps establish the asymptotic behavior of the programs, and also can provide more concrete 
+information such as the number of instructions executed by a program in the worst care, 
+or the number of object allocated in heap. What Leon provides you is a way to establish bounds on 
+such algorithmic metrics. 
 For instance, you can state and prove that a function `sorting a list of integers using insertion sort 
 takes time quadratic in size of the list`.
-After all, most of the  development effort is spent on making implementations efficient, and now you can verify the 
-efficiency of your implementations!
+After all most of the  development effort is spent on making implementations efficient, and 
+now you can verify the efficiency of your implementations!
 
-The rest of this documentation presents an brief of verifying resource usage of programs using Leon. 
+The rest of this documentation presents a brief overview of verifying resource usage of programs using Leon. 
 More illustrations are available under the `Resourcebounds` section of `leon web <http://leon.epfl.ch>`_
 
 
@@ -36,7 +36,7 @@ Proving Abstract Bounds on Resources
 ------------------------------------
 
 Let us start by considering the function ``count`` shown below that decrements ``n`` until ``0``.
-The function takes time `O(n)`, if we consider subtraction of big integers as a constant time operation.
+The function takes time `O(n)`. (Subtraction of big integers is considered as a constant time operation.)
 This can be expressed in Leon as shown below:
 
 .. code-block:: scala
@@ -54,9 +54,9 @@ This can be expressed in Leon as shown below:
 
 Consider the postconditions of the ``count`` function.
 The postcondition uses a reserved keyword ``steps`` that refers to the number of steps in the evaluation of the function 
-``count`` for a given input, 
-Generally, it is equal to the number of primitive operations such as arithmetic, logical 
-operations performed by the function, and hence is an abstraction of the execution time.
+``count`` on a given input.
+Generally, it is equal to the number of primitive operations, such as arithmetic-logical 
+operations, performed by the function, and hence is an abstraction of the execution time.
 The question marks (``?``) represent unknown coefficients called *holes*, which needs to be inferred by 
 the system. 
 You will find that Leon is able to automatically infer values for the holes, and complete the bound
@@ -64,13 +64,13 @@ as ``steps <= 4 * n + 2``.
 This bound is guaranteed to hold for all executions of ``count`` invoked with any ``n``.
 
 Leon also *tries* to ensure that the inferred bounds are as strong as possible. That is, it tries to ensure that
-in the inferred bound, the coefficient of a term cannot be reduced without increasing the coefficients of the faster growing terms.
-However, the minimality of the inferred constants is only "best-effort", and not guaranteed. 
+in the inferred bound the coefficient of a term cannot be reduced without increasing the coefficients of the faster growing terms.
+However, the minimality of the inferred constants is only "best-effort" and not guaranteed. 
 
 Importing Inferred Bounds
 -------------------------
-The `leon web <http://leon.epfl.ch>`_ interface allows importing the inferred resource bounds and correctness invariants (if any),
-automatically into the program. To do so, click on a tick mark on the right pane, and choose `import all invariants`.
+The `leon web <http://leon.epfl.ch>`_ interface allows importing the inferred resource bounds and correctness invariants (if any)
+automatically into the program. To do so click on a tick mark on the right pane, and choose `import all invariants`.
 Once all invariants have been imported, the verification phase will get initiated, which may serve to cross check the results.
 
 
@@ -94,8 +94,8 @@ For instance, Leon will report a counter-example on the following code snippet: 
   }
 
 The display of the counter-example will consist of an input to the function ``count`` and an output.
-The output would be represented as a pair, where the first component refers
-to the output of the function, and the second component to its resource usage.
+The output would be represented as a pair where the first component refers
+to the output of the function and the second component to its resource usage.
 For the above code snippet, Leon would display the following message
 
 .. code-block:: scala
@@ -109,7 +109,7 @@ For the above code snippet, Leon would display the following message
 	(BigInt(0), BigInt(6))
 
 Here, ``BigInt(6)`` is the number of steps taken by the function ``count`` when the input is ``BigInt(1)``.
-Clearly, it is not less than 2, and hence violates the specification.
+Clearly, it is not less than 2 and hence violates the specification.
 This feature of Leon can be used to manually test the minimality of the bounds once they have been inferred.
 
 Using Correctness Properties to Establish Bounds
@@ -118,10 +118,11 @@ Using Correctness Properties to Establish Bounds
 Resource bounds can be stated in combination with other correctness properties. 
 In fact, sometimes the resource bounds themselves may depend on certain correctness properties.
 For example, consider the function ``reverse`` that reverses the elements in a list by calling ``append``.
-To upper bound the running time of ``reverse``, we need to know that  ``append`` takes time that is linear
-in the size of ``tl`` (which equals ``l.tail``). This holds because the size of list returned by ``reverse(tl)`` is equal to the size of ``tl``. 
-These relationships between the sizes of the input and output lists of ``reverse`` and ``append`` can be stated in their postconditions along
-with the resource bounds, and will be used during the verification of bounds.
+To upper bound the running time of ``reverse``, we need to know that the call ``append(reverse(tl), Cons(hd, Nil()))`` 
+in ``reverse`` takes time linear in the size of ``tl`` (which equals ``l.tail``). 
+To establish this we need two facts, (a) the function ``append`` takes time that is linear
+in the size of its first argument, (b)  the size of the list returned by ``reverse`` is equal to the size of the input list, which in turn requires that the sizes of the lists returned by ``append`` is  equal to sum of the sizes of the input lists.
+These relationships between the sizes of the input and output lists of ``reverse`` and ``append`` can be stated in their postconditions along with the resource bounds as shown below, and will be used during the verification of bounds.
 
 .. code-block:: scala
 
@@ -151,12 +152,12 @@ with the resource bounds, and will be used during the verification of bounds.
 	  } ensuring (res => size(res) == size(l) && steps <= ? *(size(l)*size(l)) + ?)
 	}
 
-As highlighted by this example, there could be deep inter-relationships between 
-the correctness properties, and resource bounds. 
+As highlighted by this example there could be deep inter-relationships between 
+the correctness properties and resource bounds. 
 These properties can be seamlessly combined in Leon. 
-Given enough correctness properties, Leon can establish resource bounds of complex programs 
+Given enough correctness properties Leon can establish resource bounds of complex programs 
 like *red-black tree*, *AVL tree*, *binomial heaps*, and many more. 
-Some of the benchmarks are available in leon web, others can be found in `testcases/orb-testcases/` directory.
+Some of the benchmarks are available in leon web, others can be found in ``testcases/orb-testcases/`` directory.
 
 Resources Supported
 -------------------
@@ -164,9 +165,9 @@ Resources Supported
 Leon currently supports the following resource bounds, which can be used in the *postcondition* of functions.
 Let `f` be a function. The following keywords can be used in its postcondition, and have the following meaning.
 
-* **steps** - Number of steps in the evaluation of the function on a given input. This is an abstraction of time taken by the function on a given input. 
-* **alloc** - Number of objects allocated in the heap by the function on a given input. This is an abstraction of heap memory usage
-* **stack** - Stack size in words (4 bytes) consumed by the function on a given input. This is an abstraction of stack memory usage
+* **steps** - Number of steps in the evaluation of the function on a given input. This is an abstraction of the time taken by the function on a given input.
+* **alloc** - Number of objects allocated in the heap by the function on a given input. This is an abstraction of heap memory usage.
+* **stack** - Stack size in words (4 bytes) consumed by the function on a given input. This is an abstraction of stack memory usage.
 * **depth** - The longest chain of data dependencies between the operations executed by the function on a given input. This is a measure of parallel execution time.
 * **rec**   - Number of recursive calls, including mutually recursive calls, executed by the function on a given input. This is similar to a loop count of a single loop. Note that calls to functions that do not belong to the same strongly-connected component (SCC) are not counted by this resource.		  
 
@@ -197,7 +198,7 @@ A common use case is shown below:
 	./leon --inferInv --minbounds=0 --solvers=orb-smt-z3 ./testcases/orb-testcases/timing/AVLTree.scala
 
 The option ``--inferInv`` invokes the resource verifier. The option ``--minbounds=0``
-instructs the verifier to minimize the bounds with a lower bound of 0 for the coefficients. 
+instructs the verifier to minimize the bounds using a lower bound of 0 for the coefficients. 
 The option ``--solvers=orb-smt-z3`` configures the verifier to use the SMT Z3 solver through the 
 SMTLIB interface to solve formulas that are generated during inference.
 This option is recommended if it is necessary to impose hard time limits on resource verification.
@@ -225,8 +226,7 @@ Common Pitfalls
 	    } ensuring(res => steps <= ? * n + ?)
 	  }
 
-	To prove a linear bound for ``countUntilN``, one should use either ``steps <= ? * (n - i) + ?`` or more generally, ``steps <= ? * n + ? * i + ?``
- 	
+	To prove a linear bound for ``countUntilN``, one should use either ``steps <= ? * (n - i) + ?`` or more generally ``steps <= ? * n + ? * i + ?``
 
 Limitations
 -----------
@@ -236,7 +236,6 @@ Unfortunately, certain features that are supported in correctness verification a
 verification as yet. Below are a set of features that are not supported currently.
 
 * `xlang` and mutable state
-* Higher-order functions and `lazy val`. (To be included in the next update).
 * Choose operations
 * Class invariants
 * Strings
@@ -250,13 +249,17 @@ For any questions, please consult  `Ravi Madhavan <http://lara.epfl.ch/~kandhada
 check the following publications that explain the underlying techniques.
 
 	* `Symbolic resource bound inference for functional programs <http://lara.epfl.ch/~kuncak/papers/MadhavanKuncak14SymbolicResourceBoundInferenceFunctionalPrograms.pdf>`_, by *Ravichandhran Madhavan* and *Viktor Kuncak*. Computer Aided Verification (CAV), 2014.
-	* `Verifying Resource Bounds of Programs with Lazy Evaluation and Memoization <https://infoscience.epfl.ch/record/215783>`_, by *Ravichandhran Madhavan*, *Sumith Kulal*, and *Viktor Kuncak*. EPFL Technical Report, 2016.
+	* `Verifying Resource Bounds of Programs with Lazy Evaluation and Memoization <https://infoscience.epfl.ch/record/215783>`_, by *Ravichandhran Madhavan*, *Sumith Kulal*, and *Viktor Kuncak*. EPFL Technical Report, 2016.	
 
 Contributors
 ------------
+
+Find below a list people who have contribtued to the resource verification sub-system `Orb`.
 
  **Contributor**, **Organization**, **Github Username**
 
 * Ravi Madhavan, EPFL, `ravimad`
 * Prateek Fegade (during 2015 Summer), IIT Bombay , `pratikfegade`
 * Sumith Kulal (during 2016 Summer), IIT Bombay, `sumith1896`
+
+Orb depends extensively on the rest of the code base of Leon. In particular, it relies on functionalities provided by the  Leon Frontend, Leon SMT Solver APIs, and Leon Abstract Syntax Trees. These are contributed, and maintained by many others who are not mentioned above.
