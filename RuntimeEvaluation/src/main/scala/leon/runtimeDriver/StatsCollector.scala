@@ -18,16 +18,30 @@ object StatsCollector {
     )
   val pw = new PrintWriter(new File("Figure-10-data"))
   def main(args: Array[String]): Unit = {
+    var stepsSum = 0L
+    var allocSum = 0L
+    var stepsOptSum = 0L
+    var allocOptSum = 0L
     benchNames.foreach { bn =>
       println("Stats for benchmark: " + bn)
       pw.println("Stats for benchmark: " + bn)
       println("Steps: ")
       pw.println("Steps: ")
-      resourceStats(stepsdir + bn)
+      val (c1, c2) = resourceStats(stepsdir + bn)
+      stepsSum += c1
+      stepsOptSum += c2
       println("Alloc: ")
       pw.println("Alloc: ")
-      resourceStats(allocdir + bn)
+      val (c3, c4) = resourceStats(allocdir + bn)
+      allocSum += c3
+      allocOptSum += c4
     }
+    pw.println("Steps Avg: ")
+    pw.println("dynamic / static * 100: "+(stepsSum / 17.0).round)
+    pw.println("optimal / static * 100: "+(stepsOptSum / 17.0).round)
+    pw.println("Alloc Avg: ")
+    pw.println("dynamic / static * 100: "+(allocSum / 17.0).round)
+    pw.println("optimal / static * 100: "+(allocOptSum / 17.0).round)
     pw.close()
   }
 
@@ -37,18 +51,19 @@ object StatsCollector {
     // (a) compute static Vs dynamic
     val dynamic = benchdir.listFiles().filter(fl => fl.getName().startsWith("dynamic"))
     //println("All dynamic files: "+dynamic.mkString(","))
-    val dynVstatic = meanRatio(dynamic)
-    println("dynamic / static * 100: " + dynVstatic.round)
-    pw.println("dynamic / static * 100: " + dynVstatic.round)
+    val dynVstatic = meanRatio(dynamic).round
+    println("dynamic / static * 100: " + dynVstatic)
+    pw.println("dynamic / static * 100: " + dynVstatic)
     // (b) compute pareto optimal stats
     val paretoData = benchdir.listFiles().filter { fl =>
       val name = fl.getName()
       name.startsWith("pareto") && name.endsWith(".data")
     }
     //println("All pareto data files: "+paretoData.mkString(","))
-    val paretoVsStatic = meanRatio(paretoData)
-    println("optimal / static * 100: " + paretoVsStatic.round)
-    pw.println("optimal / static * 100: " + paretoVsStatic.round)
+    val paretoVsStatic = meanRatio(paretoData).round
+    println("optimal / static * 100: " + paretoVsStatic)
+    pw.println("optimal / static * 100: " + paretoVsStatic)
+    (dynVstatic, paretoVsStatic)
   }
 
   def meanRatio(files: Array[File]) = {

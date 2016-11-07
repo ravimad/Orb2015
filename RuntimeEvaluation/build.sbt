@@ -10,7 +10,7 @@ fork in run := true
 
 scalaSource in Compile := baseDirectory.value / "src"
 
-javaOptions in run ++= Seq("-Xmx2G", "-Xms1G", "-Xss500M")
+javaOptions in run ++= Seq("-Xmx10G", "-Xms5G", "-Xss500M")
 
 //unmanagedJars in Compile += file("lib/macmemo.jar")
 

@@ -213,7 +213,7 @@ object Conqueue {
     }
     val dirname = "alloc/Conqueue"
     val filePrefix: String
-    val points = (0 to 19) // increase to 21 for more precision
+    val points = (1 to 20) // increase to 21 for more precision
     val concreteInstFun: Conqueue3[BigInt] => BigInt
   }
   object PushContext extends RunContext {

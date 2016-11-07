@@ -14,27 +14,21 @@ import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
 object Deque {
-  
+
   abstract class Stream2[T]
-  
-  
+
   case class SCons1[T](x440 : T, next63 : ValOrFun2[T]) extends Stream2[T]
-  
-  
+
   case class SNil1[T]() extends Stream2[T]
-  
-  
+
   abstract class ValOrFun2[T]
-  
-  
+
   case class Val1[T](x438 : Stream2[T]) extends ValOrFun2[T]
-  
-  
+
   case class Fun3[T](fun23 : () => (Stream2[T], BigInt)) extends ValOrFun2[T]
-  
-  
+
   case class Queue2[T](f225 : Stream2[T], lenf76 : BigInt, sf74 : Stream2[T], r237 : Stream2[T], lenr76 : BigInt, sr74 : Stream2[T])
-  
+
   @invstate
   def takeLazyalloc[T](n : BigInt, l : Stream2[T]): (Stream2[T], BigInt) = {
     val bd14 = {
@@ -65,7 +59,7 @@ object Deque {
     }
     (bd14._1, bd14._2)
   }
-  
+
   @invstate
   def revAppendalloc[T](l1 : Stream2[T], l2 : Stream2[T]): (Stream2[T], BigInt) = {
     val bd10 = l1 match {
@@ -90,7 +84,7 @@ object Deque {
     }
     (bd10._1, bd10._2)
   }
-  
+
   @invstate
   def dropalloc[T](n : BigInt, l : Stream2[T]): (Stream2[T], BigInt) = {
     val bd9 = if (n == BigInt(0)) {
@@ -120,7 +114,7 @@ object Deque {
     }
     (bd9._1, bd9._2)
   }
-  
+
   @invstate
   def takealloc[T](n : BigInt, l : Stream2[T]): (Stream2[T], BigInt) = {
     val bd15 = if (n == BigInt(0)) {
@@ -150,7 +144,7 @@ object Deque {
     }
     (bd15._1, bd15._2)
   }
-  
+
   @invstate
   def rotateRevalloc[T](r : Stream2[T], f : Stream2[T], a : Stream2[T]): (Stream2[T], BigInt) = {
     val bd12 = r match {
@@ -183,7 +177,7 @@ object Deque {
     }
     (bd12._1, bd12._2)
   }
-  
+
   @invstate
   def rotateDropalloc[T](r : Stream2[T], i : BigInt, f : Stream2[T]): (Stream2[T], BigInt) = {
     val bd6 = if (i < BigInt(2) || r == SNil1[T]()) {
@@ -218,7 +212,7 @@ object Deque {
     }
     (bd6._1, bd6._2)
   }
-  
+
   @invisibleBody
   def createQueuealloc[T](f : Stream2[T], lenf : BigInt, sf : Stream2[T], r : Stream2[T], lenr : BigInt, sr : Stream2[T]): (Queue2[T], BigInt) = {
     val bd2 = if (lenf > BigInt(1) + BigInt(2) * lenr) {
@@ -244,7 +238,7 @@ object Deque {
     }
     (bd2._1, bd2._2)
   }
-  
+
   @invisibleBody
   def forcealloc[T](tar : Stream2[T], htar : Stream2[T], other : Stream2[T], hother : Stream2[T]): (Stream2[T], BigInt) = {
     val bd = tar match {
@@ -268,7 +262,7 @@ object Deque {
     }
     (bd._1, bd._2)
   }
-  
+
   @invisibleBody
   def forceTwicealloc[T](q : Queue2[T]): ((Stream2[T], Stream2[T]), BigInt) = {
     val e253 = forcealloc[T](q.sf74, q.f225, q.r237, q.sr74)
@@ -278,12 +272,12 @@ object Deque {
     val e276 = forcealloc[T](e269._1, q.r237, q.f225, e325)
     ((e325, e276._1), ((e276._2 + e269._2) + e261._2) + e253._2)
   }
-  
+
   def emptyalloc[T](): (Queue2[T], BigInt) = {
     val ir66 = SNil1[T]()
     (Queue2[T](ir66, BigInt(0), ir66, ir66, BigInt(0), ir66), BigInt(2))
   }
-  
+
   def consalloc[T](x : T, q : Queue2[T]): (Queue2[T], BigInt) = {
     val e141 = forcealloc[T](q.sf74, q.f225, q.r237, q.sr74)
     val e419 = e141._1
@@ -291,12 +285,12 @@ object Deque {
     val e165 = createQueuealloc[T](SCons1[T](x, Val1[T](q.f225)), BigInt(1) + q.lenf76, e419, q.r237, q.lenr76, e149._1)
     (e165._1, ((BigInt(2) + e165._2) + e149._2) + e141._2)
   }
-  
+
   def tailalloc[T](q : Queue2[T]): (Queue2[T], BigInt) = {
     val e244 = tailSuballoc[T](q)
     (e244._1, e244._2)
   }
-  
+
   def tailSuballoc[T](q : Queue2[T]): (Queue2[T], BigInt) = {
     val bd3 = q.f225 match {
       case c24 @ SCons1(x, _) =>
@@ -327,14 +321,14 @@ object Deque {
     }
     (bd3._1, bd3._2)
   }
-  
+
   def reversealloc[T](q : Queue2[T]): (Queue2[T], BigInt) = (Queue2[T](q.r237, q.lenr76, q.sr74, q.f225, q.lenf76, q.sf74), BigInt(1))
-  
+
   def snoc[T](x: T, q: Queue2[T]): Queue2[T] = {
     //require(q.valid)
     reversealloc(consalloc(x, reversealloc(q)._1)._1)._1
   }
-  
+
   // def main(args: Array[String]): Unit = {
   //   import scala.util.Random
   //   val rand = Random
@@ -404,25 +398,25 @@ object Deque {
     }
     val dirname = "alloc/Deque"
     val filePrefix: String
-    val points = (1 to 15)
+    val points = (1 to 20)
     val concreteInstFun: Queue2[BigInt] => BigInt
 
   }
   object ConsContext extends RunContext {
     override def coeffs = scalaList[BigInt](50)
-    override val filePrefix = "deq-cons" // the abbrevation used in the paper  
+    override val filePrefix = "deq-cons" // the abbrevation used in the paper
     override val concreteInstFun = (rtq: Queue2[BigInt]) => consalloc[BigInt](BigInt(0), rtq)._2
   }
-  
+
   object ReverseContext extends RunContext {
     override def coeffs = scalaList[BigInt](1)
-    override val filePrefix = "deq-reverse" // the abbrevation used in the paper  
+    override val filePrefix = "deq-reverse" // the abbrevation used in the paper
     override val concreteInstFun = (rtd: Queue2[BigInt]) => reversealloc[BigInt](rtd)._2
   }
 
   object TailContext extends RunContext {
     override def coeffs = scalaList[BigInt](78)
-    override val filePrefix = "deq-tail" // the abbrevation used in the paper  
+    override val filePrefix = "deq-tail" // the abbrevation used in the paper
     override val concreteInstFun = (rtd: Queue2[BigInt]) => tailalloc[BigInt](rtd)._2
   }
   val ctxts: scalaList[RunContext] = scalaList(ConsContext, ReverseContext, TailContext)
@@ -469,12 +463,11 @@ object Deque {
       i = i + 1
     }
   }
-  
+
   def main(args: Array[String]): Unit = {
     ctxts.foreach(benchmark)
   }
 }
-
 
 object ValOrFun {
   def getalloc[T](thiss : Deque.ValOrFun2[T]): (Deque.Stream2[T], BigInt) = {

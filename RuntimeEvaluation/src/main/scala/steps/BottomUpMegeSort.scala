@@ -30,7 +30,7 @@ object BottomUpMergeSort {
 
   case class Stream2(lfun1: () => (LList2, BigInt))
 
-  @invisibleBody
+/*  @invisibleBody
   def constructMergeTreetime(l: List[BigInt], from: BigInt, to: BigInt): ((LList2, List[BigInt]), BigInt) = {
     val bd2 = l match {
       case Nil() =>
@@ -58,6 +58,33 @@ object BottomUpMergeSort {
         (mc5._1, BigInt(5) + mc5._2)
     }
     (bd2._1, bd2._2)
+  }*/
+
+ def constructMergeTreetime(l : List[BigInt], from : BigInt, to : BigInt): ((LList2, List[BigInt]), BigInt) = {
+    val bd21 = l match {
+      case Nil() =>
+        ((SNil1(), Nil[BigInt]()), BigInt(5))
+      case Cons(x, tail) =>
+        val mc18 = if (from == to) {
+          ((SCons1(x, Stream2(() => (SNil1(), BigInt(1)))), tail), BigInt(6))
+        } else {
+          val ir1 = (from + to) / BigInt(2)
+          val e177 = constructMergeTreetime(l, from, ir1)
+          val r158 = {
+            val (lside, midlist) = e177._1
+            val e183 = constructMergeTreetime(midlist, BigInt(1) + ir1, to)
+            val mc17 = {
+              val (rside, rest) = e183._1
+              val e186 = mergetime(lside, rside)
+              ((e186._1, rest), (BigInt(8) + e186._2) + e183._2)
+            }
+            (mc17._1, (BigInt(5) + mc17._2) + e177._2)
+          }
+          (r158._1, BigInt(7) + r158._2)
+        }
+        (mc18._1, BigInt(5) + mc18._2)
+    }
+    (bd21._1, bd21._2)
   }
 
   @invisibleBody
@@ -157,7 +184,7 @@ object BottomUpMergeSort {
   //    // points.foreach { i =>
   //    //   val input = {
   //    //     (1 to i).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-  //    //       Cons(n, f)  
+  //    //       Cons(n, f)
   //    //     }
   //    //   }
   //    //   ops :+= {54*i + 36*3*mylog(i - 1) + 22}
@@ -186,11 +213,11 @@ object BottomUpMergeSort {
   /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](22, 56, 36) //from lower to higher-order terms
+  def coeffs = scalaList[BigInt](22, 53, 36) //from lower to higher-order terms
   def coeffNames = List("constant", "n", "3*log (n-1)") // names of the coefficients
   val termsSize = 2 // number of terms (i.e monomials) in the template
   def getTermsForPoint(length: BigInt) = scalaList(length, 3 * mylog(length - 1))
-  def inputFromPoint(length: Int) = {    
+  def inputFromPoint(length: Int) = {
     val input = {
       (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
         Cons(n, f)
@@ -255,5 +282,3 @@ object BottomUpMergeSort {
   }
 
 }
-
-

@@ -14,37 +14,31 @@ import scala.collection.mutable.{ListBuffer => scalaList}
 
 object DigitObject {
   abstract class Digit
-  
+
   case class Zero() extends Digit
-  
+
   case class One() extends Digit
-  
+
 }
 
 object LazyNumericalRep {
-  
+
   abstract class NumList2
-  
-  
+
   case class Tip1() extends NumList2
-  
-  
+
   case class Spine1(head12 : DigitObject.Digit, rear21 : NumStream2) extends NumList2
-  
-  
+
   abstract class NumStream2
-  
-  
+
   case class Val1(x324 : NumList2) extends NumStream2
-  
-  
+
   case class Susp1(fun3 : () => (NumList2, BigInt)) extends NumStream2
-  
-  
+
   case class Number2(digs1 : NumStream2, schedule1 : List[NumStream2])
 
   def emptyNum = Number2(Val1(Tip1()), Nil())
-  
+
   @invisibleBody
   def inctime(xs : NumStream2): (NumList2, BigInt) = {
     val e26 = NumStream.gettime(xs)
@@ -60,7 +54,7 @@ object LazyNumericalRep {
     }
     (bd1._1, bd1._2)
   }
-  
+
   @invisibleBody
   @invstate
   def incLazytime(xs : NumStream2): (NumList2, BigInt) = {
@@ -85,7 +79,7 @@ object LazyNumericalRep {
     }
     (bd4._1, bd4._2)
   }
-  
+
   @invisibleBody
   def incNumtime(w : Number2): ((NumStream2, List[NumStream2]), BigInt) = {
     val e60 = inctime(w.digs1)
@@ -98,7 +92,7 @@ object LazyNumericalRep {
     }
     ((Val1(e108), ir6._1), (BigInt(4) + ir6._2) + e60._2)
   }
-  
+
   @invisibleBody
   def Paytime[T](q : NumStream2, scheds : List[NumStream2]): (List[NumStream2], BigInt) = {
     val bd5 = scheds match {
@@ -117,10 +111,10 @@ object LazyNumericalRep {
     }
     (bd5._1, bd5._2)
   }
-  
+
   @invisibleBody
   def incAndPaytime(w : Number2): (Number2, BigInt) = {
-    val e15 = incNumtime(w)
+    /*val e15 = incNumtime(w)
     val ir = {
       val (q, scheds) = e15._1
       ((q, scheds), BigInt(6) + e15._2)
@@ -128,7 +122,14 @@ object LazyNumericalRep {
     val ir7 = ir._1
     val ir13 = ir7._1
     val e22 = Paytime[BigInt](ir13, ir7._2)
-    (Number2(ir13, e22._1), (BigInt(4) + e22._2) + ir._2)
+    (Number2(ir13, e22._1), (BigInt(4) + e22._2) + ir._2)*/
+    val e32 = incNumtime(w)
+    val bd0 = {
+      val (q, scheds) = e32._1
+      val e35 = Paytime[BigInt](q, scheds)
+      (Number2(q, e35._1), (BigInt(7) + e35._2) + e32._2)
+    }
+    (bd0._1, bd0._2)
   }
 
 //  def main(args: Array[String]): Unit = {
@@ -168,12 +169,12 @@ object LazyNumericalRep {
     }
     val dirname = "steps/LazyNumericalRep"
     val filePrefix: String
-    val points = (3 to 18)
+    val points = (1 to 20)
     val concreteInstFun: Number2 => BigInt
   }
   object MainContext extends RunContext {
     override def coeffs = scalaList[BigInt](106)
-    override val filePrefix = "num" // the abbrevation used in the paper  
+    override val filePrefix = "num" // the abbrevation used in the paper
     override val concreteInstFun = (lazynum: Number2) => incAndPaytime(lazynum)._2
   }
   val ctxts: scalaList[RunContext] = scalaList(MainContext)
@@ -227,7 +228,7 @@ object LazyNumericalRep {
 }
 
 object NumList {
-  
+
 }
 
 object NumStream {
@@ -239,7 +240,7 @@ object NumStream {
     }
     (bd2._1, bd2._2)
   }
-  
+
   def gettime(thiss : LazyNumericalRep.NumStream2): (LazyNumericalRep.NumList2, BigInt) = {
     val bd7 = thiss match {
       case LazyNumericalRep.Susp1(f123) =>
@@ -259,5 +260,5 @@ object NumStream {
 }
 
 object Number {
-  
+
 }

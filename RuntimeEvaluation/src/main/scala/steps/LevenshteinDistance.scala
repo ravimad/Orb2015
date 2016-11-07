@@ -16,10 +16,10 @@ object LevenshteinDistance {
   var xstring = Array[BigInt]()
   @ignore
   var ystring = Array[BigInt]()
-  
+
   def lookuptime(i : BigInt, j : BigInt): ((BigInt, BigInt), BigInt) = (((xstring(i.toInt), ystring(j.toInt)), BigInt(1)) : ((BigInt, BigInt), BigInt))
-  
-  @invstate
+
+/*  @invstate
   @memoize
   @invisibleBody
   def levDisttime(i : BigInt, j : BigInt): (BigInt, BigInt) = {
@@ -82,8 +82,69 @@ object LevenshteinDistance {
       (el4._1, BigInt(2) + el4._2)
     }
     (bd._1, bd._2)
+  }*/
+
+  def levDisttime(i : BigInt, j : BigInt): (BigInt, BigInt) = {
+    val bd2 = if (i == BigInt(0)) {
+      (j, BigInt(2))
+    } else {
+      val el4 = if (j == BigInt(0)) {
+        (i, BigInt(2))
+      } else {
+        val e40 = lookuptime(i, j)
+        val el3 = {
+          val (xi, yj) = e40._1
+          val e137 = i - BigInt(1)
+          val e139 = j - BigInt(1)
+          val lr1 =  lookup[BigInt](List(4881, e137, e139))
+          val ir0 = if (lr1._1) {
+            (lr1._2, BigInt(3))
+          } else {
+            val e47 = levDisttime(e137, e139)
+            ( update[BigInt](List(4881, e137, e139), e47._1), BigInt(5) + e47._2)
+          }
+          val ir1 = if (xi == yj) {
+            (ir0._1, BigInt(2))
+          } else {
+            (BigInt(1) + ir0._1, BigInt(3))
+          }
+          val e143 = i - BigInt(1)
+          val lr2 =  lookup[BigInt](List(4881, e143, j))
+          val ir2 = if (lr2._1) {
+            (lr2._2, BigInt(2))
+          } else {
+            val e56 = levDisttime(e143, j)
+            ( update[BigInt](List(4881, e143, j), e56._1), BigInt(4) + e56._2)
+          }
+          val e147 = j - BigInt(1)
+          val lr3 =  lookup[BigInt](List(4881, i, e147))
+          val ir3 = if (lr3._1) {
+            (lr3._2, BigInt(2))
+          } else {
+            val e61 = levDisttime(i, e147)
+            ( update[BigInt](List(4881, i, e147), e61._1), BigInt(4) + e61._2)
+          }
+          val c16 = (ir2._1 >= ir3._1, BigInt(1))
+          val r158 = if (ir2._1 >= ir3._1) {
+            (ir2._1, BigInt(1) + c16._2)
+          } else {
+            (ir3._1, BigInt(1) + c16._2)
+          }
+          val c17 = (ir1._1 >= r158._1, BigInt(1))
+          val r160 = if (ir1._1 >= r158._1) {
+            (ir1._1, BigInt(1) + c17._2)
+          } else {
+            (r158._1, BigInt(1) + c17._2)
+          }
+          (r160._1, ((((((BigInt(4) + r160._2) + r158._2) + ir3._2) + ir2._2) + ir1._2) + ir0._2) + e40._2)
+        }
+        (el3._1, BigInt(2) + el3._2)
+      }
+      (el4._1, BigInt(2) + el4._2)
+    }
+    (bd2._1, bd2._2)
   }
-  
+
   @invisibleBody
   def invoketime(i : BigInt, j : BigInt, n : BigInt): (BigInt, BigInt) = {
     val lr3 = lookup[BigInt](List(4881, i, j))
@@ -95,7 +156,7 @@ object LevenshteinDistance {
     }
     (bd1._1, bd1._2)
   }
-  
+
   def bottomuptime(m : BigInt, j : BigInt, n : BigInt): (List[BigInt], BigInt) = {
     val c16 = BigInt(3)
     val bd2 = if (m == BigInt(0) && j == BigInt(0)) {
@@ -115,7 +176,7 @@ object LevenshteinDistance {
     }
     (bd2._1, bd2._2)
   }
-  
+
   def levDistSolstime(m : BigInt, n : BigInt): (List[BigInt], BigInt) = {
     val e94 = bottomuptime(m, n, n)
     (e94._1, BigInt(1) + e94._2)
@@ -128,12 +189,12 @@ object LevenshteinDistance {
 //    val points = (1 to 30 by 1) ++ (100 to 1000 by 50) // ++ (1000 to 2000 by 50)
 //    val size = points.map(x => BigInt(x)).to[scalaList]
 //    val size2 = points.map(x => (x)).toList
-//    
+//
 //    var ops = List[BigInt]()
 //    var orb = List[BigInt]()
 //    var valuefori2 = scalaList[BigInt]()
 //    var valuefori = scalaList[BigInt]()
-//    
+//
 //    points.foreach { i =>
 //      val input = i
 //      xstring = Array.fill(i + 1){0}
@@ -144,15 +205,15 @@ object LevenshteinDistance {
 //      }
 //      orb :+= {39*i*i + 39*i + 39*i + 37}
 //      valuefori :+= {BigInt(i)}
-//      valuefori2 :+= {BigInt(i*i)}      
+//      valuefori2 :+= {BigInt(i*i)}
 //    }
 //    dumpdata(size2, ops, orb, "levd", "orb")
 //    // minresults(ops, scalaList(37, 39, 39, 39), List("constant", "i", "i", "i**2"), List(valuefori, valuefori, valuefori2), size, "levensh")
-//  }  
+//  }
       /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](37, 39, 39, 39) //from lower to higher-order terms
+  def coeffs = scalaList[BigInt](34, 36, 36, 36) //from lower to higher-order terms
   def coeffNames = List("constant", "i", "i", "i**2") // names of the coefficients
   val termsSize = 3 // number of terms (i.e monomials) in the template
   def getTermsForPoint(n: BigInt) = scalaList(n, n, n * n) // terms depend only on n here, but may in general depend on many variables
@@ -164,45 +225,45 @@ object LevenshteinDistance {
   }
   val dirname = "steps/Levenshtein"
   val filePrefix = "levd"
-  val points = (0 to 30 by 1) ++ (100 to 1000 by 50)  
+  val points = (0 to 30 by 1) ++ (100 to 1000 by 50)
   val concreteInstFun = (n: BigInt) => levDistSolstime(n, n)._2
-  
+
   /**
    * Benchmark agnostic helper functions
    */
   def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
     coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
-  }          
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
   def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
     template(coeffs, terms)
-  } 
+  }
 
-  def main(args: Array[String]): Unit = {    
+  def main(args: Array[String]): Unit = {
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
-    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
     points.foreach { i =>
       println("Processing input: "+i)
-       val input = inputFromPoint(i)            
+       val input = inputFromPoint(i)
        ops += concreteOps(input)
        // compute the static bound
        val terms = getTermsForPoint(i)
-       orb += boundForInput(terms)  
-       terms.zipWithIndex.foreach { 
-        case (term, i) => termsforInp(i) += term 
+       orb += boundForInput(terms)
+       terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
        //inputfori += //{BigInt(i*i)}
        // We should not clear the cache to measure this
-       // orb2 :+= {15*i - 18}     
+       // orb2 :+= {15*i - 18}
        leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>        
+      points.map { i =>
         computeTemplate(l, getTermsForPoint(i))
       }.to[scalaList]
     }
@@ -212,5 +273,5 @@ object LevenshteinDistance {
       dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
-  }  
+  }
 }

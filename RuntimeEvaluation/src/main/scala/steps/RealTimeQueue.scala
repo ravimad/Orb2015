@@ -118,19 +118,19 @@ object RealTimeQueue {
     }
     val dirname = "steps/RealTimeQueue"
     val filePrefix: String
-    val points = (5 to 15)
+    val points = (1 to 20)
     val concreteInstFun: Queue2[BigInt] => BigInt
 
   }
   object EnqueueContext extends RunContext {
     override def coeffs = scalaList[BigInt](37)
-    override val filePrefix = "rtq-enqueue" // the abbrevation used in the paper  
+    override val filePrefix = "rtq-enqueue" // the abbrevation used in the paper
     override val concreteInstFun = (rtq: Queue2[BigInt]) => enqueuetime[BigInt](BigInt(0), rtq)._2
   }
 
   object DequeueContext extends RunContext {
     override def coeffs = scalaList[BigInt](40)
-    override val filePrefix = "rtq-dequeue" // the abbrevation used in the paper  
+    override val filePrefix = "rtq-dequeue" // the abbrevation used in the paper
     override val concreteInstFun = (rtq: Queue2[BigInt]) => dequeuetime[BigInt](rtq)._2
   }
   val ctxts: scalaList[RunContext] = scalaList(EnqueueContext, DequeueContext)

@@ -1,22 +1,22 @@
-Statically inferred formula: 33*i**2 + 33*i + 33*i + 31
+Statically inferred formula: 30*i**2 + 30*i + 30*i + 28
 
-Reducing coeff 0 starting from 31
+Reducing coeff 0 starting from 28
 Lowest possible value for the coefficient is 15
-Pareto optimal template: 33*i**2 + 33*i + 33*i + 15
-First counter-example for 33*i**2 + 33*i + 33*i + 14 is at the point 0
+Pareto optimal template: 30*i**2 + 30*i + 30*i + 15
+First counter-example for 30*i**2 + 30*i + 30*i + 14 is at the point 0
 
-Reducing coeff 1 starting from 33
-Lowest possible value for the coefficient is -10
-Pareto optimal template: 33*i**2 + 33*i + -10*i + 31
-First counter-example for 33*i**2 + 33*i + -11*i + 31 is at the point 3
+Reducing coeff 1 starting from 30
+Lowest possible value for the coefficient is -6
+Pareto optimal template: 30*i**2 + 30*i + -6*i + 28
+First counter-example for 30*i**2 + 30*i + -7*i + 28 is at the point 2
 
-Reducing coeff 2 starting from 33
-Lowest possible value for the coefficient is -10
-Pareto optimal template: 33*i**2 + -10*i + 33*i + 31
-First counter-example for 33*i**2 + -11*i + 33*i + 31 is at the point 3
+Reducing coeff 2 starting from 30
+Lowest possible value for the coefficient is -6
+Pareto optimal template: 30*i**2 + -6*i + 30*i + 28
+First counter-example for 30*i**2 + -7*i + 30*i + 28 is at the point 2
 
-Reducing coeff 3 starting from 33
-Lowest possible value for the coefficient is 31
-Pareto optimal template: 31*i**2 + 33*i + 33*i + 31
-First counter-example for 30*i**2 + 33*i + 33*i + 31 is at the point 100
+Reducing coeff 3 starting from 30
+Lowest possible value for the coefficient is 28
+Pareto optimal template: 28*i**2 + 30*i + 30*i + 28
+First counter-example for 27*i**2 + 30*i + 30*i + 28 is at the point 27
 

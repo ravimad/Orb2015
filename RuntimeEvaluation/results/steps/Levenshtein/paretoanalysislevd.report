@@ -1,22 +1,22 @@
-Statically inferred formula: 39*i**2 + 39*i + 39*i + 37
+Statically inferred formula: 36*i**2 + 36*i + 36*i + 34
 
-Reducing coeff 0 starting from 37
+Reducing coeff 0 starting from 34
 Lowest possible value for the coefficient is 13
-Pareto optimal template: 39*i**2 + 39*i + 39*i + 13
-First counter-example for 39*i**2 + 39*i + 39*i + 12 is at the point 0
+Pareto optimal template: 36*i**2 + 36*i + 36*i + 13
+First counter-example for 36*i**2 + 36*i + 36*i + 12 is at the point 0
 
-Reducing coeff 1 starting from 39
-Lowest possible value for the coefficient is -16
-Pareto optimal template: 39*i**2 + 39*i + -16*i + 37
-First counter-example for 39*i**2 + 39*i + -17*i + 37 is at the point 5
+Reducing coeff 1 starting from 36
+Lowest possible value for the coefficient is -13
+Pareto optimal template: 36*i**2 + 36*i + -13*i + 34
+First counter-example for 36*i**2 + 36*i + -14*i + 34 is at the point 4
 
-Reducing coeff 2 starting from 39
-Lowest possible value for the coefficient is -16
-Pareto optimal template: 39*i**2 + -16*i + 39*i + 37
-First counter-example for 39*i**2 + -17*i + 39*i + 37 is at the point 5
+Reducing coeff 2 starting from 36
+Lowest possible value for the coefficient is -13
+Pareto optimal template: 36*i**2 + -13*i + 36*i + 34
+First counter-example for 36*i**2 + -14*i + 36*i + 34 is at the point 4
 
-Reducing coeff 3 starting from 39
-Lowest possible value for the coefficient is 38
-Pareto optimal template: 38*i**2 + 39*i + 39*i + 37
-First counter-example for 37*i**2 + 39*i + 39*i + 37 is at the point 100
+Reducing coeff 3 starting from 36
+Lowest possible value for the coefficient is 35
+Pareto optimal template: 35*i**2 + 36*i + 36*i + 34
+First counter-example for 34*i**2 + 36*i + 36*i + 34 is at the point 100
 

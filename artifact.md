@@ -190,7 +190,7 @@ and outputs it to the file `~/leon/RuntimeEvaluation/Figure-10-data`.
 #### Minor variances from Figure 10 results
 
 Even though most of the percentages in the `Figure-10-data` file are identical to the data shown in Figure 10 
-of the paper, in a few benchmarks there is a slight difference (approximately 1 to 2 percentage) from the data 
+of the paper, in a few benchmarks there is a slight difference (approximately 1 to 2 percentage in most benchmarks) from the data 
 shown in Figure 10. This is because, the results in the paper are more exhaustive and includes more top-level functions, 
 whose evaluations require more complex drivers and manual effort. 
 E.g. For the ease of artifact evaluation, the instrumented _BottomUpMergeSort_ benchmark provided fixes 

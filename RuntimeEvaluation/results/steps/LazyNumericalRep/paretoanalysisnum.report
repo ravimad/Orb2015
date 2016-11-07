@@ -1,7 +1,7 @@
 Statically inferred formula: 106
 
 Reducing coeff 0 starting from 106
-Lowest possible value for the coefficient is 105
-Pareto optimal template: 105
-First counter-example for 104 is at the point 3
+Lowest possible value for the coefficient is 102
+Pareto optimal template: 102
+First counter-example for 101 is at the point 3
 
