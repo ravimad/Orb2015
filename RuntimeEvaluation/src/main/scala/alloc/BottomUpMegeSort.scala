@@ -172,61 +172,78 @@ object BottomUpMergeSort {
   //   // minresults(ops, scalaList(3, 6, 6), List("constant", "3*log(n - 1)", "n"), List(valueForklogn, valueForn), size, "lbumskthMin")
   //   dumpdata(size, ops, orb, "lbums", "orb")
   // }
-
-  /**
+//  def coeffs = scalaList[BigInt](3, 6, 6) //from lower to higher-order terms
+//  def coeffNames = List("constant", "n", "3*log (n-1)") // names of the coefficients
+//  val termsSize = 2 // number of terms (i.e monomials) in the template
+//  def getTermsForPoint(length: BigInt) = scalaList(length, 3 * mylog(length - 1))
+//  def inputFromPoint(length: Int) = {    
+//    val input = {
+//      (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+//        Cons(n, f)
+//      }
+//    }
+//    input
+//  }
+//  val dirname = 
+//  val filePrefix = "msort" // the abbrevation used in the paper
+//  val points = (1000 to 10000 by 1000)
+//  val concreteInstFun = (input: List[BigInt]) => kthMinalloc(input, 3)._2
+/**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](3, 6, 6) //from lower to higher-order terms
-  def coeffNames = List("constant", "n", "3*log (n-1)") // names of the coefficients
-  val termsSize = 2 // number of terms (i.e monomials) in the template
-  def getTermsForPoint(length: BigInt) = scalaList(length, 3 * mylog(length - 1))
-  def inputFromPoint(length: Int) = {    
-    val input = {
-      (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-        Cons(n, f)
+  object RunContext {
+    def coeffs = scalaList[BigInt](3, 6, 6) //from lower to higher-order terms
+    def coeffNames = List("constant", "n", "k*log (n-1)") // names of the coefficients
+    val termsSize = 2 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(length: BigInt, k: BigInt) = scalaList(length, k * mylog(length - 1))
+    def inputFromPoint(length: Int) = {
+      val input = {
+        (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+          Cons(n, f)
+        }
       }
+      input
     }
-    input
-  }
-  val dirname = "alloc/BottomUpMergeSort"
-  val filePrefix = "msort" // the abbrevation used in the paper
-  val points = (1000 to 10000 by 1000)
-  val concreteInstFun = (input: List[BigInt]) => kthMinalloc(input, 3)._2
+    val dirname = "alloc/BottomUpMergeSort"
+    val filePrefix = "msort" // the abbrevation used in the paper
+    val points = (1 to 100).flatMap(k => (1000 to 10000 by 1000).map(n => (n, k)))
+    val concreteInstFun = (input: List[BigInt], k: BigInt) => kthMinalloc(input, k)._2
+  }  
 
   /**
    * Benchmark agnostic helper functions
    */
-  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
-    coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
-  }
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
-  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
-    template(coeffs, terms)
-  }
-
-  def main(args: Array[String]): Unit = {
-    val size = points.map(x => BigInt(x)).to[scalaList]
-    val size2 = points.map(x => (x)).toList
+  def benchmark {
+    import RunContext._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x._1)).to[scalaList] // ignore k here
+    val size2 = points.map(x => (x._1)).toList // ignore k here
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
     var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
-    points.foreach { i =>
-      println("Processing input: " + i)
+    points.foreach { case (i, k) =>
+      println("Processing input: " + (i, k))
+      leon.mem.clearMemo()
       val input = inputFromPoint(i)
-      ops += concreteOps(input)
+      ops += concreteOps(input, k)
       // compute the static bound
-      val terms = getTermsForPoint(i)
+      val terms = getTermsForPoint(i, k)
       orb += boundForInput(terms)
       terms.zipWithIndex.foreach {
         case (term, i) => termsforInp(i) += term
       }
-      leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>
-        computeTemplate(l, getTermsForPoint(i))
+      points.map { case (i, k) =>
+        computeTemplate(l, getTermsForPoint(i, k))
       }.to[scalaList]
     }
     dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
@@ -235,6 +252,10 @@ object BottomUpMergeSort {
       dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
+  }
+
+  def main(args: Array[String]): Unit = {
+    benchmark
   }
 
   object Stream {

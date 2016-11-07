@@ -10,20 +10,19 @@ import leon.collection._
 import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
-
 object Viterbi {
   def Otime(i : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
+
   def Stime(i : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
+
   def Atime(i : BigInt, j : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
+
   def Btime(i : BigInt, j : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
+
   def Ctime(i : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
+
   def Ytime(i : BigInt): (BigInt, BigInt) = ((0, 1) : (BigInt, BigInt))
-  
+
   @invstate
   def fillEntrytime(l : BigInt, i : BigInt, j : BigInt, K : BigInt): (BigInt, BigInt) = {
     val e125 = j - BigInt(1)
@@ -56,7 +55,7 @@ object Viterbi {
     }
     (r159._1, ((((BigInt(2) + r159._2) + e138) + e134) + e130) + e36._2)
   }
-  
+
   @invstate
   @memoize
   def viterbitime(i : BigInt, j : BigInt, K : BigInt): (BigInt, BigInt) = {
@@ -71,7 +70,7 @@ object Viterbi {
     }
     (bd._1, bd._2)
   }
-  
+
   def invoketime(i : BigInt, j : BigInt, K : BigInt): (BigInt, BigInt) = {
     val lr1 = lookup[BigInt](List(4934, i, j, K))
     val bd2 = if (lr1._1) {
@@ -82,7 +81,7 @@ object Viterbi {
     }
     (bd2._1, bd2._2)
   }
-  
+
   def fillColumntime(i : BigInt, j : BigInt, K : BigInt): (List[BigInt], BigInt) = {
     val bd4 = if (i == K) {
       val e70 = invoketime(i, j, K)
@@ -94,7 +93,7 @@ object Viterbi {
     }
     (bd4._1, bd4._2)
   }
-  
+
   @invisibleBody
   def fillTabletime(j : BigInt, T : BigInt, K : BigInt): (List[List[BigInt]], BigInt) = {
     val bd5 = if (j == T) {
@@ -107,7 +106,7 @@ object Viterbi {
     }
     (bd5._1, bd5._2)
   }
-  
+
   def viterbiSolstime(T : BigInt, K : BigInt): (List[List[BigInt]], BigInt) = {
     val e66 = fillTabletime(BigInt(0), T, K)
     (e66._1, BigInt(1) + e66._2)
@@ -124,7 +123,7 @@ object Viterbi {
 //    var valuefori = scalaList[BigInt]()
 //    var valuefori2 = scalaList[BigInt]()
 //    var valuefori3 = scalaList[BigInt]()
-//    
+//
 //    points.foreach { i =>
 //      val input = i
 //      val K = i
@@ -141,60 +140,60 @@ object Viterbi {
 //    dumpdata(size2, ops, orb, "viterbi", "orbs")
 //    // 35 * (K*K*T) + 35 * (K*K) - 7 * (T*K) - 8 * K + 47 * T + 47 /
 //    // minresults(ops, scalaList(47, 47, -8, -7, 35, 35), List("constant", "T", "K", "T*K", "K*K", "K*K*T"), List(valuefori, valuefori, valuefori2, valuefori2, valuefori3), size, "viterbi")
-//  }  
+//  }
       /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](47, 47, -8, -7, 35, 35) //from lower to higher-order terms
+  def coeffs = scalaList[BigInt](26, 47, 14, -6, 34, 34) //from lower to higher-order terms
   def coeffNames = List("constant", "T", "K", "T*K", "K*K", "K*K*T") // names of the coefficients
   val termsSize = 5 // number of terms (i.e monomials) in the template
-  def getTermsForPoint(i: BigInt) = {    
-    scalaList(i, i, i*i, i*i, i*i*i) 
-  }  
+  def getTermsForPoint(i: BigInt) = {
+    scalaList(i, i, i*i, i*i, i*i*i)
+  }
   def inputFromPoint(i: Int) = {
     i
   }
   val dirname = "steps/Viterbi"
   val filePrefix = "vit"
-  val points =  (0 to 100 by 5)   
+  val points =  (0 to 100 by 5)
   val concreteInstFun = (i: BigInt) => viterbiSolstime(i, i)._2
-  
+
   /**
    * Benchmark agnostic helper functions
    */
   def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
     coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
-  }          
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
   def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
     template(coeffs, terms)
-  } 
+  }
 
-  def main(args: Array[String]): Unit = {    
+  def main(args: Array[String]): Unit = {
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
-    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
     points.foreach { i =>
       println("Processing input: "+i)
-       val input = inputFromPoint(i)            
+       val input = inputFromPoint(i)
        ops += concreteOps(input)
        // compute the static bound
        val terms = getTermsForPoint(i)
-       orb += boundForInput(terms)  
-       terms.zipWithIndex.foreach { 
-        case (term, i) => termsforInp(i) += term 
+       orb += boundForInput(terms)
+       terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
        //inputfori += //{BigInt(i*i)}
        // We should not clear the cache to measure this
-       // orb2 :+= {15*i - 18}     
+       // orb2 :+= {15*i - 18}
        leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>        
+      points.map { i =>
         computeTemplate(l, getTermsForPoint(i))
       }.to[scalaList]
     }

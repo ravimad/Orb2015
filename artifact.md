@@ -1,6 +1,7 @@
-## Artifact for the paper "Contract-based Resource Verification for Higher-order Functions with Memoization"
+## Artifact for the paper "Contract-based Resource Verification for Higher-order Functions with Memoization" 
+Last Update: 12 Oct 2016, 14:30 CET: [Added a minor tip for low configuration machines](#runbench)
 
-Virtual disk image containing the artifact: [popl-paper-184-artifact.tar.gz](http://lara.epfl.ch/~kandhada/popl-artifact/popl-paper-184-artifact.tar.gz)
+Virtual disk image containing the artifact: [popl-paper-184-artifact.tar.gz](http://lara.epfl.ch/~kandhada/popl-artifact/popl-paper-184-artifact.tar.gz) [md5](http://lara.epfl.ch/~kandhada/popl-artifact/popl-paper-184-artifact.md5) 
 
 The above vdi image is pre-installed with the following artifacts:
 
@@ -12,13 +13,14 @@ Below we provide instructions for running our resource verification system (Leon
 for reproducing the results of the paper. Our tool can also be tried online on some benchmarks
 at [leondev.epfl.ch](http://leondev.epfl.ch) (Memresource section). 
 To know more about our tool and for getting started on writing and verifying new programs with Leon/Orb
-please refer to the documentation http://leondev.epfl.ch/doc/resourcebounds.html.
+please refer to the documentation [http://leondev.epfl.ch/doc/resourcebounds.html](http://leondev.epfl.ch/doc/resourcebounds.html).
 
 ## Booting the virtual disk image
 
 1. Install [Oracle Virtual Box](https://www.virtualbox.org/wiki/Downloads). 
 2. Extract the .vdi file from the archive.
-3. Create a new virtual machine with the downloaded .vdi file as the hard disk. Our benchmarks are compute intensive. **We recommend at least 4GB of RAM and 2 processing cores for the virtual machine.** (Some benchmarks could timeout on lower configurations.)
+3. Create a new virtual machine with the downloaded .vdi file as the hard disk. Our benchmarks are compute intensive. **The application needs at least 4GB of RAM and 2 processing cores for the virtual machine. Also, the host machine should have same or better configuration.** 
+(Some benchmarks could timeout on lower configurations.)
 4. When started, the virtual machine should boot Xubuntu 16.04 Linux operating system and will automatically log into the account : *popl* (password: *popl*)
 
 ## Running the tool on individual source files
@@ -28,17 +30,18 @@ The following command can be used to run individual source files. However, to re
     $ cd ~/leon
     $ ./leon --mem --benchmark --timeout=<secs> path-to-file
 
-The tool prints log messages and inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a 
+E.g. try `./leon --mem --benchmark --timeout=60 ./testcases/benchmarks/steps/LazySelectionSort.scala`.
+The tool prints some log messages and the inferred bounds to the console. It dumps the final output and some statistics of the evaluation to a 
 file \<filename\>-stats.txt in the directory from where the tool was run.
 For a short description of the command line options use `leon --help`.
     
-## Running the tool on all benchmarks - Reproducing the results shown in Figure 9
+## <a name="runbench"></a> Running the tool on all benchmarks - Reproducing the results shown in Figure 9
 
 As shown in the Figure 9 of the paper, a total of 17 benchmarks are used in the evaluation. Each benchmark has two versions: one with a `steps` bound, which denotes the number evaluation steps, and another with an `alloc` resource bound, which denotes the number of heap-allocated objects. The versions can be found in `~/leon/testcases/benchmark/steps` and `~/leon/testcases/benchmark/alloc` respectively.
 Each benchmark has a brief description or pointers to the algorithm that is implemented.
 The results of running the tool on these benchmarks are available in the folders inside the directory: `~/leon/results/`. 
 The folder `~/leon/results/server-results` has the results of running the benchmarks on a server with the 
-configurations presented in the paper, and provides more accurate data for the time taken by tool to analyze a benchmark.
+configurations presented in the paper, and provides more accurate data for the time taken by the tool to analyze a benchmark.
 
 To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the following commands:
 
@@ -47,7 +50,8 @@ To infer the `steps` bounds of the benchmarks (shown in Figure 9), use the follo
     $ ../../scripts/steps.sh
 
 To infer the `alloc` bounds of the benchmarks, replace `steps` by `alloc` in the above commands. The script may take few tens of minutes 
-(depending on the VM configuration) to verify all benchmarks. 
+(depending on the VM configuration) to verify all benchmarks. **For slower machines it is possible to comment out some larger benchmarks
+from the scripts.** The benchmarks `LazyNumericalRep.scala` and `Conqueue.scala` are among the largest and most time-consuming of all.
 
 #### Understanding the output of the tool 
 
@@ -73,12 +77,12 @@ Running the script produces two files for each benchmark: `<benchmarkname>-stats
 16. PackratParsing - `parse`
 17. Viterbi - `viterbiSols`
 
-#### Descrption of the Stats file
+#### Description of the Stats file
 
 At the end of each stats file there are two tables: **Resource Verification Summary** and **State Verification Summary**.
 The former table shows the inferred bounds for every function (including those presented in Figure 9), and the latter table  shows the result of verifying the correctness invariants needed for proving the resource bounds, which may possibly depend on the state of memoization. 
 All the invariants in all the benchmarks will be verified by the tool and would be marked as **valid**. 
-The table also shows which of CVC4 or Z3 SMT solver succeeded first in deciding the generated verification conditions. 
+The table also shows the SMT solver among CVC4 and Z3 that succeeded first in deciding the generated verification conditions. 
 
 Most of the key-value pairs in the stats file present details on the internals of the algorithm. The most relevant entries among these are 
 _Total-Time_ (The column AT of Figure 9), _State-Verification-Time_ and _Resource-Verification-Time_.
@@ -88,9 +92,10 @@ _Total-Time_ (The column AT of Figure 9), _State-Verification-Time_ and _Resourc
 Even though the tool makes a best effort to enforce determinism, minor variances across different runs (although rare) is possible. 
 This is because of the incompleteness of the minimization problem in the presence of nonlinearity and recursive functions, 
 and the non-determinism in SMT solvers. This means that occasionally the constants inferred by the tool may slightly vary 
-compared to the Figure 9. We observed a deviance greater than +/- 1 on an inferred constant on the two benchmarks: 
+compared to the ones presented in Figure 9. We observed a difference greater than +/- 1 in the inferred constants only in the two benchmarks: 
 _PackratParsing_ and _Deque_ (for  the `steps` resource). 
-In both cases the tool computed a more precise bound than the one presented in Figure 9.
+In both cases the tool computed a more precise bound than the one presented in Figure 9, as the algorithm was able to 
+perform more minimization.
 
 ## Measuring the accuracy of the inferred bounds - Reproducing the results shown in Figure 10
 
@@ -98,10 +103,10 @@ To measure the accuracy of the inferred bounds, we instrument the benchmarks to 
 (using `./leon --instrument` option), and add drivers to run the benchmarks with inputs that exercise the worst-case behavior. 
 All such instrumented benchmarks (having an executable `main` function) can be found in the folder: 
 `~/leon/RuntimeEvaluation/src/main/scala/steps` (or alloc).  
-Invoking the `main` function of the instrumented benchmarks invokes the _key functions_  on many inputs, 
+The `main` function of an instrumented benchmarks invokes the _key functions_  on several inputs, 
 computes the dynamic resource usage, and 
 compares it against the statically inferred bounds as described in the section 5 of the paper. 
-Use the following commands to execute the instrumented benchmarks.
+Use the following commands to run the instrumented benchmarks.
 
     $ cd ~/leon/RuntimeEvaluation/
     $ sbt                            
@@ -118,16 +123,17 @@ The content of these files are described shortly.
 
 To compute the summary statistics shown in Figure 10, run the `StatsCollector` program (listed first) 
 from the `sbt` console, which outputs the averages shown in Figure 10 to a file 
-`~/RuntimeEvaluation/Figure-10-data`. 
+`~/leon/RuntimeEvaluation/Figure-10-data`. 
 
 ## Outputs of the instrumented benchmark
 
 Running an instrumented benchmark outputs the following files in the directory: `~/leon/RuntimeEvaluation/results/steps/<Benchmarkname>/`:
-*  `dynamic<benchmark-tag>.data`
-* `paretoanalysis<benchmark-tag>.report`
-*  One or more `pareto<index><benchmark-tag>.data`
 
-Each `.data` file contains a list of triples: (a) the size (or a measure) of the input, 
+1. `dynamic<benchmark-tag>.data`
+2. `paretoanalysis<benchmark-tag>.report`
+3.  One or more `pareto<index><benchmark-tag>.data`
+
+Each `.data` file contains a list of triples: (a) the size (or another measure) of the input, 
 (b) the statically inferred bound for the input, (c) the dynamic resource usage or 
 the pareto optimal resource usage. For example, the file `dynamicmsort.data` has the following entries
 
@@ -147,7 +153,7 @@ The first line of the file indicates that for an input of size 1000, the statica
 Using these data for each benchmark, the program `StatsCollector` computes a summary statistics using the formula 
 shown in page 10 of the paper. 
 This quantity, referred to as _dynamic/static * 100_, is outputted by `StatsCollector` (for each benchmark and resource) 
-to the file `~/RuntimeEvaluation/Figure-10-data`.
+to the file `~/leon/RuntimeEvaluation/Figure-10-data`.
 
 #### Comparisons with pareto optimal bounds
 
@@ -178,14 +184,26 @@ It shows that the data point 8000 violates the bound if the coefficient is reduc
 The files `pareto0hams.data` and `pareto1hams.data` displays the statically inferred bound against the first and the second 
 pareto optimal bound (respectively), for each input. 
 
-Using these data for each benchmark, the program `StatsCollector` computes the metric _optimal/static * 100_ for each benchmark and resource 
-and outputs it to the file `~/RuntimeEvaluation/Figure-10-data`.
+Using these data for each benchmark, the program `StatsCollector` computes the metric _optimal/static * 100_ (for each benchmark and resource) 
+and outputs it to the file `~/leon/RuntimeEvaluation/Figure-10-data`.
 
 #### Minor variances from Figure 10 results
 
-Even though most of the percentages in the `Figure-10-data` file are identical to the Figure 10 of the paper, 
-in a few benchmarks there is a slight deviance (approximately 1 to 2 percentage) from the data of Figure 10. 
-This is because, the results of Figure 10 are more exhaustive and includes more top-level functions. 
-For instance, in the case of  _BottomUpMergeSort_ benchmark, the instrumented programs provided, sets the value of `k` to a constant, 
-and only varies the size of the `input` for ease of evaluation (see Figure 9 for the bound of `kthMin`). 
-However, in the results shown in Figure 10, `k` is also varied.
+Even though most of the percentages in the `Figure-10-data` file are identical to the data shown in Figure 10 
+of the paper, in a few benchmarks there is a slight difference (approximately 1 to 2 percentage in most benchmarks) from the data 
+shown in Figure 10. This is because, the results in the paper are more exhaustive and includes more top-level functions, 
+whose evaluations require more complex drivers and manual effort. 
+E.g. For the ease of artifact evaluation, the instrumented _BottomUpMergeSort_ benchmark provided fixes 
+the value of `k` to a constant and only varies the size of the `input` (see Figure 9 for the bound of `kthMin`). 
+However, in the results presented in the paper, `k` is also varied. The exact data used in the paper are also provided 
+in the directory `~/leon/RuntimeEvaluation/results/archives/`.
+
+#### Supplementary Graphs 
+
+We have also provided some graphical plots of selected functions of the benchmarks to visualize the relationship between 
+the dynamic resource usage and the statically inferred bounds 
+in the folder: `~/leon/RuntimeEvaluation/results/graphs/`. 
+The graphs `PackratParsing-pAdd` and `deque-rotateDrop` helps visualize the behavior of inner functions, 
+which was summarized in Figure 11 of the paper.
+The lines in the graphs denote the statically inferred bounds and the dots denote the runtime resource usage.
+

@@ -1,12 +1,17 @@
-Statically inferred formula: 2*3*length + 8
+Statically inferred formula: 2*k*length + 2*k + 2
 
-Reducing coeff 0 starting from 8
+Reducing coeff 0 starting from 2
 Lowest possible value for the coefficient is 0
-Pareto optimal template: 2*3*length + 0
-First counter-example for 2*3*length + -1 is at the point 10
+Pareto optimal template: 2*k*length + 2*k + 0
+First counter-example for 2*k*length + 2*k + -1 is at the point 1000
 
 Reducing coeff 1 starting from 2
+Lowest possible value for the coefficient is 0
+Pareto optimal template: 2*k*length + 0*k + 2
+First counter-example for 2*k*length + -1*k + 2 is at the point 1000
+
+Reducing coeff 2 starting from 2
 Lowest possible value for the coefficient is 2
-Pareto optimal template: 2*3*length + 8
-First counter-example for 1*3*length + 8 is at the point 10
+Pareto optimal template: 2*k*length + 2*k + 2
+First counter-example for 1*k*length + 2*k + 2 is at the point 1000
 

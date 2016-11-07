@@ -23,6 +23,7 @@ import programsets.DirectProgramSet
 import programsets.JoinProgramSet
 import leon.utils.StreamUtils
 import leon.synthesis.RulePriority
+import leon.evaluators.AbstractEvaluator
 
 /** A template generator for a given type tree. 
   * Extend this class using a concrete type tree,
@@ -63,7 +64,7 @@ abstract class TypedTemplateGenerator(t: TypeTree) {
  * @author Mikael
  */
 case object StringRender extends Rule("StringRender") {
-  override val priority = RulePriorityNormalizing
+  override val priority = RulePriorityPreprocessing
   
   // A type T augmented with a list of identifiers, for examples the free variables inside T
   type WithIds[T] = (T, List[Identifier])
@@ -149,8 +150,8 @@ case object StringRender extends Rule("StringRender") {
     rec(lhs, rhs, ListBuffer[Equation](), ListBuffer[StringFormToken](), new StringBuffer)
   }
   
-  /** Returns a stream of assignments compatible with input/output examples for the given template */
-  def findAssignments(p: Program, inputs: Seq[Identifier], examples: ExamplesBank, template: Expr, variablesToReplace: Set[Identifier])(implicit hctx: SearchContext): Stream[Map[Identifier, String]] = {
+  /** Returns a string equation problem corresponding to input/output examples for the given template */
+  def extractStringProblem(p: Program, inputs: Seq[Identifier], examples: ExamplesBank, template: Expr, variablesToReplace: Set[Identifier])(implicit hctx: SearchContext): Option[StringSolver.Problem] = {
     //println(s"finding assignments in program\n$p")
     val e = new AbstractEvaluator(hctx, p)
     
@@ -191,7 +192,12 @@ case object StringRender extends Rule("StringRender") {
         }
     }
    
-    gatherEquations((examples.valids ++ examples.invalids).collect{ case io:InOutExample => io }.toList) match {
+    gatherEquations((examples.valids ++ examples.invalids).collect{ case io:InOutExample => io }.toList)
+  }
+  
+  /** Returns a stream of assignments compatible with input/output examples for the given template */
+  def findAssignments(p: Program, inputs: Seq[Identifier], examples: ExamplesBank, template: Expr, variablesToReplace: Set[Identifier])(implicit hctx: SearchContext): Stream[Map[Identifier, String]] = {
+    extractStringProblem(p, inputs, examples, template, variablesToReplace) match {
       case Some(problem) =>
         StringSolver.solve(problem)
       case None => Stream.empty
@@ -371,9 +377,14 @@ case object StringRender extends Rule("StringRender") {
         copy(grammar=grammar.markovize_abstract_vertical_filtered(selectedNt))
       }
       
+      /** Interruptible stream*/
+      def interruptibleStreamFrom(n: Int): Stream[Int] =
+        n #:: (if(hctx.interruptManager.isInterrupted) Stream.empty else interruptibleStreamFrom(n+1))
+      
       /** Computes all possible variants of the grammar, from the simplest to the most complex.*/
       def allMarkovizations(): Stream[GrammarBasedTemplateGenerator] = {
-        Stream.from(1).flatMap(i => grammar.markovize_all(i).map(g => copy(grammar=g)))
+        interruptibleStreamFrom(1).flatMap(i =>
+          grammar.markovize_all(i).filter(_ => !hctx.interruptManager.isInterrupted).map(g => copy(grammar=g)))
       }
       
       /** Mark all occurrences of a given type so that we can differentiate its usage depending from where it was taken from.*/
@@ -439,6 +450,7 @@ case object StringRender extends Rule("StringRender") {
       
       /** Builds a set of fun defs out of the grammar */
       def buildFunDefTemplate(markovizations: Boolean = true): Stream[(WithIds[Expr], Seq[(FunDef, Stream[WithIds[Expr]])])] = {
+        if(hctx.interruptManager.isInterrupted) return Stream.empty
         // Collects all non-terminals. One non-terminal => One function. May regroup pattern matching in a separate simplifying phase.
         val nts = grammar.nonTerminals
         // Fresh function name generator.
@@ -524,11 +536,6 @@ case object StringRender extends Rule("StringRender") {
               val scrut = Variable(idInput)
               val matchCases = nt.tag match {
                 case AbstractClassType(acd, typeArgs) =>
-                  /*if(acd.id.name == "ThreadId") {
-                    println("terminals for ThreadId:\n"+terminals.length)
-                    println("result")
-                    println(terminals.map(filteredPrintersOf).toStream.flatten.map(_.apply(Variable(inputs.head))))
-                  }*/
                   acd.knownCCDescendants map { ccd => 
                     children.find(childNt => childNt.tag match {
                       case CaseClassType(`ccd`, `typeArgs`) => true
@@ -721,6 +728,90 @@ case object StringRender extends Rule("StringRender") {
     }
   }
   
+  def repair(p: Problem, examples: ExamplesBank, guide: Expr)(implicit hctx: SearchContext): RuleApplication = {
+    val initialMappingBuilder = ListBuffer[(Identifier, String)]()
+    // Functions (inc. the original one if directly recursive) which are called and inlined in the context function's body
+    var initmodifiableFunDefs = DefOps.getAllInlineFunctionInvocations(guide, hctx.functionContext)
+    // All inline functions (inc. the original one if recursive) which are called and inline in the context function's body
+    val modifiableFunDefs = DefOps.getAllReachableInlineFunctions(hctx.functionContext, initmodifiableFunDefs)
+    // Fun to convert strings literals to variables and record the mappings.
+    val stringsToVariables = ExprOps.preMap{
+      case StringLiteral(a) =>
+        val c = FreshIdentifier("X", StringType, true)
+        initialMappingBuilder += c -> a
+        Some(Variable(c))
+      case _ => None
+    } _
+
+    var fundefMapping = Map[FunDef, FunDef]()
+    val (newProgram, newGuideTemplate, maybeTransformer) = if(modifiableFunDefs.nonEmpty) {
+      val transformer = DefOps.funDefReplacer { fd =>
+        if(modifiableFunDefs contains fd) {
+          val newfd = fd.duplicate()
+          newfd.body = fd.body.map(stringsToVariables)
+          fundefMapping += fd -> newfd
+          Some(newfd)
+        } else None
+      }
+      val newProgram2 = DefOps.transformProgram(transformer, hctx.program)
+      val newGuideTemplate2 = if(modifiableFunDefs contains hctx.functionContext)
+           fundefMapping(hctx.functionContext).body.get
+      else transformer.transform(stringsToVariables(guide))(Map())
+      (newProgram2, newGuideTemplate2, Some(transformer))
+    } else // if not recursive and no inline functions called.
+      (hctx.program, stringsToVariables(guide), None)
+    val initialMapping: StringSolver.Assignment = initialMappingBuilder.toMap
+    val problem: StringSolver.Problem  =
+      extractStringProblem(newProgram, p.as, examples, newGuideTemplate, initialMapping.keySet) match {
+      case Some(p) => p
+      case None =>
+        hctx.reporter.debug("Could not extract string problem from " + newGuideTemplate)
+        return RuleClosed(Stream.Empty)
+    }
+    val solutions = StringSolver.solveMinChange(problem, initialMapping)
+    
+    def applySolution(solution: StringSolver.Assignment)(input: Expr): Expr = {
+      ExprOps.preMap{
+        case Variable(i) if solution contains i => Some(StringLiteral(solution(i)))
+        case Variable(i) if initialMapping contains i => Some(StringLiteral(initialMapping(i)))
+        case _ => None
+      }(input)
+    }
+    
+    val recoverOriginalRecursiveFunction = if(modifiableFunDefs contains hctx.functionContext) {
+      ExprOps.preMap{
+        case FunctionInvocation(tfd, args) if tfd.fd == fundefMapping(hctx.functionContext) =>
+          Some(FunctionInvocation(hctx.functionContext.typed(tfd.tps), args))
+        case _ => None
+      } _
+    } else (s: Expr) => s
+
+    RuleClosed(
+       solutions.map{solution => 
+         val assignedGuideTemplate = recoverOriginalRecursiveFunction(applySolution(solution)(newGuideTemplate))
+         var prevBodies = Map[FunDef, Option[Expr]]()
+         val solutionFds: Set[FunDef] = maybeTransformer match {
+           case Some(transformer) =>
+             for(fd <- fundefMapping.values) {
+               prevBodies += fd -> fd.body
+               fd.body = fd.body.map(applySolution(solution))
+             }
+             val finalFunctions = fundefMapping.values.toSet
+             fundefMapping get hctx.functionContext match {
+               case Some(v) => finalFunctions - v
+               case None => finalFunctions
+             }
+           case None => Set[FunDef]()
+         }
+         val (term, fds) = makeFunctionsUnique(assignedGuideTemplate, solutionFds)(hctx.program)
+         for(fd <- fundefMapping.values) {
+           fd.body = prevBodies(fd)
+         }
+         Solution(BooleanLiteral(true), fds, term, true)
+       }
+    )
+  }
+  
   def instantiateOn(implicit hctx: SearchContext, p: Problem): Traversable[RuleInstantiation] = {
     //hctx.reporter.debug("StringRender:Output variables="+p.xs+", their types="+p.xs.map(_.getType))
     if(hctx.currentNode.parent.nonEmpty) Nil else
@@ -746,6 +837,19 @@ case object StringRender extends Rule("StringRender") {
         })
         
         val ruleInstantiations = ListBuffer[RuleInstantiation]()
+        
+        // If there is a guide, we first try to modify its string constants.
+        p.wsList.collectFirst{
+          case Witnesses.Guide(expr) => expr
+        } match {
+          case Some(guide) =>
+            ruleInstantiations += RuleInstantiation("String repair") {
+              repair(p, examples, guide)
+            }
+          case _ =>
+        }
+        
+        
         val originalInputs = inputVariables.map(Variable)
         ruleInstantiations += RuleInstantiation("String conversion") {
           val synthesisResult = FunDefTemplateGenerator(originalInputs, functionVariables).buildFunDefTemplate(true)

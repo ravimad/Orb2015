@@ -98,12 +98,15 @@ class PrettyPrinter(opts: PrinterOptions,
         p"""|val $b = $d
             |$e"""
 
-      case LetDef(a :: q, body) =>
+      case LetDef(a +: q, body) =>
         p"""|$a
             |${letDef(q, body)}"""
       case LetDef(Nil, body) =>
         p"""$body"""
 
+      case Require(BooleanLiteral(true), body) =>
+        p"|$body"
+        
       case Require(pre, body) =>
         p"""|require($pre)
             |$body"""
@@ -209,12 +212,28 @@ class PrettyPrinter(opts: PrinterOptions,
       case BooleanLiteral(v) => p"$v"
       case UnitLiteral()     => p"()"
       case StringLiteral(v) =>
-        if (v.count(c => c == '\n') >= 1 && v.length >= 80 && v.indexOf("\"\"\"") == -1) {
+        val newlineCount = v.count(c => c == '\n')
+        if (newlineCount >= 1 && (v.length >= 80 || (newlineCount >= 3 && newlineCount < v.length / 3)) && v.indexOf("\"\"\"") == -1) {
           p"$dbquote$dbquote$dbquote$v$dbquote$dbquote$dbquote"
         } else {
           val escaped = StringEscapeUtils.escapeJava(v)
           p"$dbquote$escaped$dbquote"
         }
+
+      case ArrayForall(a, IntLiteral(0), ArrayLength(a2), pred) if a == a2 => 
+        p"$a.forall($pred)"
+      case ArrayForall(a, from, to, pred) => 
+        p"$a.forall($from, $to, $pred)"
+      case BoundedForall(from, to, pred) => 
+        p"forall($from, $to, $pred)"
+
+      case ArrayExists(a, IntLiteral(0), ArrayLength(a2), pred) if a == a2 => 
+        p"$a.exists($pred)"
+      case ArrayExists(a, from, to, pred) => 
+        p"$a.exists($from, $to, $pred)"
+      case BoundedExists(from, to, pred) => 
+        p"exists($from, $to, $pred)"
+
       case GenericValue(tp, id) => p"$tp#$id"
       case Tuple(exprs)         => p"($exprs)"
       case TupleSelect(t, i)    => p"$t._$i"

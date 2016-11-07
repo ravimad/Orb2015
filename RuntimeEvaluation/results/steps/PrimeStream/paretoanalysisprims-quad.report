@@ -1,12 +1,12 @@
-Statically inferred formula: 16*n*n + 4
+Statically inferred formula: 16*n*n + 28
 
-Reducing coeff 0 starting from 4
+Reducing coeff 0 starting from 28
 Lowest possible value for the coefficient is -52
 Pareto optimal template: 16*n*n + -52
 First counter-example for 16*n*n + -53 is at the point 2
 
 Reducing coeff 1 starting from 16
-Lowest possible value for the coefficient is 6
-Pareto optimal template: 6*n*n + 4
-First counter-example for 5*n*n + 4 is at the point 7
+Lowest possible value for the coefficient is 5
+Pareto optimal template: 5*n*n + 28
+First counter-example for 4*n*n + 28 is at the point 7
 

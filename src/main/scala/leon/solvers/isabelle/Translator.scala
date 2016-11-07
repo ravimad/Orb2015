@@ -13,8 +13,8 @@ import leon.purescala.ExprOps
 import leon.purescala.Types._
 import leon.utils._
 
-import edu.tum.cs.isabelle._
-import edu.tum.cs.isabelle.pure.{Expr => _, _}
+import info.hupel.isabelle._
+import info.hupel.isabelle.pure.{Expr => _, _}
 
 final class Translator(context: LeonContext, program: Program, types: Types, system: System)(implicit ec: ExecutionContext) {
 
@@ -210,7 +210,7 @@ final class Translator(context: LeonContext, program: Program, types: Types, sys
         def sel(i: Int, len: Int, term: Term): Term = (i, len) match {
           case (1, _) => App(Const("Product_Type.prod.fst", Typ.dummyT), term)
           case (2, 2) => App(Const("Product_Type.prod.snd", Typ.dummyT), term)
-          case _ => App(Const("Product_Type.prod.snd", Typ.dummyT), sel(i - 1, len - 1, term))
+          case _ => sel(i - 1, len - 1, App(Const("Product_Type.prod.snd", Typ.dummyT), term))
         }
 
         term(expr, bounds, consts).map(sel(i, arity(expr.getType), _))
@@ -316,6 +316,46 @@ final class Translator(context: LeonContext, program: Program, types: Types, sys
           inSet(App(Const("Map.dom", Typ.dummyT), map), key)
         }
       case MapUnion(x, y) => nary(Const("Map.map_add", Typ.dummyT), x, y)
+
+      case ArraySelect(array, index) => nary(Const("Leon_Library.select", Typ.dummyT), array, index)
+      case ArrayUpdated(array, index, value) => nary(Const("Leon_Library.update", Typ.dummyT), array, index, value)
+      case ArrayLength(array) => nary(Const("Leon_Library.length", Typ.dummyT), array)
+
+      case EmptyArray(tpe) =>
+        types.typ(ArrayType(tpe)).map(Const("List.list.Nil", _))
+
+      case NonemptyArray(elems, defaults) =>
+        defaults match {
+          case Some((default, length)) =>
+            val int32 = types.typ(Int32Type)
+
+            val entries = Future.traverse(elems.toList) { case (i, e) =>
+              val index = int32.flatMap(typ => system.invoke(NumeralLiteral)((i, typ)).assertSuccess(context))
+              val value = term(e, bounds, consts)
+              index zip value
+            }
+
+            for {
+              d <- term(default, bounds, consts)
+              l <- term(length, bounds, consts)
+              es <- entries
+            }
+            yield
+              es.foldRight(mkApp(Const("Leon_Library.replicate", Typ.dummyT), l, d)) { case ((i, v), acc) =>
+                mkApp(Const("Leon_Library.update", Typ.dummyT), acc, i, v)
+              }
+
+          case None =>
+            val sortedElems = elems.toList.sortBy(_._1)
+            val max = sortedElems.last._1
+
+            if (sortedElems.map(_._1) != (0 to max).toList)
+              context.reporter.fatalError(s"In expression $expr: Neither length nor default given and element map not contiguous")
+
+            types.typ(expr.getType).flatMap { typ =>
+              flexary(Const("List.list.Cons", Typ.dummyT), Const("List.list.Nil", typ), sortedElems.map(_._2))
+            }
+        }
 
       case Choose(pred) =>
         nary(Const("Hilbert_Choice.Eps", Typ.dummyT), pred)

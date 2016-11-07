@@ -12,14 +12,14 @@ import scala.collection.mutable.{ListBuffer => scalaList}
 
 object HammingMemoized {
   abstract class IList
-  
+
   case class Cons(x : BigInt, tail : IList) extends IList
-  
+
   case class Nil() extends IList
-  
+
   case class Data(v : BigInt, i2 : BigInt, i3 : BigInt, i5 : BigInt)
-  
-  @invstate
+
+  /*@invstate
   @memoize
   def hamtime(n : BigInt): (Data, BigInt) = {
     val bd1 = if (n == BigInt(0)) {
@@ -149,8 +149,138 @@ object HammingMemoized {
       (Data(ir8._1._1, ir8._1._2, ir8._1._3, ir8._1._4), (((((BigInt(15) + ir8._2) + e46._2) + e40._2) + e36._2) + e31._2) + ir._2)
     }
     (bd1._1, bd1._2)
+  }*/
+
+  def hamtime(n : BigInt): (Data, BigInt) = {
+    val bd1 = if (n == BigInt(0)) {
+      (Data(BigInt(1), BigInt(0), BigInt(0), BigInt(0)), BigInt(3))
+    } else {
+      val e186 = n - BigInt(1)
+      val lr0 =  lookup[Data](List(4877, e186))
+      val scr0 = if (lr0._1) {
+        (lr0._2, BigInt(2))
+      } else {
+        val e52 = hamtime(e186)
+        ( update[Data](List(4877, e186), e52._1), BigInt(4) + e52._2)
+      }
+      val ir1 = {
+        val Data(x, i2, i3, i5) = scr0._1
+        ((x, i2, i3, i5), BigInt(7) + scr0._2)
+      }
+      val ir3 = (ir1._1._2, BigInt(1))
+      val e59 = (ir1._1, BigInt(0))
+      val ir4 = (ir1._1._3, BigInt(1) + e59._2)
+      val ir5 = (ir1._1._4, BigInt(1))
+      val e61 = (ir3._1, BigInt(0))
+      val lr1 =  lookup[Data](List(4877, ir3._1))
+      val e63 = if (lr1._1) {
+        (lr1._2, BigInt(1) + e61._2)
+      } else {
+        val e62 = hamtime(ir3._1)
+        ( update[Data](List(4877, ir3._1), e62._1), (BigInt(3) + e62._2) + e61._2)
+      }
+      val e64 = (e63._1.v, BigInt(1) + e63._2)
+      val ir6 = (e63._1.v * BigInt(2), BigInt(1) + e64._2)
+      val e66 = (ir4._1, BigInt(0))
+      val lr2 =  lookup[Data](List(4877, ir4._1))
+      val e68 = if (lr2._1) {
+        (lr2._2, BigInt(1) + e66._2)
+      } else {
+        val e67 = hamtime(ir4._1)
+        ( update[Data](List(4877, ir4._1), e67._1), (BigInt(3) + e67._2) + e66._2)
+      }
+      val ir7 = (e68._1.v * BigInt(3), BigInt(2) + e68._2)
+      val e71 = (ir5._1, BigInt(0))
+      val lr3 =  lookup[Data](List(4877, ir5._1))
+      val e73 = if (lr3._1) {
+        (lr3._2, BigInt(1) + e71._2)
+      } else {
+        val e72 = hamtime(ir5._1)
+        ( update[Data](List(4877, ir5._1), e72._1), (BigInt(3) + e72._2) + e71._2)
+      }
+      val e74 = (e73._1.v, BigInt(1) + e73._2)
+      val ir8 = (e73._1.v * BigInt(5), BigInt(1) + e74._2)
+      val e158 = (ir6._1, BigInt(0))
+      val e159 = (ir7._1, BigInt(0))
+      val e160 = (ir6._1 == ir7._1, (BigInt(1) + e159._2) + e158._2)
+      val e161 = (ir7._1, BigInt(0))
+      val e162 = (ir8._1, BigInt(0))
+      val e163 = (ir7._1 == ir8._1, (BigInt(1) + e162._2) + e161._2)
+      val c17 = (e160._1 && e163._1, (((BigInt(3) + e162._2) + e161._2) + e159._2) + e158._2)
+      val scr1 = if (e160._1 && e163._1) {
+        ((ir6._1, BigInt(1) + ir3._1, BigInt(1) + ir4._1, BigInt(1) + ir5._1), BigInt(5) + c17._2)
+      } else {
+        val e152 = (ir6._1, BigInt(0))
+        val e153 = (ir7._1, BigInt(0))
+        val e154 = (ir6._1 == ir7._1, (BigInt(1) + e153._2) + e152._2)
+        val e155 = (ir6._1, BigInt(0))
+        val e156 = (ir8._1, BigInt(0))
+        val e157 = (ir6._1 < ir8._1, (BigInt(1) + e156._2) + e155._2)
+        val c18 = (e154._1 && e157._1, (((BigInt(3) + e156._2) + e155._2) + e153._2) + e152._2)
+        val el6 = if (e154._1 && e157._1) {
+          ((ir6._1, BigInt(1) + ir3._1, BigInt(1) + ir4._1, ir5._1), BigInt(4) + c18._2)
+        } else {
+          val e146 = (ir6._1, BigInt(0))
+          val e147 = (ir8._1, BigInt(0))
+          val e148 = (ir6._1 == ir8._1, (BigInt(1) + e147._2) + e146._2)
+          val e149 = (ir6._1, BigInt(0))
+          val e150 = (ir7._1, BigInt(0))
+          val e151 = (ir6._1 < ir7._1, (BigInt(1) + e150._2) + e149._2)
+          val c19 = (e148._1 && e151._1, (((BigInt(3) + e150._2) + e149._2) + e147._2) + e146._2)
+          val el5 = if (e148._1 && e151._1) {
+            ((ir6._1, BigInt(1) + ir3._1, ir4._1, BigInt(1) + ir5._1), BigInt(4) + c19._2)
+          } else {
+            val e140 = (ir7._1, BigInt(0))
+            val e141 = (ir8._1, BigInt(0))
+            val e142 = (ir7._1 == ir8._1, (BigInt(1) + e141._2) + e140._2)
+            val e143 = (ir7._1, BigInt(0))
+            val e144 = (ir6._1, BigInt(0))
+            val e145 = (ir7._1 < ir6._1, (BigInt(1) + e144._2) + e143._2)
+            val c20 = (e142._1 && e145._1, (((BigInt(3) + e144._2) + e143._2) + e141._2) + e140._2)
+            val el4 = if (e142._1 && e145._1) {
+              ((ir7._1, ir3._1, BigInt(1) + ir4._1, BigInt(1) + ir5._1), BigInt(4) + c20._2)
+            } else {
+              val e134 = (ir6._1, BigInt(0))
+              val e135 = (ir7._1, BigInt(0))
+              val e136 = (ir6._1 < ir7._1, (BigInt(1) + e135._2) + e134._2)
+              val e137 = (ir6._1, BigInt(0))
+              val e138 = (ir8._1, BigInt(0))
+              val e139 = (ir6._1 < ir8._1, (BigInt(1) + e138._2) + e137._2)
+              val c21 = (e136._1 && e139._1, (((BigInt(3) + e138._2) + e137._2) + e135._2) + e134._2)
+              val el3 = if (e136._1 && e139._1) {
+                ((ir6._1, BigInt(1) + ir3._1, ir4._1, ir5._1), BigInt(3) + c21._2)
+              } else {
+                val e128 = (ir7._1, BigInt(0))
+                val e129 = (ir8._1, BigInt(0))
+                val e130 = (ir7._1 < ir8._1, (BigInt(1) + e129._2) + e128._2)
+                val e131 = (ir7._1, BigInt(0))
+                val e132 = (ir6._1, BigInt(0))
+                val e133 = (ir7._1 < ir6._1, (BigInt(1) + e132._2) + e131._2)
+                val c22 = (e130._1 && e133._1, (((BigInt(3) + e132._2) + e131._2) + e129._2) + e128._2)
+                val el2 = if (e130._1 && e133._1) {
+                  ((ir7._1, ir3._1, BigInt(1) + ir4._1, ir5._1), BigInt(3) + c22._2)
+                } else {
+                  ((ir8._1, ir3._1, ir4._1, BigInt(1) + ir5._1), BigInt(3) + c22._2)
+                }
+                (el2._1, (BigInt(1) + c21._2) + el2._2)
+              }
+              (el3._1, (BigInt(1) + c20._2) + el3._2)
+            }
+            (el4._1, (BigInt(1) + c19._2) + el4._2)
+          }
+          (el5._1, (BigInt(1) + c18._2) + el5._2)
+        }
+        (el6._1, (BigInt(1) + c17._2) + el6._2)
+      }
+      val r159 = {
+        val (v, ni, nj, nk) = scr1._1
+        (Data(v, ni, nj, nk), BigInt(7) + scr1._2)
+      }
+      (r159._1, (((((BigInt(10) + r159._2) + e74._2) + e68._2) + e64._2) + e59._2) + ir1._2)
+    }
+    (bd1._1, bd1._2)
   }
-  
+
   def invoketime(n : BigInt): (BigInt, BigInt) = {
     val lr = lookup[Data](List(4877, n))
     val e16 = if (lr._1) {
@@ -161,7 +291,7 @@ object HammingMemoized {
     }
     (e16._1.v, BigInt(1) + e16._2)
   }
-  
+
   def hammingListtime(n : BigInt): (IList, BigInt) = {
     val bd2 = if (n == BigInt(0)) {
       val e151 = invoketime(n)
@@ -173,7 +303,7 @@ object HammingMemoized {
     }
     (bd2._1, bd2._2)
   }
-  
+
 //  def main(args: Array[String]): Unit = {
 //    import scala.util.Random
 //    val rand = Random
@@ -181,7 +311,7 @@ object HammingMemoized {
 //    val points = (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
 //    val size = points.map(x => BigInt(x)).to[scalaList]
 //    val size2 = points.map(x => (x)).toList
-//    
+//
 //    var ops = List[BigInt]()
 //    var orb = List[BigInt]()
 //    points.foreach { i =>
@@ -198,56 +328,56 @@ object HammingMemoized {
       /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](70, 71) //from lower to higher-order terms
+  def coeffs = scalaList[BigInt](65, 66) //from lower to higher-order terms
   def coeffNames = List("constant", "n") // names of the coefficients
   val termsSize = 1 // number of terms (i.e monomials) in the template
-  def getTermsForPoint(i: BigInt) = {    
-    scalaList(i) 
+  def getTermsForPoint(i: BigInt) = {
+    scalaList(i)
   }
   def inputFromPoint(i: Int) = {
     i
   }
   val dirname = "steps/HammingMemoized"
   val filePrefix = "hm"
-  val points =  (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)  
+  val points =  (0 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
   val concreteInstFun = (input: BigInt) => hammingListtime(input)._2
-  
+
   /**
    * Benchmark agnostic helper functions
    */
   def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
     coeffs.head + (coeffs.tail zip terms).map{ case (coeff, term) => coeff * term }.sum
-  }          
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)  
+  }
+  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
   def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
     template(coeffs, terms)
-  } 
+  }
 
-  def main(args: Array[String]): Unit = {    
+  def main(args: Array[String]): Unit = {
     val size = points.map(x => BigInt(x)).to[scalaList]
     val size2 = points.map(x => (x)).toList
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
-    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList  
+    var termsforInp = (0 until termsSize).map( _ =>scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
     points.foreach { i =>
       println("Processing input: "+i)
-       val input = inputFromPoint(i)            
+       val input = inputFromPoint(i)
        ops += concreteOps(input)
        // compute the static bound
        val terms = getTermsForPoint(i)
-       orb += boundForInput(terms)  
-       terms.zipWithIndex.foreach { 
-        case (term, i) => termsforInp(i) += term 
+       orb += boundForInput(terms)
+       terms.zipWithIndex.foreach {
+        case (term, i) => termsforInp(i) += term
       }
        //inputfori += //{BigInt(i*i)}
        // We should not clear the cache to measure this
-       // orb2 :+= {15*i - 18}     
+       // orb2 :+= {15*i - 18}
        leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>        
+      points.map { i =>
         computeTemplate(l, getTermsForPoint(i))
       }.to[scalaList]
     }

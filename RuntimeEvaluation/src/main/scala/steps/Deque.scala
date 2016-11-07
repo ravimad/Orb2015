@@ -14,27 +14,21 @@ import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
 object Deque {
-  
+
   abstract class Stream2[T]
-  
-  
+
   case class SCons1[T](x442 : T, next64 : ValOrFun2[T]) extends Stream2[T]
-  
-  
+
   case class SNil1[T]() extends Stream2[T]
-  
-  
+
   abstract class ValOrFun2[T]
-  
-  
+
   case class Val1[T](x440 : Stream2[T]) extends ValOrFun2[T]
-  
-  
+
   case class Fun3[T](fun23 : () => (Stream2[T], BigInt)) extends ValOrFun2[T]
-  
-  
+
   case class Queue2[T](f226 : Stream2[T], lenf76 : BigInt, sf74 : Stream2[T], r237 : Stream2[T], lenr76 : BigInt, sr74 : Stream2[T])
-  
+
   @invstate
   def takeLazytime[T](n : BigInt, l : Stream2[T]): (Stream2[T], BigInt) = {
     val bd14 = {
@@ -65,7 +59,7 @@ object Deque {
     }
     (bd14._1, bd14._2)
   }
-  
+
   @invstate
   def revAppendtime[T](l1 : Stream2[T], l2 : Stream2[T]): (Stream2[T], BigInt) = {
     val bd10 = l1 match {
@@ -90,7 +84,7 @@ object Deque {
     }
     (bd10._1, bd10._2)
   }
-  
+
   @invstate
   def droptime[T](n : BigInt, l : Stream2[T]): (Stream2[T], BigInt) = {
     val bd9 = if (n == BigInt(0)) {
@@ -120,7 +114,7 @@ object Deque {
     }
     (bd9._1, bd9._2)
   }
-  
+
   @invstate
   def taketime[T](n : BigInt, l : Stream2[T]): (Stream2[T], BigInt) = {
     val bd15 = if (n == BigInt(0)) {
@@ -150,7 +144,7 @@ object Deque {
     }
     (bd15._1, bd15._2)
   }
-  
+
   @invstate
   def rotateRevtime[T](r : Stream2[T], f : Stream2[T], a : Stream2[T]): (Stream2[T], BigInt) = {
     val bd12 = r match {
@@ -183,7 +177,7 @@ object Deque {
     }
     (bd12._1, bd12._2)
   }
-  
+
   @invstate
   def rotateDroptime[T](r : Stream2[T], i : BigInt, f : Stream2[T]): (Stream2[T], BigInt) = {
     val c55 = BigInt(4)
@@ -219,7 +213,7 @@ object Deque {
     }
     (bd6._1, bd6._2)
   }
-  
+
   @invisibleBody
   def createQueuetime[T](f : Stream2[T], lenf : BigInt, sf : Stream2[T], r : Stream2[T], lenr : BigInt, sr : Stream2[T]): (Queue2[T], BigInt) = {
     val c57 = BigInt(3)
@@ -247,7 +241,7 @@ object Deque {
     }
     (bd2._1, bd2._2)
   }
-  
+
   @invisibleBody
   def forcetime[T](tar : Stream2[T], htar : Stream2[T], other : Stream2[T], hother : Stream2[T]): (Stream2[T], BigInt) = {
     val bd = tar match {
@@ -271,7 +265,7 @@ object Deque {
     }
     (bd._1, bd._2)
   }
-  
+
   def forceTwicetime[T](q : Queue2[T]): ((Stream2[T], Stream2[T]), BigInt) = {
     val e253 = forcetime[T](q.sf74, q.f226, q.r237, q.sr74)
     val e261 = forcetime[T](e253._1, q.f226, q.r237, q.sr74)
@@ -280,12 +274,12 @@ object Deque {
     val e276 = forcetime[T](e269._1, q.r237, q.f226, e416)
     ((e416, e276._1), (((BigInt(17) + e276._2) + e269._2) + e261._2) + e253._2)
   }
-  
+
   def emptytime[T](): (Queue2[T], BigInt) = {
     val ir48 = SNil1[T]()
     (Queue2[T](ir48, BigInt(0), ir48, ir48, BigInt(0), ir48), BigInt(2))
   }
-  
+
   def constime[T](x : T, q : Queue2[T]): (Queue2[T], BigInt) = {
     val e141 = forcetime[T](q.sf74, q.f226, q.r237, q.sr74)
     val e363 = e141._1
@@ -293,43 +287,42 @@ object Deque {
     val e165 = createQueuetime[T](SCons1[T](x, Val1[T](q.f226)), BigInt(1) + q.lenf76, e363, q.r237, q.lenr76, e149._1)
     (e165._1, ((BigInt(17) + e165._2) + e149._2) + e141._2)
   }
-  
+
   def tailtime[T](q : Queue2[T]): (Queue2[T], BigInt) = {
     val e244 = tailSubtime[T](q)
     (e244._1, BigInt(1) + e244._2)
   }
-  
+
   def tailSubtime[T](q : Queue2[T]): (Queue2[T], BigInt) = {
     val bd3 = q.f226 match {
-      case c28 @ SCons1(x, _) =>
-        val e84 = forceTwicetime[T](q)
-        val ir9 = {
-          val (nsf, nsr) = e84._1
-          ((nsf, nsr), BigInt(6) + e84._2)
+      case c33 @ SCons1(x, _) =>
+        val e111 = forceTwicetime[T](q)
+        val mc7 = {
+          val (nsf, nsr) = e111._1
+          val e114 = c33 match {
+            case SCons1(_, Val1(x547)) =>
+              (x547, BigInt(5))
+            case SCons1(_, f422 @ Fun3(_)) =>
+              val lr1 = lookup[Stream2[T]](List(6113, f422))
+              val mc5 = if (lr1._1) {
+                (lr1._2, BigInt(1))
+              } else {
+                val e113 = ValOrFun.gettime[T](f422)
+                (update[Stream2[T]](List(6113, f422), e113._1), BigInt(3) + e113._2)
+              }
+              (mc5._1, BigInt(7) + mc5._2)
+          }
+          val e125 = createQueuetime[T](e114._1, q.lenf76 - BigInt(1), nsf, q.r237, q.lenr76, nsr)
+          (e125._1, ((BigInt(10) + e125._2) + e114._2) + e111._2)
         }
-        val ir59 = ir9._1
-        val e91 = c28 match {
-          case SCons1(_, Val1(x497)) =>
-            (x497, BigInt(5))
-          case SCons1(_, f266 @ Fun3(_)) =>
-            val lr1 = lookup[Stream2[T]](List(6113, f266))
-            val mc6 = if (lr1._1) {
-              (lr1._2, BigInt(1))
-            } else {
-              val e90 = ValOrFun.gettime[T](f266)
-              (update[Stream2[T]](List(6113, f266), e90._1), BigInt(3) + e90._2)
-            }
-            (mc6._1, BigInt(7) + mc6._2)
-        }
-        val e102 = createQueuetime[T](e91._1, q.lenf76 - BigInt(1), ir59._1, q.r237, q.lenr76, ir59._2)
-        (e102._1, ((BigInt(11) + e102._2) + e91._2) + ir9._2)
+        (mc7._1, BigInt(4) + mc7._2)
       case SNil1() =>
-        val e103 = emptytime[T]
-        (e103._1, BigInt(5) + e103._2)
+        val e126 = emptytime[T]
+        (e126._1, BigInt(5) + e126._2)
     }
     (bd3._1, bd3._2)
   }
-  
+
   def reversetime[T](q : Queue2[T]): (Queue2[T], BigInt) = (Queue2[T](q.r237, q.lenr76, q.sr74, q.f226, q.lenf76, q.sf74), BigInt(7))
 
   def snoc[T](x: T, q: Queue2[T]): Queue2[T] = {
@@ -387,7 +380,7 @@ object Deque {
 //    // minresults(ops, scalaList(970), List("constant"), List(), size, "dequetail")
 //
 //  }
-  
+
     /**
    * Benchmark specific parameters
    */
@@ -406,24 +399,24 @@ object Deque {
     }
     val dirname = "steps/Deque"
     val filePrefix: String
-    val points = (1 to 15)
+    val points = (1 to 20)
     val concreteInstFun: Queue2[BigInt] => BigInt
   }
   object ConsContext extends RunContext {
     override def coeffs = scalaList[BigInt](535)
-    override val filePrefix = "deq-cons" // the abbrevation used in the paper  
+    override val filePrefix = "deq-cons" // the abbrevation used in the paper
     override val concreteInstFun = (rtq: Queue2[BigInt]) => constime[BigInt](BigInt(0), rtq)._2
   }
-  
+
   object ReverseContext extends RunContext {
     override def coeffs = scalaList[BigInt](7)
-    override val filePrefix = "deq-reverse" // the abbrevation used in the paper  
+    override val filePrefix = "deq-reverse" // the abbrevation used in the paper
     override val concreteInstFun = (rtd: Queue2[BigInt]) => reversetime[BigInt](rtd)._2
   }
 
   object TailContext extends RunContext {
     override def coeffs = scalaList[BigInt](893)
-    override val filePrefix = "deq-tail" // the abbrevation used in the paper  
+    override val filePrefix = "deq-tail" // the abbrevation used in the paper
     override val concreteInstFun = (rtd: Queue2[BigInt]) => tailtime[BigInt](rtd)._2
   }
   val ctxts: scalaList[RunContext] = scalaList(ConsContext, TailContext, ReverseContext)
@@ -470,7 +463,7 @@ object Deque {
       i = i + 1
     }
   }
-  
+
   def main(args: Array[String]): Unit = {
     ctxts.foreach(benchmark)
   }

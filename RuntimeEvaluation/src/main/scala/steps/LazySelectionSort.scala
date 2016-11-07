@@ -95,65 +95,88 @@ object LazySelectionSort {
     }
     (bd3._1, bd3._2)
   }
+  
+//  def coeffs = scalaList[BigInt](13, 8, 15) //from lower to higher-order terms
+//  def coeffNames = List("constant", "k", "k*length") // names of the coefficients
+//  val termsSize = 1 // number of terms (i.e monomials) in the template
+//  def getTermsForPoint(length: BigInt) = scalaList(3 * length)
+//  def inputFromPoint(length: Int) = {
+//    val tinput = {
+//      (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+//        Cons(n, f)
+//      }
+//    }
+//    val input = sorttime(tinput)._1 match {
+//      case SCons1(_, t) => t
+//      case SNil1()      => Stream2(() => (SNil1(), 0))
+//    }
+//    input
+//  }
+//  val dirname = "steps/LazySelectionSort"
+//  val filePrefix = "sel" // the abbrevation used in the paper
+//  val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
+//  val concreteInstFun = (input: Stream2) => kthMintime(input, 3)._2
 
   /**
    * Benchmark specific parameters
    */
-  def coeffs = scalaList[BigInt](37, 15) //from lower to higher-order terms
-  def coeffNames = List("constant", "3*length") // names of the coefficients
-  val termsSize = 1 // number of terms (i.e monomials) in the template
-  def getTermsForPoint(length: BigInt) = scalaList(3 * length)
-  def inputFromPoint(length: Int) = {
-    val tinput = {
-      (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
-        Cons(n, f)
+  object RunContext {
+    def coeffs = scalaList[BigInt](13, 8, 15) //from lower to higher-order terms
+    def coeffNames = List("constant", "k", "k*length") // names of the coefficients
+    val termsSize = 2 // number of terms (i.e monomials) in the template
+    def getTermsForPoint(length: BigInt, k: BigInt) = scalaList(k, k * length)
+    def inputFromPoint(length: Int) = {
+      val tinput = {
+        (1 to length).foldLeft[List[BigInt]](Nil()) { (f, n) =>
+          Cons(n, f)
+        }
       }
+      val input = sorttime(tinput)._1 match {
+        case SCons1(_, t) => t
+        case SNil1()      => Stream2(() => (SNil1(), 0))
+      }
+      input
     }
-    val input = sorttime(tinput)._1 match {
-      case SCons1(_, t) => t
-      case SNil1()      => Stream2(() => (SNil1(), 0))
-    }
-    input
-  }
-  val dirname = "steps/LazySelectionSort"
-  val filePrefix = "sel" // the abbrevation used in the paper
-  val points = (10 to 200 by 10) ++ (100 to 2000 by 100) ++ (1000 to 10000 by 1000)
-  val concreteInstFun = (input: Stream2) => kthMintime(input, 3)._2
+    val dirname = "steps/LazySelectionSort"
+    val filePrefix = "sel"  // the abbrevation used in the paper
+    val points = (1 to 100).flatMap(k => (1000 to 10000 by 1000).map(n => (n, k)))
+    val concreteInstFun = (input: Stream2, k: BigInt) => kthMintime(input, k)._2
+  }  
 
   /**
    * Benchmark agnostic helper functions
    */
-  def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
-    coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
-  }
-  def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
-  def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
-    template(coeffs, terms)
-  }
-
-  def main(args: Array[String]): Unit = {
-    val size = points.map(x => BigInt(x)).to[scalaList]
-    val size2 = points.map(x => (x)).toList
+  def benchmark {
+    import RunContext._
+    def template(coeffs: scalaList[BigInt], terms: scalaList[BigInt]) = {
+      coeffs.head + (coeffs.tail zip terms).map { case (coeff, term) => coeff * term }.sum
+    }
+    def boundForInput(terms: scalaList[BigInt]): BigInt = template(coeffs, terms)
+    def computeTemplate(coeffs: scalaList[BigInt], terms: scalaList[BigInt]): BigInt = {
+      template(coeffs, terms)
+    }
+    val size = points.map(x => BigInt(x._1)).to[scalaList] // ignore k here
+    val size2 = points.map(x => (x._1)).toList // ignore k here
     var ops = scalaList[BigInt]()
     var orb = scalaList[BigInt]()
     var termsforInp = (0 until termsSize).map(_ => scalaList[BigInt]()).toList
     val concreteOps = concreteInstFun
-    points.foreach { i =>
-      println("Processing input: " + i)
+    points.foreach { case (i, k) =>
+      println("Processing input: " + (i, k))
+      leon.mem.clearMemo()
       val input = inputFromPoint(i)
-      ops += concreteOps(input)
+      ops += concreteOps(input, k)
       // compute the static bound
-      val terms = getTermsForPoint(i)
+      val terms = getTermsForPoint(i, k)
       orb += boundForInput(terms)
       terms.zipWithIndex.foreach {
         case (term, i) => termsforInp(i) += term
       }
-      leon.mem.clearMemo()
     }
     val minlist = mindirresults(ops, coeffs, coeffNames, termsforInp, size, filePrefix, dirname)
     val minresults = minlist.map { l =>
-      points.map { i =>
-        computeTemplate(l, getTermsForPoint(i))
+      points.map { case (i, k) =>
+        computeTemplate(l, getTermsForPoint(i, k))
       }.to[scalaList]
     }
     dumpdirdata(size2, ops, orb, filePrefix, "dynamic", dirname)
@@ -162,6 +185,10 @@ object LazySelectionSort {
       dumpdirdata(size2, minresults(i), orb, filePrefix, s"pareto$i", dirname)
       i = i + 1
     }
+  }
+
+  def main(args: Array[String]): Unit = {
+    benchmark
   }
 
   object Stream {

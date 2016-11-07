@@ -1,32 +1,32 @@
-Statically inferred formula: 35*K*K*T + 35*K*K + -7*T*K + -8*K + 47*T + 47
+Statically inferred formula: 34*K*K*T + 34*K*K + -6*T*K + 14*K + 47*T + 26
 
-Reducing coeff 0 starting from 47
+Reducing coeff 0 starting from 26
 Lowest possible value for the coefficient is 20
-Pareto optimal template: 35*K*K*T + 35*K*K + -7*T*K + -8*K + 47*T + 20
-First counter-example for 35*K*K*T + 35*K*K + -7*T*K + -8*K + 47*T + 19 is at the point 0
+Pareto optimal template: 34*K*K*T + 34*K*K + -6*T*K + 14*K + 47*T + 20
+First counter-example for 34*K*K*T + 34*K*K + -6*T*K + 14*K + 47*T + 19 is at the point 0
 
 Reducing coeff 1 starting from 47
-Lowest possible value for the coefficient is -476
-Pareto optimal template: 35*K*K*T + 35*K*K + -7*T*K + -8*K + -476*T + 47
-First counter-example for 35*K*K*T + 35*K*K + -7*T*K + -8*K + -477*T + 47 is at the point 5
+Lowest possible value for the coefficient is -469
+Pareto optimal template: 34*K*K*T + 34*K*K + -6*T*K + 14*K + -469*T + 26
+First counter-example for 34*K*K*T + 34*K*K + -6*T*K + 14*K + -470*T + 26 is at the point 5
 
-Reducing coeff 2 starting from -8
-Lowest possible value for the coefficient is -531
-Pareto optimal template: 35*K*K*T + 35*K*K + -7*T*K + -531*K + 47*T + 47
-First counter-example for 35*K*K*T + 35*K*K + -7*T*K + -532*K + 47*T + 47 is at the point 5
+Reducing coeff 2 starting from 14
+Lowest possible value for the coefficient is -502
+Pareto optimal template: 34*K*K*T + 34*K*K + -6*T*K + -502*K + 47*T + 26
+First counter-example for 34*K*K*T + 34*K*K + -6*T*K + -503*K + 47*T + 26 is at the point 5
 
-Reducing coeff 3 starting from -7
-Lowest possible value for the coefficient is -111
-Pareto optimal template: 35*K*K*T + 35*K*K + -111*T*K + -8*K + 47*T + 47
-First counter-example for 35*K*K*T + 35*K*K + -112*T*K + -8*K + 47*T + 47 is at the point 5
+Reducing coeff 3 starting from -6
+Lowest possible value for the coefficient is -109
+Pareto optimal template: 34*K*K*T + 34*K*K + -109*T*K + 14*K + 47*T + 26
+First counter-example for 34*K*K*T + 34*K*K + -110*T*K + 14*K + 47*T + 26 is at the point 5
 
-Reducing coeff 4 starting from 35
+Reducing coeff 4 starting from 34
 Lowest possible value for the coefficient is -69
-Pareto optimal template: 35*K*K*T + -69*K*K + -7*T*K + -8*K + 47*T + 47
-First counter-example for 35*K*K*T + -70*K*K + -7*T*K + -8*K + 47*T + 47 is at the point 5
+Pareto optimal template: 34*K*K*T + -69*K*K + -6*T*K + 14*K + 47*T + 26
+First counter-example for 34*K*K*T + -70*K*K + -6*T*K + 14*K + 47*T + 26 is at the point 5
 
-Reducing coeff 5 starting from 35
-Lowest possible value for the coefficient is 15
-Pareto optimal template: 15*K*K*T + 35*K*K + -7*T*K + -8*K + 47*T + 47
-First counter-example for 14*K*K*T + 35*K*K + -7*T*K + -8*K + 47*T + 47 is at the point 5
+Reducing coeff 5 starting from 34
+Lowest possible value for the coefficient is 14
+Pareto optimal template: 14*K*K*T + 34*K*K + -6*T*K + 14*K + 47*T + 26
+First counter-example for 13*K*K*T + 34*K*K + -6*T*K + 14*K + 47*T + 26 is at the point 5
 

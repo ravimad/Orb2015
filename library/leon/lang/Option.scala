@@ -21,6 +21,7 @@ sealed abstract class Option[T] {
     case None()  => default
   }
 
+  @inline
   def orElse(or: =>Option[T]) = { this match {
     case Some(v) => this
     case None() => or

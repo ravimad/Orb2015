@@ -13,22 +13,19 @@ import leon.runtimeDriver._
 import scala.collection.mutable.{ListBuffer => scalaList}
 
 object RealTimeQueue {
-  
+
   abstract class Stream2[T]
-  
-  
+
   case class SCons1[T](x345 : T, tailFun19 : () => (Stream2[T], BigInt)) extends Stream2[T]
   def empty[T] = {
     val a: Stream2[T] = SNil1()
     Queue2(a, Nil(), a)
   }
-  
-  
+
   case class SNil1[T]() extends Stream2[T]
-  
-  
+
   case class Queue2[T](f160 : Stream2[T], r196 : List[T], s106 : Stream2[T])
-  
+
   @invisibleBody
   @invstate
   def rotatealloc[T](f : Stream2[T], r : List[T], a : Stream2[T]): (Stream2[T], BigInt) = {
@@ -51,7 +48,7 @@ object RealTimeQueue {
     }
     (bd3._1, bd3._2)
   }
-  
+
   def enqueuealloc[T](x : T, q : Queue2[T]): (Queue2[T], BigInt) = {
     val ir9 = q.f160
     val ir11 = Cons[T](x, q.r196)
@@ -72,7 +69,7 @@ object RealTimeQueue {
     }
     (r208._1, BigInt(1) + r208._2)
   }
-  
+
   def dequeuealloc[T](q : Queue2[T]): (Queue2[T], BigInt) = {
     val bd5 = {
       val c22 @ SCons1(x, _) = q.f160
@@ -102,7 +99,7 @@ object RealTimeQueue {
     }
     (bd5._1, bd5._2)
   }
-  
+
   // def main(args: Array[String]): Unit = {
   //   import scala.util.Random
   //   val rand = Random
@@ -138,7 +135,6 @@ object RealTimeQueue {
   //   // minresults(ops, scalaList(7), List("constant"), List(), size, "rtqdequeue")
   // }
 
-
   /**
    * Benchmark specific parameters
    */
@@ -157,19 +153,19 @@ object RealTimeQueue {
     }
     val dirname = "alloc/RealTimeQueue"
     val filePrefix: String
-    val points = (5 to 15)
+    val points = (1 to 20)
     val concreteInstFun: Queue2[BigInt] => BigInt
 
   }
   object EnqueueContext extends RunContext {
     override def coeffs = scalaList[BigInt](8)
-    override val filePrefix = "rtq-enqueue" // the abbrevation used in the paper  
+    override val filePrefix = "rtq-enqueue" // the abbrevation used in the paper
     override val concreteInstFun = (rtq: Queue2[BigInt]) => enqueuealloc[BigInt](BigInt(0), rtq)._2
   }
 
   object DequeueContext extends RunContext {
     override def coeffs = scalaList[BigInt](7)
-    override val filePrefix = "rtq-dequeue" // the abbrevation used in the paper  
+    override val filePrefix = "rtq-dequeue" // the abbrevation used in the paper
     override val concreteInstFun = (rtq: Queue2[BigInt]) => dequeuealloc[BigInt](rtq)._2
   }
   val ctxts: scalaList[RunContext] = scalaList(EnqueueContext, DequeueContext)
@@ -231,11 +227,9 @@ object RealTimeQueue {
     (bd6._1, bd6._2)
   }
 }
-  
+
 }
 
-
-
 object Queue {
-  
+
 }

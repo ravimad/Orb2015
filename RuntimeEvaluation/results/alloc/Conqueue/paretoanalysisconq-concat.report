@@ -1,9 +1,9 @@
 Statically inferred formula: 2*abs(xs.lvl-ys.lvl) + 1
 
 Reducing coeff 0 starting from 1
-Lowest possible value for the coefficient is 1
-Pareto optimal template: 2*abs(xs.lvl-ys.lvl) + 1
-First counter-example for 2*abs(xs.lvl-ys.lvl) + 0 is at the point 0
+Lowest possible value for the coefficient is -1
+Pareto optimal template: 2*abs(xs.lvl-ys.lvl) + -1
+First counter-example for 2*abs(xs.lvl-ys.lvl) + -2 is at the point 1
 
 Reducing coeff 1 starting from 2
 Lowest possible value for the coefficient is 1

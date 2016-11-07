@@ -14,35 +14,29 @@ import scala.collection.mutable.{ListBuffer => scalaList}
 
 object DigitObject {
   abstract class Digit
-  
+
   case class Zero() extends Digit
-  
+
   case class One() extends Digit
-  
+
 }
 
 object LazyNumericalRep {
-  
+
   abstract class NumList2
-  
-  
+
   case class Tip1() extends NumList2
-  
-  
+
   case class Spine1(head12 : DigitObject.Digit, rear21 : NumStream2) extends NumList2
-  
-  
+
   abstract class NumStream2
-  
-  
+
   case class Val1(x324 : NumList2) extends NumStream2
-  
-  
+
   case class Susp1(fun3 : () => (NumList2, BigInt)) extends NumStream2
-  
-  
+
   case class Number2(digs1 : NumStream2, schedule1 : List[NumStream2])
-  
+
   def emptyNum = Number2(Val1(Tip1()), Nil())
 
   @invisibleBody
@@ -60,7 +54,7 @@ object LazyNumericalRep {
     }
     (bd2._1, bd2._2)
   }
-  
+
   @invisibleBody
   @invstate
   def incLazyalloc(xs : NumStream2): (NumList2, BigInt) = {
@@ -85,7 +79,7 @@ object LazyNumericalRep {
     }
     (bd4._1, bd4._2)
   }
-  
+
   @invisibleBody
   def incNumalloc(w : Number2): ((NumStream2, List[NumStream2]), BigInt) = {
     val e62 = incalloc(w.digs1)
@@ -98,7 +92,7 @@ object LazyNumericalRep {
     }
     ((Val1(e102), ir6._1), (BigInt(1) + ir6._2) + e62._2)
   }
-  
+
   @invisibleBody
   def Payalloc[T](q : NumStream2, scheds : List[NumStream2]): (List[NumStream2], BigInt) = {
     val bd6 = scheds match {
@@ -117,7 +111,7 @@ object LazyNumericalRep {
     }
     (bd6._1, bd6._2)
   }
-  
+
   @invisibleBody
   def incAndPayalloc(w : Number2): (Number2, BigInt) = {
     val e15 = incNumalloc(w)
@@ -170,12 +164,12 @@ object LazyNumericalRep {
     }
     val dirname = "alloc/LazyNumericalRep"
     val filePrefix: String
-    val points = (3 to 18)
+    val points = (1 to 20)
     val concreteInstFun: Number2 => BigInt
   }
   object MainContext extends RunContext {
     override def coeffs = scalaList[BigInt](15)
-    override val filePrefix = "num" // the abbrevation used in the paper  
+    override val filePrefix = "num" // the abbrevation used in the paper
     override val concreteInstFun = (lazynum: Number2) => incAndPayalloc(lazynum)._2
   }
   val ctxts: scalaList[RunContext] = scalaList(MainContext)
@@ -229,7 +223,7 @@ object LazyNumericalRep {
 }
 
 object NumList {
-  
+
 }
 
 object NumStream {
@@ -249,7 +243,7 @@ object NumStream {
     }
     (bd1._1, bd1._2)
   }
-  
+
   def fvalalloc(thiss : LazyNumericalRep.NumStream2): (LazyNumericalRep.NumList2, BigInt) = {
     val bd5 = {
       val LazyNumericalRep.Susp1(f123) = thiss
@@ -261,5 +255,5 @@ object NumStream {
 }
 
 object Number {
-  
+
 }

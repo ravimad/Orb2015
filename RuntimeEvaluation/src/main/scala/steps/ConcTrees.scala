@@ -287,7 +287,7 @@ object ConcTrees {
     }
     val dirname = "steps/Conqueue"
     val filePrefix: String
-    val points = (0 to 19) // increase upto 21 if needed
+    val points = (1 to 20) // increase upto 21 if needed
     val concreteInstFun: Conc[BigInt] => BigInt
   }
   object ConcatContext extends RunContext {

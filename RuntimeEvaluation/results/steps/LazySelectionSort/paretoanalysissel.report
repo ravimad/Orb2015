@@ -1,12 +1,17 @@
-Statically inferred formula: 15*3*length + 37
+Statically inferred formula: 15*k*length + 8*k + 13
 
-Reducing coeff 0 starting from 37
-Lowest possible value for the coefficient is -35
-Pareto optimal template: 15*3*length + -35
-First counter-example for 15*3*length + -36 is at the point 10
+Reducing coeff 0 starting from 13
+Lowest possible value for the coefficient is -6
+Pareto optimal template: 15*k*length + 8*k + -6
+First counter-example for 15*k*length + 8*k + -7 is at the point 1000
 
-Reducing coeff 1 starting from 15
+Reducing coeff 1 starting from 8
+Lowest possible value for the coefficient is -11
+Pareto optimal template: 15*k*length + -11*k + 13
+First counter-example for 15*k*length + -12*k + 13 is at the point 1000
+
+Reducing coeff 2 starting from 15
 Lowest possible value for the coefficient is 15
-Pareto optimal template: 15*3*length + 37
-First counter-example for 14*3*length + 37 is at the point 30
+Pareto optimal template: 15*k*length + 8*k + 13
+First counter-example for 14*k*length + 8*k + 13 is at the point 1000
 

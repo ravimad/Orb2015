@@ -1,17 +1,17 @@
-Statically inferred formula: 36*3*log (n-1) + 56*n + 22
+Statically inferred formula: 36*k*log (n-1) + 53*n + 22
 
 Reducing coeff 0 starting from 22
-Lowest possible value for the coefficient is -2750
-Pareto optimal template: 36*3*log (n-1) + 56*n + -2750
-First counter-example for 36*3*log (n-1) + 56*n + -2751 is at the point 1000
+Lowest possible value for the coefficient is -2259
+Pareto optimal template: 36*k*log (n-1) + 53*n + -2259
+First counter-example for 36*k*log (n-1) + 53*n + -2260 is at the point 1000
 
-Reducing coeff 1 starting from 56
-Lowest possible value for the coefficient is 54
-Pareto optimal template: 36*3*log (n-1) + 54*n + 22
-First counter-example for 36*3*log (n-1) + 53*n + 22 is at the point 1000
+Reducing coeff 1 starting from 53
+Lowest possible value for the coefficient is 51
+Pareto optimal template: 36*k*log (n-1) + 51*n + 22
+First counter-example for 36*k*log (n-1) + 50*n + 22 is at the point 1000
 
 Reducing coeff 2 starting from 36
-Lowest possible value for the coefficient is -41
-Pareto optimal template: -41*3*log (n-1) + 56*n + 22
-First counter-example for -42*3*log (n-1) + 56*n + 22 is at the point 1000
+Lowest possible value for the coefficient is 11
+Pareto optimal template: 11*k*log (n-1) + 53*n + 22
+First counter-example for 10*k*log (n-1) + 53*n + 22 is at the point 1000
 
