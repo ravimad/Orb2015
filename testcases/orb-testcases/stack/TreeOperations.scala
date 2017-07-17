@@ -53,7 +53,7 @@ object TreeOperations {
         addAll(xs, newt)
       }
     }
-  } ensuring(res => tmpl((a,b,c) => stack <= a*(listSize(l) * (height(t) + listSize(l))) + b*listSize(l) + c))
+  } ensuring(res => tmpl((a,b,c) => stack <= a*listSize(l) + b*height(t) + c))
 
   def remove(elem: BigInt, t: Tree): Tree = {
     t match {
@@ -79,7 +79,7 @@ object TreeOperations {
       case Nil() => t
       case Cons(x, xs) => removeAll(xs, remove(x, t))
     }
-  } ensuring(res => tmpl((a,b,c) => stack <= a*(listSize(l) * height(t)) + b*listSize(l) + c))
+  } ensuring(res => tmpl((a,b,c) => stack <= a*listSize(l) + b*height(t) + c))
 
   def contains(elem : BigInt, t : Tree) : Boolean = {
     t match {

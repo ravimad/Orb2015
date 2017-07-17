@@ -23,7 +23,7 @@ object Sort {
 
   def length(l:List): BigInt = {
     l match {
-      case Nil() => 0
+      case Nil() => BigInt(0)
       case Cons(x,xs) => 1 + length(xs)
     }
   } ensuring(res => res == size(l) && tmpl((a,b) => steps <= a*size(l) + b))

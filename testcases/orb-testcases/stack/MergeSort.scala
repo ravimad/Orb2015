@@ -13,12 +13,13 @@ object MergeSort {
     case Cons(x,xs) => 1 + size(xs)
   }) //ensuring(res => true && tmpl((a) => res >= 0))
 
-  def length(l: List): BigInt = {
+  def lengthby2(l: List): BigInt = {
     l match {
       case Nil() => BigInt(0)
-      case Cons(x,xs) => 1 + length(xs)
+      case Cons(x, Nil()) => BigInt(0)
+      case Cons(x, Cons(_, xs)) => 1 + lengthby2(xs)      
     }
-  } ensuring(res => res == size(l) && tmpl((a,b) => stack <= a*size(l) + b))
+  } ensuring(res => res <= size(l) && res >= 0 && tmpl((a,b) => stack <= a*size(l) + b))
 
   def split(l: List, n: BigInt): (List, List) = {
     require(n >= 0 && n <= size(l))
@@ -53,7 +54,7 @@ object MergeSort {
     list match {
       case Cons(x, Nil()) => list
       case Cons(_, Cons(_, _)) =>
-        val lby2 = length(list) / 2
+        val lby2 = lengthby2(list) 
         val (fst, snd) = split(list, lby2)
         merge(mergeSort(fst), mergeSort(snd))
 

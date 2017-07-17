@@ -1,7 +1,8 @@
-import leon.invariant._
-import leon.instrumentation._
+import leon._
+import invariant._
+import instrumentation._
 
-import leon.annotation._
+import annotation._
 
 object MergeSort {
   sealed abstract class List
@@ -59,9 +60,9 @@ object MergeSort {
      		else
 		   Cons(x,merge(aList, xs))
    	 }
-  }) ensuring(res => size(aList)+size(bList) == size(res) && tmpl((a,b,c) => steps <= a*size(aList) + b*size(bList) + c))
+  }) ensuring(res => size(aList)+size(bList) == size(res) && steps <= ?*size(aList) + ?*size(bList) + ?)
 
-  def mergeSort(list:List):List = {
+  /*def mergeSort(list:List):List = {
     list match {
       case Cons(x,Nil()) => list
       case Cons(_,Cons(_,_)) =>
@@ -70,5 +71,5 @@ object MergeSort {
       	 //merge(mergeSort(fst,l), mergeSort(snd,len - l))
     	 merge(mergeSort(fst),mergeSort(snd))
       case _ => list
-  }} ensuring(res => true && tmpl((a,b) => steps <= a*(size(list)*log(size(list))) + b))
+  }} ensuring(res => true && tmpl((a,b) => steps <= a*(size(list)*log(size(list))) + b))*/   
 }
