@@ -25,6 +25,4 @@ object LogarithmTest {
         BigInt(8)
     }
   } ensuring(res => tmpl((a,b) => res <= a*log(max - min) + b))
-  //ensuring(res => tmpl((a,b) => res <= 7*log(max - min) + 2))
-  //
 }
