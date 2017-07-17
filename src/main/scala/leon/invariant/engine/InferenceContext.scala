@@ -116,11 +116,12 @@ class InferenceContext(val initProgram: Program, val leonContext: LeonContext) {
             validPosts.update(funName, false)
             false
           case (None, _) =>
+            // this could be possibly because of nonlinearity
             leonContext.reporter.fatalError(s"${vc.kind} verification returned unknown for function $funName")
           case (Some(false), _) if vc.kind == VCKinds.Postcondition =>
             validPosts.update(funName, true)
             true
-          case _ => acc // here, we have verified a VC that is not post, so skip it            
+          case _ => acc // here, we have verified a VC that is not post, so skip it
         }
       }
     }
