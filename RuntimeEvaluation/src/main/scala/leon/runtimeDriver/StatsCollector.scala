@@ -14,7 +14,7 @@ object StatsCollector {
     "CyclicFibonacciStream", "CyclicHammingStream", "StreamLibrary",
      "RealTimeQueue", "BottomUpMergeSort", "Deque", "LazyNumericalRep", "Conqueue",
         "LCS", "Levenshtein", "HammingMemoized", "WeightedScheduling",
-        "Knapsack", "PackratParsing", "Viterbi"
+        "Knapsack", "PackratParsing", "Viterbi", "RedBlackTree"
     )
   val pw = new PrintWriter(new File("Figure-10-data"))
   def main(args: Array[String]): Unit = {
