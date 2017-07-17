@@ -13,14 +13,13 @@ object MergeSort {
   sealed abstract class List
   case class Cons(head: BigInt, tail: List) extends List
   case class Nil() extends List
-
+  
   @invisibleBody
   def log(x: BigInt): BigInt = {
     require(x >= 0)
     if (x <= 1) BigInt(0)
-    else {
-      val k = x / 2
-      BigInt(1) + log(x - k)
+    else {      
+      BigInt(1) + log(x / 2)
     }
   } ensuring (_ >= 0)
   
@@ -30,7 +29,16 @@ object MergeSort {
     x * log(x)
   } ensuring(_ >= 0)
 
-  // an axiom of nlogn: |_n/2_|log|_n/2_| + |n/2|log|n/2| <= nlogn - |_n/2_| 
+  /** 
+   * An axiom of nlogn: |_n/2_|log|_n/2_| + |n/2|log|n/2| <= nlogn - |_n/2_|
+   * Proof of this Axiom: 
+   *   LHS <= |_n/2_|log|_n/2_| + |n/2|(log|_n/2_| + 1)  
+   *   		 = (|_n/2_| + |n/2|)log|_n/2_| + |n/2| 					// this requires a bit of nonlinear reasoning and hence cannot be proven by the system
+   *   		 = nlog|_n/2_| + |n/2|
+   *   		 <= n(log n - 1) + |n/2|
+   *   		 = nlogn  - n + |n/2|
+   *   		 = RHS 
+   */
   @library
   def nlognAxiom(n: BigInt): Boolean = {
     require(n >= 0)
