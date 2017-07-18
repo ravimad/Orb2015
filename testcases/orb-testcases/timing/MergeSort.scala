@@ -7,7 +7,7 @@ import annotation._
 
 /**
  * An implementation of a (conventional) top-down mergesort algorithm.
- * The proof uses a nontrivial axiom of nlogn (nlognAxiom)
+ * The proof uses a nontrivial axiom of nlogn (see nlognAxiom)
  */
 object MergeSort {
   sealed abstract class List
