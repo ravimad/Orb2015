@@ -7,7 +7,8 @@ import annotation._
 
 /**
  * An implementation of a (conventional) top-down mergesort algorithm.
- * The proof uses a nontrivial axiom of nlogn (see nlognAxiom)
+ * The proof uses a nontrivial axiom of nlogn (see nlognAxiom).
+ * Requires running it with --assumepreInf option
  */
 object MergeSort {
   sealed abstract class List
@@ -69,7 +70,7 @@ object MergeSort {
           }
         }
       }
-  } ensuring (res => size(res._2) == size(l) - n && size(res._1) == n && tmpl((a, b) => steps <= a * n + b))
+  } ensuring (res => size(res._2) == size(l) - n && size(res._1) == n && steps <= ? * n + ?)
 
   @invisibleBody
   def merge(aList: List, bList: List, totsz: BigInt): List = {
@@ -102,3 +103,116 @@ object MergeSort {
     }
   } ensuring(res => size(res) == sz && steps <= ? * nlogn(sz) + ?)
 }
+
+
+/**
+ * The following is the proof of the logAxiom. 
+ * It is provable with stainless but not currently with Leon
+ */
+/*object Arithmetic {
+
+  /**
+   * Computes floor(log(x)) for all x >= 1
+   */
+  def log(x: BigInt): BigInt = {
+    require(x >= 0)
+    
+    if (x <= 1) BigInt(0)
+    else 1 + log(x / 2)
+    
+  } ensuring (_ >= 0)
+  
+
+  /**
+   * Computes x * log(x)
+   */
+  def nlogn(x: BigInt): BigInt = {
+    require(x >= 0)
+
+    x * log(x)
+  
+  } ensuring(_ >= 0)
+
+  @traceInduct
+  def logLemma1(b: BigInt): Boolean = {   
+    log(b + 1) <= log(b) + 1
+  } holds
+
+  def logLemma2(n: BigInt) = {
+    require(n >= 0)
+
+    val flrnby2 = n / 2
+    val clnby2 = n - n / 2
+
+    if(clnby2 != flrnby2) {
+      assertI(clnby2 == flrnby2 + 1)
+      assertI(logLemma1(flrnby2))      
+    }
+    log(clnby2) <= log(flrnby2) + 1
+  } holds
+
+  def logLemma3(n: BigInt) = {
+    require(n >= 2)
+
+    log(n / 2) <= log(n) - 1
+  } holds
+  
+  /**
+   * multAxiom
+   */
+  def multiplySmaller(a: BigInt, b: BigInt, c: BigInt) = {
+    require (0 <= a && a <= b && 0 < c)
+    c*a <= c*b
+  } holds
+
+  def nlognLemma1(n: BigInt): Boolean = {
+    require(n >= 2)
+    val flrnby2 = n / 2
+    val clnby2 = n - (n / 2)
+    
+    assertI(logLemma2(n))
+    assertI(log(clnby2) <= log(flrnby2) + 1)
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= nlogn(flrnby2) + clnby2*log(clnby2))
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= nlogn(flrnby2) + clnby2*(log(flrnby2) + 1))
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= nlogn(flrnby2) + clnby2*log(flrnby2) + clnby2)
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= flrnby2*log(flrnby2) + clnby2*log(flrnby2) + clnby2)
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= (flrnby2 + clnby2)*log(flrnby2) + clnby2)
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= n*log(flrnby2) + clnby2)
+
+    assertI(logLemma3(n))
+    assertI(multiplySmaller(log(flrnby2), log(n) - 1, n))
+    assertI(n*log(flrnby2) <= n*(log(n)-1))
+
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= n*(log(n)-1) + clnby2)
+    assertI(nlogn(flrnby2) + nlogn(clnby2) <= n*log(n) - n + clnby2)
+
+    nlogn(flrnby2) + nlogn(clnby2) <= n*log(n) - flrnby2      
+    } holds
+
+  def nlognLemma2(n: BigInt): Boolean = {
+    require(0 <= n && n <= 1)
+    val flrnby2 = n / 2
+    val clnby2 = n - n / 2
+    
+    nlogn(flrnby2) + nlogn(clnby2) <= nlogn(n) - flrnby2
+  } holds
+
+  def nlognTheorem(n: BigInt): Boolean = {
+    require(0 <= n)
+    val flrnby2 = n / 2
+    val clnby2 = n - n / 2
+    
+    if (n <= 1) {
+      assertI(nlognLemma2(n))
+      nlogn(flrnby2) + nlogn(clnby2) <= nlogn(n) - flrnby2
+    } else {
+      assertI(nlognLemma1(n))
+      nlogn(flrnby2) + nlogn(clnby2) <= nlogn(n) - flrnby2
+    }
+  } holds
+  
+  def assertI(b: Boolean): Unit = {
+    require(b)
+  }
+ 
+}*/
