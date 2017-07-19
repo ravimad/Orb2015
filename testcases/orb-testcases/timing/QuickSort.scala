@@ -88,6 +88,7 @@ object Arithmetic {
    * 		 > s * (s - 1)
    * 		 >= s * n
    * 		 >= LHS
+   * Run with --assumepreInf to check this axiom   
    */
   def multAxiom(a: BigInt, b: BigInt, c: BigInt) = {
     require(a >= 0 && b >= 0 && c >= 0 && a + b < c)    
