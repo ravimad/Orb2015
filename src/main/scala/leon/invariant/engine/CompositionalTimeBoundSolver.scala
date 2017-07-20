@@ -25,8 +25,10 @@ import invariant.factories.TemplateInstantiator._
 class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd: FunDef)
   extends FunctionTemplateSolver {
 
-  val printIntermediatePrograms = true
-  val debugDecreaseConstraints = true
+  import ExpressionTransformer._
+
+  val printIntermediatePrograms = false
+  val debugDecreaseConstraints = false
   val debugComposition = false
   val reporter = ctx.reporter
 
@@ -47,7 +49,7 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
         " taken together should not have the any common template variables for compositional analysis")
 
     val origProg = prog
-    // add only rec templates for all functions
+    // add only rec templates for the root function
     val funToRecTmpl = userLevelFunctions(origProg).collect {
       case fd if fd.hasTemplate && fd == rootFd =>
         fd -> recTmpl
@@ -56,7 +58,7 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
     }.toMap
     val recProg = assignTemplateAndCojoinPost(funToRecTmpl, origProg)
 
-    // add only tpr template for all functions
+    // add only tpr template for the root function
     val funToNonRecTmpl = userLevelFunctions(origProg).collect {
       case fd if fd.hasTemplate && fd == rootFd =>
         fd -> tprTmpl
@@ -96,41 +98,41 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
         val recFunInst = (new RealToInt()).mapExpr(
           replace(recModel.map { case (k, v) => (k.toVariable -> v) }.toMap, recFun))
 
-        val timeUpperBound = ExpressionTransformer.normalizeMultiplication(
-          Plus(FunctionInvocation(TypedFunDef(multFun, Seq()),
-            Seq(recFunInst, tprFunInst)), tprFunInst), ctx.multOp)
+        val timeUpperBound = normalizeMultiplication(Plus(FunctionInvocation(TypedFunDef(multFun, Seq()), Seq(recFunInst, tprFunInst)), tprFunInst),
+            ctx.multOp)
 
         // map the old functions in the vc using the new functions
         val substMap = origProg.definedFunctions.collect {
           case fd => (fd -> functionByName(fd.id.name, compProg).get)
         }.toMap
-        // res = body
-        val body = mapFunctionsInExpr(substMap)(Equals(getResId(rootFd).get.toVariable, rootFd.body.get))
+        val trans = mapFunctionsInExpr(substMap) _
+        val body = trans(Equals(getResId(rootFd).get.toVariable, rootFd.body.get))
         val pre = rootFd.precondition.getOrElse(tru)
         val Operator(Seq(timeInstExpr, _), _) = timeTmpl
-        val trans = mapFunctionsInExpr(substMap) _
         val assump = trans(createAnd(Seq(LessEquals(timeInstExpr, timeUpperBound), pre)))
-        val conseq = trans(timeTmpl)
+        val newTimeTmpl = trans(timeTmpl)
 
         if (printIntermediatePrograms) reporter.info("Comp prog: " + compProg)
-        if (debugComposition) reporter.info("Compositional VC: " + createAnd(Seq(assump, body, Not(conseq))))
+        if (debugComposition) reporter.info("Compositional VC: " + createAnd(Seq(assump, body, Not(newTimeTmpl))))
 
         val recTempSolver = new UnfoldingTemplateSolver(ctx, compProg, compFunDef) {
           val minFunc = {
             val mizer = new Minimizer(ctx, compProg)
-            Some(mizer.minimizeBounds(mizer.computeCompositionLevel(timeTmpl)) _)
+            Some(mizer.minimizeBounds(mizer.computeCompositionLevel(newTimeTmpl)) _)
           }
           override lazy val templateSolver =
             TemplateSolverFactory.createTemplateSolver(ctx, compProg, constTracker, rootFd, minFunc)
           override def instantiateModel(model: Model, funcs: Seq[FunDef]) = {
             funcs.collect {
-              case `compFunDef` => compFunDef -> timeTmpl
+              case `compFunDef` =>
+                val normTimeTmpl = normalizeExpr(newTimeTmpl, ctx.multOp)
+                compFunDef -> instantiateNormTemplates(model, normTimeTmpl)
               case fd if fd.hasTemplate =>
                 fd -> instantiateNormTemplates(model, fd.normalizedTemplate.get)
             }.toMap
           }
         }
-        recTempSolver.solveParametricVC(assump, body, conseq) match {
+        recTempSolver.solveParametricVC(assump, body, newTimeTmpl) match {
           case Some(InferResult(true, Some(timeModel),timeInferredFuncs)) =>
             val inferredFuns = (recInfRes.get.inferredFuncs ++ tprInfRes.get.inferredFuncs ++ timeInferredFuncs).distinct
             Some(InferResult(true, Some(recModel ++ tprModel.toMap ++ timeModel.toMap),
@@ -184,7 +186,7 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
 
   def inferTPRTemplate(tprProg: Program) = {
     val tempSolver = new UnfoldingTemplateSolver(ctx, tprProg, findRoot(tprProg)) {
-      
+
       override def constructVC(funDef: FunDef): (Expr, Expr, Expr) = {
         val Lambda(Seq(ValDef(resid)), _) = funDef.postcondition.get
         val bodyExp = Equals(resid.toVariable, funDef.body.get)
@@ -196,12 +198,12 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
           else funDef.precOrTrue
         val tprTmpl = funDef.getTemplate
         // if the postcondition is verified do not include it in the sequent
-        val tprPost =           
+        val tprPost =
             if (ctx.isFunctionPostVerified(funName)) tprTmpl
-            else And(postWoTemplate, tprTmpl)          
-            
+            else And(postWoTemplate, tprTmpl)
+
         // generate constraints characterizing decrease of the tpr function with recursive calls.
-        // To do this we create a formula from a expression and again regenerate an expression 
+        // To do this we create a formula from a expression and again regenerate an expression
         val Operator(Seq(_, tprFun), op) = tprTmpl
         val bodyFormula = new Formula(funDef, ExpressionTransformer.normalizeExpr(bodyExp, ctx.multOp), ctx)
         val constraints = bodyFormula.callsInFormula.collect {

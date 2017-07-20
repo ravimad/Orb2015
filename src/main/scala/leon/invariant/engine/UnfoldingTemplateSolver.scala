@@ -43,7 +43,7 @@ class UnfoldingTemplateSolver(ctx: InferenceContext, program: Program, rootFd: F
   lazy val constTracker = new ConstraintTracker(ctx, program, rootFd)
   lazy val templateSolver = TemplateSolverFactory.createTemplateSolver(ctx, program, constTracker, rootFd)
 
-//  TODO: handle traceInduct in Orb  
+//  TODO: handle traceInduct in Orb
 //  def constructFunToVerify(infun: FunDef): FunDef = {
 //    if (infun.annotations.contains("induct")) {
 //      reporter.warning("@induct option is not supported by Orb. Falling back to normal VC generation.")

@@ -24,8 +24,8 @@ object InsertionSort {
   def sort(l: List): List = (l match {
     case Cons(x,xs) => sortedIns(x, sort(xs))
     case _ => Nil()
-  }) ensuring(res => size(res) == size(l) &&
-        steps <= ? * (size(l) * size(l)) + ? &&
+  }) ensuring(res => size(res) == size(l) && 
         rec <= ? * size(l) + ? &&
-        tpr <= ? * size(l) + ?)
+        tpr <= ? * size(l) + ? && 
+        steps <= ? * (size(l) * size(l)) + ?) 
 }
