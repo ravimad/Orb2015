@@ -146,7 +146,6 @@ object HeapSort {
     case Cons(_, xs) => 1 + listSize(xs)
   }) ensuring (_ >= 0)
   
-  //@compose
   @invisibleBody
   def removeElements(h: Heap): List = {
     require(hasLeftistProperty(h))
@@ -157,14 +156,8 @@ object HeapSort {
   } ensuring { res =>
     heapSize(h) == listSize(res) &&
       steps <= ? * (heapSize(h) * log(heapSize(h) + 1)) + ? * heapSize(h) + ?
-    /*{      
-      rec <= ? * heapSize(h) + ? //&& 
-      tpr <= ? * log(heapSize(h) + 1) + ? &&            
-      steps <= ? * (heapSize(h) * log(heapSize(h) + 1)) + ? * heapSize(h) + ?
-    }*/
   }
 
-  // @compose
   @invisibleBody
   def buildHeap(l: List): Heap = {
     l match {
@@ -174,11 +167,6 @@ object HeapSort {
   } ensuring (res => hasLeftistProperty(res) &&
     heapSize(res) == listSize(l) &&
     steps <= ? * (listSize(l) * log(listSize(l) + 1)) + ? * log(listSize(l) + 1) + ?)
-  //     heapSize(res) >= heapSize(h) &&
-  //     logMonotone(heapSize(h), heapSize(res)) &&
-  //     tpr <= ? * log(heapSize(res)) + ? &&
-  //     rec <= ? * listSize(l) + ? &&
-  //     time <= ? *(listSize(l)*log(heapSize(res))) + ? *log(heapSize(res)) + ?)
 
   def sort(l: List): List = {   
     removeElements(buildHeap(l))
