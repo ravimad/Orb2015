@@ -120,9 +120,6 @@ object HeapSort {
     }
   }
 
-  /**
-   * TODO: why enabling invisibleBody here causes verification to fail.
-   */
   @invisibleBody
   def removeMax(h: Heap): Heap = {
     require(h != Leaf() && hasLeftistProperty(h))
@@ -146,7 +143,7 @@ object HeapSort {
     case Cons(_, xs) => 1 + listSize(xs)
   }) ensuring (_ >= 0)
   
-  //@compose
+  @compose
   @invisibleBody
   def removeElements(h: Heap): List = {
     require(hasLeftistProperty(h))
@@ -156,15 +153,14 @@ object HeapSort {
     }
   } ensuring { res =>
     heapSize(h) == listSize(res) &&
-      steps <= ? * (heapSize(h) * log(heapSize(h) + 1)) + ? * heapSize(h) + ?
-    /*{      
-      rec <= ? * heapSize(h) + ? //&& 
+    {      
+      rec <= ? * heapSize(h) + ? && 
       tpr <= ? * log(heapSize(h) + 1) + ? &&            
       steps <= ? * (heapSize(h) * log(heapSize(h) + 1)) + ? * heapSize(h) + ?
-    }*/
+    }
   }
 
-  // @compose
+  @compose
   @invisibleBody
   def buildHeap(l: List): Heap = {
     l match {
@@ -172,13 +168,12 @@ object HeapSort {
       case Cons(x, xs) => insert(x, buildHeap(xs))
     }
   } ensuring (res => hasLeftistProperty(res) &&
-    heapSize(res) == listSize(l) &&
-    steps <= ? * (listSize(l) * log(listSize(l) + 1)) + ? * log(listSize(l) + 1) + ?)
-  //     heapSize(res) >= heapSize(h) &&
-  //     logMonotone(heapSize(h), heapSize(res)) &&
-  //     tpr <= ? * log(heapSize(res)) + ? &&
-  //     rec <= ? * listSize(l) + ? &&
-  //     time <= ? *(listSize(l)*log(heapSize(res))) + ? *log(heapSize(res)) + ?)
+    heapSize(res) == listSize(l) && 
+    {
+      rec <= ? * listSize(l) + ? &&
+      tpr <= ? * log(listSize(l) + 1) + ? &&       
+      steps <= ? *(listSize(l)*log(listSize(l) + 1)) + ? *log(listSize(l) + 1) + ?
+    })
 
   def sort(l: List): List = {   
     removeElements(buildHeap(l))

@@ -62,13 +62,6 @@ object HeapSort {
     case Node(_, _, l, r) => hasLeftistProperty(l) && hasLeftistProperty(r) && rightHeight(l) >= rightHeight(r) && (rank(h) == rightHeight(h))
   })
 
-  def leftRightHeight(h: Heap): BigInt = {
-    h match {
-      case Leaf()           => 0
-      case Node(_, _, l, r) => rightHeight(l)
-    }
-  }
-
   @invisibleBody
   def merge(h1: Heap, h2: Heap): Heap = {
     require(hasLeftistProperty(h1) && hasLeftistProperty(h2))
