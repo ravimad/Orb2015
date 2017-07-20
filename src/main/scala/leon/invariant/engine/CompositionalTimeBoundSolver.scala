@@ -6,6 +6,7 @@ package invariant.engine
 import purescala.Definitions._
 import purescala.Expressions._
 import purescala.ExprOps._
+import purescala.DefOps._
 import purescala.Extractors._
 import purescala.Types._
 import transformations._
@@ -24,8 +25,8 @@ import invariant.factories.TemplateInstantiator._
 class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd: FunDef)
   extends FunctionTemplateSolver {
 
-  val printIntermediatePrograms = false
-  val debugDecreaseConstraints = false
+  val printIntermediatePrograms = true
+  val debugDecreaseConstraints = true
   val debugComposition = false
   val reporter = ctx.reporter
 
@@ -183,14 +184,26 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
 
   def inferTPRTemplate(tprProg: Program) = {
     val tempSolver = new UnfoldingTemplateSolver(ctx, tprProg, findRoot(tprProg)) {
-      override def constructVC(rootFd: FunDef): (Expr, Expr, Expr) = {
-        val body = Equals(getResId(rootFd).get.toVariable, rootFd.body.get)
-        val preExpr = rootFd.precondition.getOrElse(tru)
-        val tprTmpl = rootFd.getTemplate
-        val postWithTemplate = And(rootFd.getPostWoTemplate, tprTmpl)
-        // generate constraints characterizing decrease of the tpr function with recursive calls
+      
+      override def constructVC(funDef: FunDef): (Expr, Expr, Expr) = {
+        val Lambda(Seq(ValDef(resid)), _) = funDef.postcondition.get
+        val bodyExp = Equals(resid.toVariable, funDef.body.get)
+        val funName = fullName(funDef, useUniqueIds = false)(tprProg)
+        val postWoTemplate = funDef.getPostWoTemplate
+        val assumptions =
+          if (funDef.usePost && ctx.isFunctionPostVerified(funName))
+            createAnd(Seq(postWoTemplate, funDef.precOrTrue))
+          else funDef.precOrTrue
+        val tprTmpl = funDef.getTemplate
+        // if the postcondition is verified do not include it in the sequent
+        val tprPost =           
+            if (ctx.isFunctionPostVerified(funName)) tprTmpl
+            else And(postWoTemplate, tprTmpl)          
+            
+        // generate constraints characterizing decrease of the tpr function with recursive calls.
+        // To do this we create a formula from a expression and again regenerate an expression 
         val Operator(Seq(_, tprFun), op) = tprTmpl
-        val bodyFormula = new Formula(rootFd, ExpressionTransformer.normalizeExpr(body, ctx.multOp), ctx)
+        val bodyFormula = new Formula(funDef, ExpressionTransformer.normalizeExpr(bodyExp, ctx.multOp), ctx)
         val constraints = bodyFormula.callsInFormula.collect {
           case call @ Call(_, FunctionInvocation(TypedFunDef(`rootFd`, _), _)) => //direct recursive call ?
             val cdata = bodyFormula.callData(call)
@@ -199,8 +212,9 @@ class CompositionalTimeBoundSolver(ctx: InferenceContext, prog: Program, rootFd:
         if (debugDecreaseConstraints)
           reporter.info("Decrease constraints: " + createAnd(constraints.toSeq))
 
-        val fullPost = createAnd(postWithTemplate +: constraints.toSeq)
-        (bodyFormula.toExpr, preExpr, fullPost)
+        val fullPost = createAnd(tprPost +: constraints.toSeq)
+        val (nonparam, param, _) = bodyFormula.toUnflatExpr
+        (createAnd(Seq(nonparam, param)), assumptions, fullPost)
       }
     }
     tempSolver()
