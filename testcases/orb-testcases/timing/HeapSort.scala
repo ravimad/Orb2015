@@ -45,19 +45,19 @@ object HeapSort {
     proofAxioms(t) && rightHeight(t) <= log(heapSize(t) + 1)
   } holds
 
-  private def rightHeight(h: Heap): BigInt = {
+  def rightHeight(h: Heap): BigInt = {
     h match {
       case Leaf()           => BigInt(0)
       case Node(_, _, _, r) => rightHeight(r) + 1
     }
   } ensuring (res => res >= 0)
 
-  private def rank(h: Heap): BigInt = h match {
+  def rank(h: Heap): BigInt = h match {
     case Leaf()            => 0
     case Node(rk, _, _, _) => rk
   }
 
-  private def hasLeftistProperty(h: Heap): Boolean = (h match {
+  def hasLeftistProperty(h: Heap): Boolean = (h match {
     case Leaf()           => true
     case Node(_, _, l, r) => hasLeftistProperty(l) && hasLeftistProperty(r) && rightHeight(l) >= rightHeight(r) && (rank(h) == rightHeight(h))
   })
@@ -70,7 +70,7 @@ object HeapSort {
   }
 
   @invisibleBody
-  private def merge(h1: Heap, h2: Heap): Heap = {
+  def merge(h1: Heap, h2: Heap): Heap = {
     require(hasLeftistProperty(h1) && hasLeftistProperty(h2))
     h1 match {
       case Leaf() => h2
@@ -85,9 +85,8 @@ object HeapSort {
     }
   } ensuring (res => hasLeftistProperty(res) && heapSize(res) == heapSize(h1) + heapSize(h2) &&
     steps <= ? * rightHeight(h1) + ? * rightHeight(h2) + ?)
-  //time <= 35*rightHeight(h1) + 35*rightHeight(h2) + 2)
 
-  private def makeT(value: BigInt, left: Heap, right: Heap): Heap = {
+  def makeT(value: BigInt, left: Heap, right: Heap): Heap = {
     require(hasLeftistProperty(left) && hasLeftistProperty(right))
     if (rank(left) >= rank(right))
       Node(rank(right) + 1, value, left, right)
@@ -120,9 +119,6 @@ object HeapSort {
     }
   }
 
-  /**
-   * TODO: why enabling invisibleBody here causes verification to fail.
-   */
   @invisibleBody
   def removeMax(h: Heap): Heap = {
     require(h != Leaf() && hasLeftistProperty(h))
@@ -145,7 +141,7 @@ object HeapSort {
     case Nil()       => BigInt(0)
     case Cons(_, xs) => 1 + listSize(xs)
   }) ensuring (_ >= 0)
-  
+
   @invisibleBody
   def removeElements(h: Heap): List = {
     require(hasLeftistProperty(h))
@@ -168,9 +164,9 @@ object HeapSort {
     heapSize(res) == listSize(l) &&
     steps <= ? * (listSize(l) * log(listSize(l) + 1)) + ? * log(listSize(l) + 1) + ?)
 
-  def sort(l: List): List = {   
+  def sort(l: List): List = {
     removeElements(buildHeap(l))
-  } ensuring (res => 
+  } ensuring (res =>
     steps <= ? * (listSize(l) * log(listSize(l) + 1)) + ? * log(listSize(l) + 1) + ?)
 }
 

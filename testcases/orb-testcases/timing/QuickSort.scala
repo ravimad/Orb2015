@@ -4,9 +4,7 @@ import instrumentation._
 import lang._
 import annotation._
 
-/**
- * Use with --assumepreInf since asserts are used to prove some lemmas
- */
+
 object QuickSort {
   sealed abstract class List
   case class Cons(head: BigInt, tail: List) extends List
@@ -62,6 +60,10 @@ object QuickSort {
   } ensuring (res => size(l) == size(res) && steps <= ? * (size(l) * size(l)) + ? * size(l) + ?)
 }
 
+/**
+ * We need to use --assumepre since the asserts are encoded using a function with a precondition
+ * Use --assumepreInf to verify these with Orb  
+ */
 object Arithmetic {
 
   def monotonicSquares(a: BigInt, b: BigInt) = {
