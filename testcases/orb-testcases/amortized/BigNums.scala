@@ -21,7 +21,7 @@ object BigNums {
   case class Nil() extends BigNum
 
   /**
-   * Time taken by the increment method
+   * steps taken by the increment method
    * The number of leading one's
    */
   def leadingOnes(l: BigNum) : BigInt = {
@@ -53,7 +53,8 @@ object BigNums {
       case Cons(_, tail) => 
         Cons(Zero(), increment(tail))
     }
-  } ensuring (res => time <= ? * leadingOnes(l) + ? && leadingOnes(l) + numOnes(res) - numOnes(l) <= ?)
+  } ensuring (res => steps <= ? * numOnes(res) + ? * numOnes(l) + ?)
+  //ensuring (res => steps <= ? * leadingOnes(l) + ? && leadingOnes(l) + numOnes(res) - numOnes(l) <= ?)
   
   def firstDigit(l: BigNum): Digit = {
     require(l != Nil())
@@ -70,10 +71,10 @@ object BigNums {
     else {
       incrUntil(nop-1, increment(l))
     }
-  } ensuring (res => time <= ? * nop + ? * numOnes(l) + ?)
+  } ensuring (res => steps <= ? * nop + ? * numOnes(l) + ?)
 
   def count(nop: BigInt) : BigNum = {
     incrUntil(nop, Nil())
-  } ensuring (res => time <= ? * nop + ?)
+  } ensuring (res => steps <= ? * nop + ?)
 
 }

@@ -14,6 +14,9 @@ import leon.invariant.util.Util._
 
 import scala.collection.mutable.{Map => MutableMap}
 
+/**
+ * See Ravi's Thesis for a formalization of TPR cost semantics.
+ */
 class TPRInstrumenter(p: Program, si: SerialInstrumenter) extends Instrumenter(p, si) {
 
   def costOf(e: Expr)(implicit fd: FunDef): Int = e match {
@@ -93,8 +96,9 @@ class TPRInstrumenter(p: Program, si: SerialInstrumenter) extends Instrumenter(p
     case t: Terminal => costOfExpr(t)
     case FunctionInvocation(tfd, args) => {
       val remSubInsts = if (tprFuncs.contains(tfd.fd))
-        subInsts.slice(0, subInsts.length - 1)
+        subInsts.dropRight(1) //.slice(0, subInsts.length - 1)
       else subInsts
+      // TODO: check in the case of mutual recursion is tpr is provided in the body of all functions in the Scc.       
       if (sccs(fd)(tfd.fd)) {
         remSubInsts.foldLeft(costOfExpr(e) : Expr)(
           (acc: Expr, subeTime: Expr) => Plus(subeTime, acc))
