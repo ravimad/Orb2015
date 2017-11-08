@@ -18,6 +18,10 @@ object GCD {
 }
 
 
+/**
+ * Remove @library annotation and verify the properties with Leon.
+ * With Orb, it exposes a transient bug.
+ */
 object Arithmetic {
 
   /**
