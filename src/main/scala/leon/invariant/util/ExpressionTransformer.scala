@@ -70,13 +70,26 @@ object ExpressionTransformer {
         (op(newargs), ncjs)
       case _ => throw new IllegalStateException("Impossible event: expr did not match any case: " + e)
     }
-  }
+  }  
 
   /**
    * Assumed that the given expression has boolean type
    * converting let into a logical formula. If-then-else's are preserved.
    */
   def reduceLangBlocks(inexpr: Expr, multop: (Expr, Expr) => Expr) = {
+
+    /**
+     * A helper function for division
+     */
+    def toDivPred(num: Expr, denom: Expr): (Expr, Variable, Variable) = {
+      val quo = createTemp("q", IntegerType, langContext).toVariable
+      val rem = createTemp("r", IntegerType, langContext).toVariable
+      val mult = multop(quo, denom)
+      val divsem = Equals(num, Plus(mult, rem))
+      //TODO: here, we have to use |rhs|
+      val newexpr = createAnd(Seq(divsem, LessEquals(zero, rem), LessEquals(rem, Minus(denom, one))))
+      (newexpr, quo, rem)
+    }
 
     def transform(e: Expr, insideFunction: Boolean): (Expr, Set[Expr]) = {
       e match {
@@ -103,16 +116,32 @@ object ExpressionTransformer {
           (quo, resset._2 + resset._1)
 
         //handles division by variables
-        case Division(lhs, rhs) =>
+        case Division(lhs, rhs) =>          
           //this models floor and not integer division
-          val quo = createTemp("q", IntegerType, langContext).toVariable
-          val rem = createTemp("r", IntegerType, langContext).toVariable
-          val mult = multop(quo, rhs)
-          val divsem = Equals(lhs, Plus(mult, rem))
-          //TODO: here, we have to use |rhs|
-          val newexpr = createAnd(Seq(divsem, LessEquals(zero, rem), LessEquals(rem, Minus(rhs, one))))
+          val (newexpr, quo, _) = toDivPred(lhs, rhs)
           val resset = transform(newexpr, true)
           (quo, resset._2 + resset._1)
+        
+//        //modulo by constant
+//        case Remainder(lhs, rhs @ InfiniteIntegerLiteral(v)) =>
+//          //this models floor and not integer division
+//          val quo = createTemp("q", IntegerType, langContext).toVariable
+//          var possibs = Seq[Expr]()
+//          for (i <- v - 1 to 0 by -1) {
+//            if (i == 0) possibs :+= Equals(lhs, Times(rhs, quo))
+//            else possibs :+= Equals(lhs, Plus(Times(rhs, quo), InfiniteIntegerLiteral(i)))
+//          }
+//          //compute the disjunction of all possibs
+//          val newexpr = Or(possibs)
+//          //println("newexpr: "+newexpr)
+//          val resset = transform(newexpr, true)
+//          (quo, resset._2 + resset._1)          
+          
+        //modulo by variables
+        case Remainder(lhs, rhs) =>
+          val (newexpr, _, rem) = toDivPred(lhs, rhs)          
+          val resset = transform(newexpr, true)
+          (rem, resset._2 + resset._1)
 
         case err @ Error(_, msg) =>
           //replace this by a fresh variable of the error type
